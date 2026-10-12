@@ -17,32 +17,32 @@ References: [client brief](client-brief.md), [architecture](architecture.md),
 - [x] Copy the tutorial's `Document Copilot Setup` snapshot, including all `AGENTS.md` files.
 - [x] Initialize Git and push the setup commit to our GitHub repository.
 - [x] Download the initial SEC sample files and manifest into ignored `data/downloads/`.
-- [ ] Check the manifest and downloaded files cover the expected 25 filings: AAPL, AMZN, GOOGL, MSFT, and NVDA, fiscal years 2021–2025.
-- [ ] Turn the ten example questions in the client brief into an evaluation worksheet: expected companies/years, source passages, figures, and appropriate refusals. Start with a few simple questions and expand as ingestion becomes available.
-- [ ] Resolve page citations before choosing the extraction format: preserve actual filing page labels and source locations. HTML line numbers or invented page numbers are not valid substitutes. If reliable pages are unavailable, obtain client agreement on section/anchor citations before considering this requirement satisfied.
+- [x] Check the manifest and downloaded files cover the expected 25 filings: AAPL, AMZN, GOOGL, MSFT, and NVDA, fiscal years 2021–2025.
+- [x] Turn the ten example questions in the client brief into an evaluation worksheet: expected companies/years, source passages, figures, and appropriate refusals. Start with a few simple questions and expand as ingestion becomes available.
+- [x] Resolve page citations before choosing the extraction format: preserve actual filing page labels and source locations. HTML line numbers or invented page numbers are not valid substitutes. If reliable pages are unavailable, obtain client agreement on section/anchor citations before considering this requirement satisfied.
 
 **Gate:** The starting scope and evidence needed to demonstrate success are clear.
 
 ## 1. Backend foundation
 
-- [ ] Set up the backend environment with uv and add the declared backend dependencies as needed; add pytest and Ruff for development.
+- [x] Set up the backend environment with uv and add the declared backend dependencies as needed; add pytest and Ruff for development.
 - [x] Verify dependency pinning and release-age configuration uses valid uv settings and is actually enforced; commit the generated lockfile.
-- [ ] Create the FastAPI entry point and a health endpoint; run it locally with Uvicorn.
-- [ ] Add the central Pydantic settings module, a safe `.env.example`, and ignored local environment files. Validate required configuration at startup.
-- [ ] Configure explicit development CORS origins and structured logs without credentials or bearer tokens.
-- [ ] Add a small backend test foundation and verify the health endpoint and configuration failures.
+- [x] Create the FastAPI entry point and a health endpoint; run it locally with Uvicorn.
+- [x] Add the central Pydantic settings module, a safe `.env.example`, and ignored local environment files. Validate required configuration at startup.
+- [x] Configure explicit development CORS origins and structured logs without credentials or bearer tokens.
+- [x] Add a small backend test foundation and verify the health endpoint and configuration failures.
 
 **Gate:** The backend starts reproducibly, serves a health response, and reports missing configuration clearly.
 
 ## 2. Database, migrations, and identity
 
-- [ ] Create the Supabase project and configure email authentication for the internal application.
-- [ ] Decide how approved Driftwood users are admitted, using invitations or an approved-email policy enforced server-side. Email verification alone must not admit arbitrary outsiders.
-- [ ] Configure the backend Supabase clients and direct/session Postgres connection for Alembic.
-- [ ] Define SQLAlchemy models for profiles/users, chat threads, messages, citations, source documents, and document chunks, with foreign keys and ownership fields.
-- [ ] Add reviewed Alembic migrations for tables, `pgvector`, embedding dimensions, generated full-text vectors, and HNSW/GIN indexes.
+- [x] Create the Supabase project and configure email authentication for the internal application.
+- [x] Decide how approved Driftwood users are admitted, using invitations or an approved-email policy enforced server-side. Email verification alone must not admit arbitrary outsiders.
+- [x] Configure the backend Supabase clients and direct/session Postgres connection for Alembic.
+- [x] Define SQLAlchemy models for profiles/users, chat threads, messages, citations, source documents, and document chunks, with foreign keys and ownership fields.
+- [x] Add reviewed Alembic migrations for tables, `pgvector`, embedding dimensions, generated full-text vectors, and HNSW/GIN indexes.
 - [ ] Add RLS policies and grants; restrict private conversations to their owners and corpus access to approved authenticated users. Check authorization explicitly in privileged backend operations.
-- [ ] Apply migrations to a fresh development database and verify they reproduce the expected schema.
+- [x] Apply migrations to a fresh development database and verify they reproduce the expected schema.
 - [ ] Verify Supabase bearer tokens in FastAPI and derive identity from the verified session.
 - [ ] Test missing/expired/invalid tokens, unapproved users, and cross-user access using two accounts, including direct database access where permitted.
 
