@@ -58,10 +58,11 @@ References: [client brief](client-brief.md), [architecture](architecture.md),
 - [x] Verify the approved session survives page reload, logout returns to login, and protected routes reject access after logout (confirmed by the developer).
 - [ ] Verify email-confirmation and expired-session behavior explicitly with actual browser sessions.
 - [x] Build the shared native-fetch API client with automatic bearer-token injection and clear HTTP/network error handling.
-- [ ] Add backend endpoints to create/list threads and read ordered message history; enforce thread ownership on every operation.
-- [ ] Add `POST /chat/stream` with a deterministic test response in the protocol supported by the installed Vercel AI SDK UI version.
-- [ ] Connect a minimal chat screen, input, message list, and thread sidebar to FastAPI using the AI SDK React primitives.
-- [ ] Persist completed test turns and restore them after page reload. Define failure/cancellation behavior so partial answers are never stored as successful turns.
+- [x] Add backend endpoints to create/list threads and read ordered message history; enforce verified-user ownership on every operation. Verified with unit tests and live SQL/API checks using temporary identities (fixtures rolled back).
+- [x] Add `POST /chat/stream` with a deterministic test response in the installed AI SDK 7 UI-message protocol; verify using its actual transport/parser. Save completed turns atomically, roll back interrupted turns, and replay completed retries without duplication.
+- [x] Connect a minimal chat screen, input, message list, and thread sidebar to FastAPI using the AI SDK React primitives. TypeScript, lint, and production build pass; actual browser flow remains part of the gate below.
+- [x] Persist completed test turns and restore them after page reload. Define failure/cancellation behavior so partial answers are never stored as successful turns. Backend persistence checks pass; the developer confirmed reload/retry recovery works, including immediate reload after first send.
+  - Submitted questions survive tab reload before thread creation returns. Stable thread/question IDs prevent duplicate threads and turns. Explicit browser Stop verification remains part of the interruption checks below.
 - [ ] Verify invalid payloads, unknown threads, forbidden threads, upstream failures, and interrupted streams are handled clearly.
 
 **Gate:** Log in → create a chat → see a streamed test answer → reload and recover history → log out. This milestone does not yet use the LLM.

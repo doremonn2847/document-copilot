@@ -69,3 +69,72 @@ can be checked with `--expected-status 403`. The account must already have a pas
 The RLS test uses temporary database identities and rolls back every fixture.
 Token rejection cases use mocked Auth responses; real invited-user sign-in still
 needs testing with actual sessions. No tokens or passwords belong in committed files.
+
+## Chat thread endpoints
+
+All endpoints require an approved user's bearer token:
+
+| Method | Path | Result |
+| --- | --- | --- |
+| POST | `/chat/threads` | Create a thread with `{"title": "New chat"}` (or `{}`); returns 201 |
+| GET | `/chat/threads` | List only the current user's threads, newest updated first |
+| GET | `/chat/threads/{thread_id}/messages` | Read owned-thread messages in sequence order |
+
+List endpoints accept `limit` (1–200) and `offset` (0 or greater). Defaults are
+50 threads or 100 messages. Fetch subsequent pages when needed. Unknown threads
+return 404; another user's thread returns 403. Ownership comes from the verified
+session, and a submitted `user_id` is rejected. Invalid inputs return 422;
+database failures return a generic 503.
+
+Async handlers run psycopg database I/O in FastAPI's worker pool, supporting the
+default Windows event loop without blocking requests. They use the existing
+database connection setting. This
+privileged connection requires explicit ownership checks; Supabase's RLS remains
+in place for browser/user-scoped database access. Writes commit before success
+is sent. No schema migration or new dependency is required.
+
+```powershell
+uv run python -m pytest tests/api/test_threads.py -q
+uv run python -m pytest tests/database/test_chat_endpoints.py -q
+```
+
+The live endpoint test overrides authentication with temporary identities,
+executes real SQL, and rolls back all fixtures. Real browser chat verification
+will follow when the chat UI and streaming endpoint are implemented.
+
+## Stubbed chat stream
+
+`POST /chat/stream` requires the same approved-user bearer token. Send:
+
+```json
+{
+  "threadId": "the-created-thread-uuid",
+  "messages": [{"id": "unique-question-id", "role": "user", "parts": [{"type": "text", "text": "What is Apple's revenue?"}]}]
+}
+```
+
+It returns SSE using the installed AI SDK 7 UI-message protocol, with
+`x-vercel-ai-ui-message-stream: v1`. The reply is a fixed stub, without LLM calls.
+The final message must be a user question. Text and SDK step-start parts are
+supported; attachments, tool parts, and regeneration are not implemented yet.
+Earlier client messages do not determine database ownership or stored history.
+
+The question and reply are inserted together in one transaction. `finish` is
+sent only after commit. Cancellation observed before commit rolls back the
+turn; persistence failures emit a safe `error` event without `finish`.
+The upcoming UI must mark missing completion as interrupted, even if all text
+arrived. A disconnect just after commit may leave a saved turn; reload history
+to recover it. Retrying the same question ID replays that saved answer rather
+than inserting another pair. Reusing an ID for different text returns 409.
+
+Thread-row locking serializes turns; a concurrent stream gets 409. The stream
+keeps its transaction until completion, while regular thread operations commit
+before responding. Interrupted-stream cleanup releases the connection/lock.
+
+```powershell
+uv run python -m pytest tests/chat tests/api -q --tb=no
+uv run python -m pytest tests/database/test_chat_endpoints.py -q --tb=no
+```
+
+The live test keeps stream commits inside a rollback-only fixture transaction.
+Durability ordering and commit failure behavior are covered by unit tests.

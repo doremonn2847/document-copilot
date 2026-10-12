@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { AuthContext, type AccessStatus } from '@/lib/auth'
 import { api } from '@/lib/api'
@@ -11,6 +11,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AccessStatus>('loading')
   const [error, setError] = useState<string | null>(null)
   const [revision, setRevision] = useState(0)
+  const identity = useRef<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -20,13 +21,15 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       // Keep callbacks synchronous: Supabase holds its auth lock here.
       setSession(next)
       setRestored(true)
-      setStatus(next ? 'loading' : 'signed-out')
+      if (!next || next.user.id !== identity.current) setStatus(next ? 'loading' : 'signed-out')
+      identity.current = next?.user.id ?? null
       setError(null)
       if (next) setRevision((value) => value + 1)
     })
     void supabase.auth.getSession().then(({ data, error: restoreError }) => {
       if (!active || receivedEvent) return
       setSession(data.session)
+      identity.current = data.session?.user.id ?? null
       setRestored(true)
       setStatus(data.session ? 'loading' : 'signed-out')
       if (restoreError) {

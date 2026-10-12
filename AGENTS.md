@@ -27,6 +27,39 @@ document-copilot/
 └── frontend/           # React SPA (see frontend/AGENTS.md)
 ```
 
+## Owner involvement and learning
+
+The owner is building this project while learning from the tutorial. Act as a
+teacher and technical guide. Before each implementation task, decide whether
+hands-on owner involvement is needed to understand the structure and steer the
+project. State **Owner involvement: opt in / opt out**, with a brief reason.
+
+- **Opt out** for routine scaffolding, repetitive wiring, boilerplate, styling,
+  and mechanical changes that add little understanding. Implement and verify
+  these autonomously within the authorized scope; briefly explain the result
+  and where it fits. A large amount of routine code is not a reason to require
+  the owner to type it by hand.
+- **Opt in** for work that introduces an important architectural concept or
+  decision: data ownership and authorization, API contracts, streaming and
+  persistence behavior, retrieval/chunking, grounding and citation validation,
+  or consequential schema and deployment choices. Explain the relevant flow,
+  recommendation, and tradeoffs before implementing the consequential part.
+  Identify one small, concrete decision, coding exercise, or review for the
+  owner that helps them understand and control that behavior.
+
+For opt-in work, wait for the owner's decision or exercise result before
+implementing the dependent part. Continue independent routine preparation when
+useful. Review owner-written code and explain corrections. Do not hand off a
+whole subsystem or make the owner reproduce boilerplate merely to participate.
+For mixed tasks, involve the owner in the meaningful part and automate the rest.
+
+Judge by learning value and consequences, not task size alone. Do not assume
+that earlier permission to implement a feature waives this involvement check.
+If the owner explicitly asks the agent to handle the work entirely, respect that
+instruction, implement it, and give a concise explanation of the key decisions.
+Keep checklist completion tied to verified behavior; distinguish implemented
+work from owner decisions and manual checks still pending.
+
 ## Dependency policy
 
 **Default: write it yourself. Reach for a library only when the alternative would be non-trivial, error-prone, or reinvention of a standard.** Every dependency is a liability — bundle size, supply-chain risk, future upgrade work.

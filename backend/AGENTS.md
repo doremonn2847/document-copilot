@@ -74,6 +74,10 @@ backend/
 - **Prefer unit over integration.** Mock at the service boundary.
 - Fast suite (`pytest -m "not integration"`) must stay green and hit no network / no DB.
 - Integration tests go behind `@pytest.mark.integration` and may require live OpenAI / Supabase credentials.
+- Run tests that use real credentials with `--tb=no`; never use `--showlocals`.
+  Driver tracebacks can expose connection strings even when settings hide secrets.
+  For live connection checks, catch errors and report a sanitized result without
+  exception text, environment values, passwords, or connection strings.
 - Tests live next to what they test (`retrieval/retriever.py` → `tests/retrieval/test_retriever.py`).
 - Required test coverage: ingestion logic, retrieval, citation extraction, grounding enforcement.
 
