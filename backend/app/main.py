@@ -6,6 +6,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.auth import router as auth_router
 from app.config import settings  # Validate configuration before creating the app.
 
 structlog.configure(
@@ -27,6 +28,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(title="Document Copilot", lifespan=lifespan)
 app.state.settings = settings
+app.include_router(auth_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,

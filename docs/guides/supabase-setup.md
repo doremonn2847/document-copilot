@@ -44,7 +44,30 @@ This app uses email auth only — no Google/SSO.
 
 1. Dashboard → **Authentication** → **Providers**.
 2. Leave **Email** enabled.
-3. For local dev, you may want **Authentication** → **Email** → disable "Confirm email" so sign-up works without inbox access (re-enable for production).
+3. Enable **Allow new users to sign up** in the Auth settings.
+4. Keep **Confirm email** enabled. Set the **Site URL** to the frontend URL
+   (`http://localhost:5173` for local development) and allow that URL in the
+   redirect configuration, including `http://localhost:5173/auth/callback` for
+   confirmation links. Use the deployed frontend URL and its `/auth/callback`
+   route in production. Open the app using the same hostname as these settings.
+5. Registration and email confirmation do not grant app access. A confirmed
+   account without a `public.users` profile receives **403** from protected APIs.
+6. Review the registration, then approve the user's Auth UUID from `backend/`:
+
+   ```bash
+   uv run python -m app.database.approve_user <user-uuid>
+   ```
+
+The command only approves active, email-confirmed accounts. Do not add a trigger
+that automatically inserts profiles on registration: profiles are the approval
+list. Approval is an administrator CLI action, not a public endpoint.
+
+The frontend provides `/signup`, `/login`, `/auth/callback`, and
+`/pending-approval`. After sign-in, `/auth/me` determines whether the user can
+enter the app. Pending users can check again after manual approval; a server
+failure shows a retry screen rather than treating them as approved or pending.
+If confirmation emails hit the provider rate limit, configure SMTP before
+opening registration to more users.
 
 ## 5. Database schema management
 

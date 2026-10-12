@@ -37,23 +37,27 @@ References: [client brief](client-brief.md), [architecture](architecture.md),
 ## 2. Database, migrations, and identity
 
 - [x] Create the Supabase project and configure email authentication for the internal application.
-- [x] Decide how approved Driftwood users are admitted, using invitations or an approved-email policy enforced server-side. Email verification alone must not admit arbitrary outsiders.
+- [x] Decide admission policy: public registration, email confirmation, then manual approval via the administrator CLI. Only approved profiles gain app access; email verification alone does not admit outsiders.
 - [x] Configure the backend Supabase clients and direct/session Postgres connection for Alembic.
 - [x] Define SQLAlchemy models for profiles/users, chat threads, messages, citations, source documents, and document chunks, with foreign keys and ownership fields.
 - [x] Add reviewed Alembic migrations for tables, `pgvector`, embedding dimensions, generated full-text vectors, and HNSW/GIN indexes.
-- [ ] Add RLS policies and grants; restrict private conversations to their owners and corpus access to approved authenticated users. Check authorization explicitly in privileged backend operations.
+- [x] Add RLS policies and grants; restrict private conversations to their owners and corpus access to approved authenticated users. Enforce approval on protected routes; future privileged resource operations must also check ownership.
 - [x] Apply migrations to a fresh development database and verify they reproduce the expected schema.
-- [ ] Verify Supabase bearer tokens in FastAPI and derive identity from the verified session.
-- [ ] Test missing/expired/invalid tokens, unapproved users, and cross-user access using two accounts, including direct database access where permitted.
+- [x] Verify Supabase bearer tokens in FastAPI and derive identity from the verified session.
+- [x] Test missing/expired/invalid tokens and unapproved users with mocked Auth responses; verify cross-user isolation and database permissions against live Supabase with two temporary database identities (all fixtures rolled back).
+- [ ] Verify real invited-user sign-in and `/auth/me` with two actual Supabase sessions; confirm an account without an approved profile receives 403. This remains necessary before declaring the milestone gate complete.
 
 **Gate:** An approved user can authenticate; another user cannot read or modify their conversations.
 
 ## 3. Connect the frontend and prove chat plumbing
 
-- [ ] Scaffold Vite + React + TypeScript while preserving the existing `.npmrc` and agent instructions; configure React Router, Tailwind, shadcn/ui, and the import alias.
-- [ ] Add central frontend environment validation and the shared Supabase browser client. Only public configuration belongs in the browser.
-- [ ] Build login, logout, protected routes, session restoration, and expired-session handling.
-- [ ] Build the shared native-fetch API client with automatic bearer-token injection and clear HTTP/network error handling.
+- [x] Scaffold Vite + React + TypeScript while preserving the existing `.npmrc` and agent instructions; configure React Router, Tailwind, shadcn/ui, and the import alias.
+- [x] Add central frontend environment validation and the shared Supabase browser client. Only public configuration belongs in the browser.
+- [x] Build public sign-up, email confirmation guidance, login, logout, pending-approval screens, protected routes, session restoration, and handling for rejected/expired sessions.
+- [x] Verify public registration/sign-in → pending approval → manual approval → Check again → approved workspace with an actual browser account (confirmed by the developer).
+- [x] Verify the approved session survives page reload, logout returns to login, and protected routes reject access after logout (confirmed by the developer).
+- [ ] Verify email-confirmation and expired-session behavior explicitly with actual browser sessions.
+- [x] Build the shared native-fetch API client with automatic bearer-token injection and clear HTTP/network error handling.
 - [ ] Add backend endpoints to create/list threads and read ordered message history; enforce thread ownership on every operation.
 - [ ] Add `POST /chat/stream` with a deterministic test response in the protocol supported by the installed Vercel AI SDK UI version.
 - [ ] Connect a minimal chat screen, input, message list, and thread sidebar to FastAPI using the AI SDK React primitives.

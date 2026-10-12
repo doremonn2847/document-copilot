@@ -5,6 +5,9 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
 
+[tool.pytest.ini_options]
+markers = ["integration: requires the configured live Supabase database or API"]
+
 [project]
 name = "document-copilot-backend"
 version = "0.1.0"

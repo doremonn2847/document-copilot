@@ -90,3 +90,59 @@ def test_app_health_cors_and_structured_logs(settings_class, capsys):
     assert events == ["application_started", "application_stopped"]
     assert "test-service-secret" not in output
     assert "test-openai-secret" not in output
+
+
+@pytest.mark.parametrize(
+    "token,auth_status,approved,expected",
+    [
+        (None, 200, True, 401),
+        ("invalid", 401, True, 401),
+        ("expired-test-token", 403, True, 401),
+        ("unapproved", 200, False, 403),
+        ("approved", 200, True, 200),
+        ("upstream-error", 500, True, 502),
+    ],
+)
+def test_auth_boundary(
+    settings_class, monkeypatch, token, auth_status, approved, expected
+):
+    import httpx
+    from fastapi.testclient import TestClient
+
+    from app.auth import dependencies
+    from app.main import app
+
+    user_id = "00000000-0000-0000-0000-000000000001"
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        assert request.headers["authorization"] == f"Bearer {token}"
+        if request.url.path == "/auth/v1/user":
+            return httpx.Response(
+                auth_status, json={"id": user_id, "email": "analyst@example.test"}
+            )
+        assert request.url.path == "/rest/v1/users"
+        assert request.url.params["id"] == f"eq.{user_id}"
+        return httpx.Response(200, json=[{"id": user_id}] if approved else [])
+
+    client_class = httpx.AsyncClient
+    monkeypatch.setattr(
+        dependencies.httpx,
+        "AsyncClient",
+        lambda **kwargs: client_class(
+            **kwargs,
+            transport=httpx.MockTransport(handler),
+        ),
+    )
+    response = TestClient(app).get(
+        "/auth/me",
+        headers={"Authorization": f"Bearer {token}"} if token else {},
+    )
+    assert response.status_code == expected
+    if token is None:
+        assert requests == []
+    if expected == 200:
+        assert response.json() == {"id": user_id, "email": "analyst@example.test"}
+    else:
+        assert token is None or token not in response.text
