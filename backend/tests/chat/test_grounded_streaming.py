@@ -55,6 +55,11 @@ def test_progress_precedes_validated_text_and_citations_replay_without_paid_work
         text="Supported [1]",
         parts=[
             {"type": "text", "text": "Supported [1]"},
+            {
+                "type": "data-answer",
+                "id": "answer",
+                "data": {"blocks": [{"kind": "claim", "citations": [1]}]},
+            },
             {"type": "data-citation", "id": "1", "data": {"chunk_id": cid}},
         ],
     )
@@ -87,7 +92,10 @@ def test_progress_precedes_validated_text_and_citations_replay_without_paid_work
                     )
                 ]
             )
-            assert [e for e in out if e["type"] == "data-citation"] == reply.parts[1:]
+            # Structured blocks and citations stream (and replay) in saved order.
+            assert [
+                e for e in out if e["type"] in ("data-answer", "data-citation")
+            ] == reply.parts[1:]
             if existing is None:
                 assert next(
                     i for i, e in enumerate(out) if e["type"] == "data-status"
