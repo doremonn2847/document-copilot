@@ -45,7 +45,7 @@ cannot open a browser, so tasks end at code, offline tests and builds.
    interrupted answers and "no evidence" answers each get a specific message
    and a next step. Stop a transient `/auth/me` failure on tab refocus from
    unmounting the workspace (onboarding finding).
-7. [ ] **Accessibility and layout.** Unique ids per mounted composer, focus
+7. [x] **Accessibility and layout.** Done: unique composer ids, Ctrl/Cmd+Enter to send, focusable citation and example buttons, tighter spacing on narrow screens. Needs the owner's manual keyboard/size check. Unique ids per mounted composer, focus
    order, aria labels for sources, long answers and narrow (mobile) widths.
 
 ## Morning summary

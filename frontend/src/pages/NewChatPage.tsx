@@ -43,7 +43,7 @@ export default function NewChatPage() {
   }
 
   return (
-    <div className="mx-auto flex h-full max-w-3xl flex-col px-6 py-6">
+    <div className="mx-auto flex h-full max-w-3xl flex-col px-4 py-6 sm:px-6">
       <div className="flex flex-1 flex-col justify-center gap-4 pb-8">
         <h1 className="text-3xl font-semibold tracking-tight">Start a conversation</h1>
         <p className="max-w-lg text-muted-foreground">Ask about SEC filings, or reopen a conversation from the sidebar. Your new chat is saved when you send the first question.</p>

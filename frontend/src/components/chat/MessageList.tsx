@@ -83,7 +83,7 @@ export default function MessageList({ messages, provisional }: { messages: ChatM
     const pending = provisional && message.role === 'assistant' && index === messages.length - 1
     const cited = answer ? answer.data.blocks.flatMap((b) => (b.kind === 'claim' ? b.citations : [])) : []
     const missing = [...new Set(cited)].filter((n) => !citations.some((c) => c.index === n))
-    return <article key={message.id} className={message.role === 'user' ? 'ml-8 rounded-xl bg-muted p-4' : 'mr-8 p-4'}>
+    return <article key={message.id} className={message.role === 'user' ? 'ml-4 rounded-xl bg-muted p-4 sm:ml-8' : 'p-4 sm:mr-8'}>
       <p className="mb-2 text-xs font-semibold text-muted-foreground">{message.role === 'user' ? 'You' : 'Document Copilot'}</p>
       {message.role === 'assistant' && answer
         ? <Blocks messageId={message.id} blocks={answer.data.blocks} />

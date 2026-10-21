@@ -86,7 +86,7 @@ export default function ChatConversation({ threadId, history, initial, recovered
     await sendMessage(pending.current)
   }
 
-  return <div className="mx-auto flex h-full max-w-3xl flex-col px-6 py-6">
+  return <div className="mx-auto flex h-full max-w-3xl flex-col px-4 py-6 sm:px-6">
     <header className="mb-4 border-b pb-4"><h1 className="font-semibold">Conversation</h1><p className="text-xs text-muted-foreground">Private to your account</p></header>
     <div className="min-h-0 flex-1 overflow-y-auto pb-6">
       {!messages.length && <p className="py-8 text-muted-foreground">Send a question to start this conversation.</p>}
