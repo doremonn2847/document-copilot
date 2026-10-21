@@ -11,7 +11,12 @@ from pydantic_ai.providers.openai import OpenAIProvider
 from app.assistant.calculations import validate_record
 from app.assistant.deps import TurnRegistry, normalized
 from app.assistant.model_settings import StopAtOutputLimit, bounded_settings
-from app.assistant.outputs import MAX_EVIDENCE_GAPS, Contract, GroundedAnswer
+from app.assistant.outputs import (
+    MAX_EVIDENCE_GAPS,
+    AnswerClaim,
+    Contract,
+    GroundedAnswer,
+)
 from app.assistant.rendering import calculation_text
 from app.assistant.selection import matches_target
 from app.grounding.claim_context import unsupported_absence_claim
@@ -19,9 +24,30 @@ from app.retrieval.types import SearchFilters
 
 # Bounds judge input when a broad comparison reports many target gaps.
 TARGET_EVIDENCE_QUOTES = 12
+# Shorter spans ("suppliers") can be matched without stating the assertion.
+MIN_ANCHOR_WORDS = 3
+
+
+class Assertion(Contract):
+    assertion: str = Field(
+        min_length=1,
+        max_length=300,
+        description="One material component of the claim: a fact, a relationship direction (who invests in, pays, supplies or depends on whom), a period, or a change across years.",
+    )
+    supporting_quote: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=600,
+        description="Exact contiguous words (at least three) copied from THIS claim's cited exact_quote that state the assertion with the same direction and meaning; null when no cited quote states it.",
+    )
 
 
 class ClaimVerdict(Contract):
+    assertions: list[Assertion] = Field(
+        default_factory=list,
+        max_length=8,
+        description="Before deciding, list every material assertion of the claim with the cited words that state it. The server checks each supporting_quote verbatim against this claim's quotes.",
+    )
     evidence_assessment: str = Field(
         min_length=1,
         max_length=500,
@@ -114,6 +140,52 @@ def support_errors(report: SupportReport, count: int, gap_count: int = 0) -> lis
     ]
 
 
+def anchored(decision: ClaimVerdict, quotes: list[str]) -> ClaimVerdict:
+    """A supported verdict must show cited words for every assertion it checked."""
+    if not decision.supported:
+        return decision
+    sources = [normalized(quote) for quote in quotes]
+    problem = (
+        None
+        if decision.assertions
+        else "The verdict listed no assertions to check against the cited quotes."
+    )
+    for item in decision.assertions:
+        if problem:
+            break
+        words = normalized(item.supporting_quote or "")
+        if not words:
+            problem = f"No cited quote states: {item.assertion}"
+        elif len(words.split()) < MIN_ANCHOR_WORDS or not any(
+            words in source for source in sources
+        ):
+            problem = f"Supporting words are not a verbatim span of this claim's cited quotes: {item.assertion}"
+    if problem is None:
+        return decision
+    return decision.model_copy(
+        update={
+            "supported": False,
+            "reason": "unsupported_fact",
+            "evidence_assessment": problem[:500],
+        }
+    )
+
+
+def anchored_report(report: SupportReport, claims: list[AnswerClaim]) -> SupportReport:
+    """Anchor model verdicts; calculation results are verified by the server."""
+    return report.model_copy(
+        update={
+            "decisions": [
+                anchored(d, [ref.exact_quote for ref in claims[d.claim_index].evidence])
+                if d.claim_index < len(claims)
+                and claims[d.claim_index].kind != "calculation"
+                else d
+                for d in report.decisions
+            ]
+        }
+    )
+
+
 async def judge_answer(
     question: str,
     answer: GroundedAnswer,
@@ -201,7 +273,8 @@ async def judge_answer(
             **run_options,
         )
         support_errors(result.output, len(pending), len(answer.gaps))
-        for decision in result.output.gap_decisions:
+        output = anchored_report(result.output, [claim for _, claim in pending])
+        for decision in output.gap_decisions:
             anchor = answer.gaps[decision.gap_index].request_quote
             if anchor is not None and registry.request_spans:
                 expected = next(
@@ -245,7 +318,7 @@ async def judge_answer(
             decision.model_copy(
                 update={"claim_index": pending[decision.claim_index][0]}
             )
-            for decision in result.output.decisions
+            for decision in output.decisions
         )
     return SupportReport(
         decisions=sorted(decisions, key=lambda decision: decision.claim_index),
@@ -282,6 +355,8 @@ The verification_task field defines your scope. For numeric_inputs, verify each 
 SOURCE SELECTION VERSUS FISCAL ASSERTIONS: "Microsoft's 2025 filing" identifies a source document, not a request to compare fiscal 2025 with 2024. A cited description of what Azure provides requires source identity and descriptive support, not a fiscal-period heading or prior-year evidence. A gap demanding fiscal periods or an unrequested comparison for that lookup is unwarranted. Unknown fiscal-year metadata does not invalidate source-backed descriptive claims. Require fiscal-period binding only when the claim asserts something about a fiscal period or a requested numeric input needs that period. Do not invent additional requirements from general validation instructions.
 
 For EACH claim independently, use ONLY its own cited_evidence exact_quote strings and authoritative source identity/location metadata. Do NOT borrow facts or quotes from another claim. Every component must be supported: numbers, currency scales, units, company/segment, periods, causal statements and interpretations. A generic heading or narrative that sales increased does not support an uncited numeric value. Missing entity/segment binding is ambiguous; never silently treat a segment figure as a consolidated figure.
+
+QUOTE-ANCHORED VERDICTS: For every claim, first fill assertions. List each material assertion (each fact, each relationship direction such as who invests in, pays, supplies or depends on whom, each period, and each change across years). Into supporting_quote copy at least three consecutive words from that claim's own cited quotes that state the assertion, or null when no quote does. The server checks every supporting_quote verbatim; a supported verdict with any null, short or non-verbatim supporting_quote is rejected. A quote supports an assertion only if it states it with the same direction and meaning: 'the Company has made prepayments to certain of its suppliers' does not state that suppliers financed the Company. For calculation claims, list only the operand assertions.
 
 Assess every material assertion, including qualifiers and implied trends, before giving the verdict. Mention the unsupported component in evidence_assessment. Topic overlap alone is not entailment. A risk mentioned in several filings does not by itself establish increasing urgency or growing concern. A product announcement does not establish capacity constraints, and a security statement does not establish a capacity response. A claim that a filing did not mention something cannot be proved from selected excerpts. Check the direction of every relationship against the quote wording: who invests in, pays, finances, supplies, owns or depends on whom. A reversed or blurred direction (for example 'supplier-financed' when the company paid its suppliers) is unsupported. A change across years ('shifts toward', 'moves from … to', 'heavier', 'more', 'increasingly') needs quotes that state the change, or the same disclosure quoted in each compared year; excerpts on different topics selected from different filings do not show a shift, because each is a small selection from its filing. Check each attributed year against that quote's source metadata; do not transfer dates between quotes. If any component is unsupported, reject the entire claim. Concise factual descriptions can be supported even when a broader comparison or causal conclusion is not.
 

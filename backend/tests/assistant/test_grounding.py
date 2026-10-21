@@ -4,7 +4,7 @@ from app.assistant.deps import TurnRegistry
 from app.assistant.outputs import AnswerClaim, EvidenceGap, EvidenceRef, GroundedAnswer
 from app.grounding.judge import SupportDecision, SupportReport, support_errors
 from app.grounding.validator import structural_errors
-from tests.assistant.test_contracts import passage
+from tests.assistant.test_contracts import assertions_for, passage
 
 
 def answer_and_registry():
@@ -344,6 +344,9 @@ def test_warranted_gap_requires_same_real_request_anchor(judge_quote, accepted):
                         supported=True,
                         reason="supported",
                         evidence_assessment="Supported.",
+                        assertions=assertions_for(
+                            answer.claims[0].evidence[0].exact_quote
+                        ),
                     )
                 ],
                 gap_decisions=[
@@ -467,3 +470,120 @@ def test_verified_calculation_inputs_are_not_sent_for_a_second_semantic_verdict(
     d.registry.calculations[record.id] = record.model_copy(update={"result": 999})
     result = asyncio.run(judge_answer(d.question, answer, d.registry, judge))
     assert support_errors(result, 1)
+
+
+APPLE_2024 = "The Company has invested in manufacturing process equipment, much of which is held at certain of its outsourcing partners, and has made prepayments to certain of its suppliers associated with long-term supply agreements."
+
+
+@pytest.mark.parametrize(
+    "supporting_quote,kept",
+    [
+        ("has made prepayments to certain of its suppliers", True),
+        # Run 6: a paraphrase that reverses who financed whom is not cited text.
+        ("supplier-financed equipment and prepayments", False),
+        (None, False),
+        ("its suppliers", False),
+    ],
+)
+def test_supported_verdicts_need_verbatim_anchors_for_each_assertion(
+    supporting_quote, kept
+):
+    from app.grounding.judge import Assertion, ClaimVerdict, anchored
+
+    verdict = ClaimVerdict(
+        assertions=[
+            Assertion(
+                assertion="Apple invested in equipment held at partners.",
+                supporting_quote="invested in manufacturing process equipment",
+            ),
+            Assertion(
+                assertion="Apple prepaid suppliers.", supporting_quote=supporting_quote
+            ),
+        ],
+        evidence_assessment="Judge said supported.",
+        supported=True,
+        reason="supported",
+    )
+    result = anchored(verdict, [APPLE_2024])
+    assert result.supported is kept
+    if not kept:
+        assert result.reason == "unsupported_fact"
+        assert "Apple prepaid suppliers." in result.evidence_assessment
+
+
+def test_anchoring_rejects_empty_assertions_and_leaves_rejections_alone():
+    from app.grounding.judge import ClaimVerdict, anchored
+
+    accepted = ClaimVerdict(
+        evidence_assessment="Supported.", supported=True, reason="supported"
+    )
+    assert anchored(accepted, [APPLE_2024]).supported is False
+    rejected = accepted.model_copy(
+        update={"supported": False, "reason": "unsupported_interpretation"}
+    )
+    assert anchored(rejected, [APPLE_2024]) == rejected
+
+
+def test_judge_answer_applies_anchoring_to_model_verdicts():
+    import asyncio
+
+    from app.grounding.judge import judge_answer
+    from tests.assistant.test_orchestrator import Agent
+
+    answer, registry = answer_and_registry()
+    quote = answer.claims[0].evidence[0].exact_quote
+    unanchored = SupportReport(
+        decisions=[
+            SupportDecision(
+                claim_index=0,
+                evidence_assessment="Summarized as supported.",
+                supported=True,
+                reason="supported",
+            )
+        ]
+    )
+    report = asyncio.run(
+        judge_answer("Question?", answer, registry, Agent([unanchored]))
+    )
+    assert report.decisions[0].supported is False
+    anchored_report = unanchored.model_copy(
+        update={
+            "decisions": [
+                unanchored.decisions[0].model_copy(
+                    update={"assertions": assertions_for(quote)}
+                )
+            ]
+        }
+    )
+    report = asyncio.run(
+        judge_answer("Question?", answer, registry, Agent([anchored_report]))
+    )
+    assert report.decisions[0].supported is True
+
+
+def test_anchored_report_skips_calculations_and_out_of_range_indices():
+    from uuid import uuid4
+
+    from app.grounding.judge import anchored_report
+
+    answer, _ = answer_and_registry()
+    fact = answer.claims[0]
+    calculation = AnswerClaim(
+        text="Calculated ratio.",
+        kind="calculation",
+        calculation_id=uuid4(),
+        evidence=fact.evidence,
+    )
+    decisions = [
+        SupportDecision(
+            claim_index=i,
+            evidence_assessment="Supported.",
+            supported=True,
+            reason="supported",
+        )
+        for i in range(3)
+    ]
+    report = anchored_report(SupportReport(decisions=decisions), [fact, calculation])
+    # The fact lacks anchors; the calculation result is verified by the server;
+    # index 2 is left for support_errors to reject as invalid coverage.
+    assert [d.supported for d in report.decisions] == [False, True, True]

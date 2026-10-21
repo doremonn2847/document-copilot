@@ -6,7 +6,7 @@ from app.assistant.deps import TurnRegistry
 from app.assistant.outputs import AnswerClaim, EvidenceGap, EvidenceRef, GroundedAnswer
 from app.assistant.rendering import render_answer
 from app.grounding.judge import SupportDecision, SupportReport, judge_answer
-from tests.assistant.test_contracts import passage
+from tests.assistant.test_contracts import assertions_for, passage
 from tests.assistant.test_orchestrator import Agent
 
 
@@ -42,6 +42,7 @@ def test_excerpt_cannot_authorize_whole_filing_absence_even_with_accepting_judge
                         claim_index=0,
                         evidence_assessment="The excerpt omits Azure.",
                         supported=True,
+                        assertions=assertions_for(p.text),
                         reason="supported",
                     )
                 ]
@@ -86,6 +87,7 @@ def test_source_disclosed_negatives_and_scoped_limitations_still_reach_judge(tex
                         claim_index=0,
                         evidence_assessment="Fixture supported.",
                         supported=True,
+                        assertions=assertions_for(p.text),
                         reason="supported",
                     )
                 ]
@@ -226,6 +228,7 @@ def test_prechecked_absence_keeps_correct_indices_for_other_judged_claims():
                         claim_index=0,
                         evidence_assessment="Supported AI launch.",
                         supported=True,
+                        assertions=assertions_for(p.text),
                         reason="supported",
                     )
                 ]

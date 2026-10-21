@@ -14,7 +14,7 @@ from app.assistant.rendering import WITHHELD_NOTICE
 from app.assistant.selection import SelectedClaim
 from app.assistant.tools import expose_groups
 from app.retrieval.types import SearchFilters
-from tests.assistant.test_contracts import passage
+from tests.assistant.test_contracts import assertions_for, passage
 from tests.assistant.test_tools import deps
 
 
@@ -237,6 +237,7 @@ def test_guided_wire_path_is_tool_free_and_shares_one_repair(first_failure):
                     claim_index=0,
                     supported=supported,
                     reason="supported" if supported else "unsupported_fact",
+                    assertions=assertions_for(p.text),
                     evidence_assessment="Fixture support decision.",
                 )
             ],
@@ -744,6 +745,7 @@ def verdicts(*supported, gaps=()):
             SupportDecision(
                 claim_index=i,
                 supported=ok,
+                assertions=assertions_for("We depend on suppliers."),
                 reason="supported" if ok else "unsupported_interpretation",
                 evidence_assessment="Fixture verdict.",
             )

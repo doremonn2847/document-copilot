@@ -6,7 +6,7 @@ import pytest
 from app.assistant.outputs import AnswerClaim, EvidenceRef, GroundedAnswer
 from app.chat.orchestrator import GroundingRejected, run_grounded
 from app.grounding.judge import SupportDecision, SupportReport
-from tests.assistant.test_contracts import passage
+from tests.assistant.test_contracts import assertions_for, passage
 from tests.assistant.test_tools import deps
 
 
@@ -58,6 +58,7 @@ def test_one_repair_retains_registry_and_cumulative_usage():
                         evidence_assessment="Fixture verdict.",
                         claim_index=0,
                         supported=True,
+                        assertions=assertions_for(p.text),
                         reason="supported",
                     )
                 ]
@@ -130,6 +131,7 @@ def test_contradictory_gap_is_repaired_before_judging_and_never_rendered():
                         evidence_assessment="Azure compute is explicitly supported.",
                         claim_index=0,
                         supported=True,
+                        assertions=assertions_for(p.text),
                         reason="supported",
                     )
                 ]
@@ -191,6 +193,7 @@ def test_gap_relevance_is_verified_in_same_call_as_claims(warranted, detail):
         claim_index=0,
         evidence_assessment="Compute is explicitly supported.",
         supported=True,
+        assertions=assertions_for(p.text),
         reason="supported",
     )
     agent = Agent([partial, corrected])

@@ -13,7 +13,7 @@ from app.chat.orchestrator import GroundingRejected, run_grounded
 from app.config import settings
 from app.grounding.judge import SupportDecision, SupportReport
 from app.retrieval.types import SearchFilters
-from tests.assistant.test_contracts import passage
+from tests.assistant.test_contracts import assertions_for, passage
 from tests.assistant.test_orchestrator import Agent as StubAgent
 from tests.assistant.test_tools import deps
 
@@ -126,6 +126,7 @@ def test_writer_requires_company_groups_and_repairs_captured_flat_selection(
                     SupportDecision(
                         claim_index=0,
                         supported=judge_support,
+                        assertions=assertions_for("We depend on suppliers."),
                         reason="supported"
                         if judge_support
                         else "unsupported_interpretation",
