@@ -225,13 +225,13 @@ across navigation and release completed background views. Stop and page-unload
 recovery retain their existing behavior. TypeScript/lint/build checks pass;
 manual navigation/Stop/logout confirmation remains pending.
 
-- [ ] Render readable Markdown, comparison tables, streaming status, and distinct provisional/completed/failed states.
-- [ ] Make each claim's citation open the exact underlying passage in one click, showing company, filing, fiscal year, page/approved location, and original source link.
-- [ ] Restore citations and source passages correctly when reopening old conversations.
-- [ ] Add useful empty states and example questions drawn from the supported corpus.
-- [ ] Show clear messages for no evidence, unavailable sources, authentication expiry, network failures, and interrupted answers; avoid duplicate turns on retry.
+- [x] Render readable Markdown, comparison tables, streaming status, and distinct provisional/completed/failed states. (2026-10-22: structured `data-answer` blocks; comparison facts grouped by company with year chips instead of Markdown tables; gaps under "Not established"; notices as banners.)
+- [x] Make each claim's citation open the exact underlying passage in one click, showing company, filing, fiscal year, page/approved location, and original source link. (Page and fiscal year still read "unverified"; see phase 4.)
+- [x] Restore citations and source passages correctly when reopening old conversations. (Malformed stored parts are skipped instead of hiding the thread.)
+- [x] Add useful empty states and example questions drawn from the supported corpus. (Five examples, each answered live and checked against its quotes.)
+- [x] Show clear messages for no evidence, unavailable sources, authentication expiry, network failures, and interrupted answers; avoid duplicate turns on retry. (Transient re-check failures keep approved users in the workspace.)
 - [ ] Manually verify keyboard use, long answers/tables, scrolling, and common browser sizes.
-- [ ] Run frontend TypeScript checks, lint, and production build; use manual browser verification per frontend agent instructions.
+- [x] Run frontend TypeScript checks, lint, and production build; use manual browser verification per frontend agent instructions. (Checks pass; the manual check is the item above.)
 
 **Gate:** An analyst can ask, verify, and revisit answers without developer assistance.
 

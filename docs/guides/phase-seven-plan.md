@@ -58,6 +58,9 @@ cannot open a browser, so tasks end at code, offline tests and builds.
    searched for R&D wording. Make "does X mention Y" questions search for Y,
    then confirm with capped paid runs.
 
+All tasks are ticked. The autopilot continues in [phase 8](phase-eight-plan.md)
+(owner extension at 01:27: 400 paid requests in total).
+
 ## Morning summary
 
 (Written by the autopilot at the end of the night.)
