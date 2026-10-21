@@ -24,14 +24,10 @@ class EvidenceRef(Contract):
     )
 
 
-# Facts quote one filing; an interpretation may span two companies across five years.
-INTERPRETATION_REFS = 10
-
-
 class AnswerClaim(Contract):
     text: str = Field(min_length=1, max_length=2000)
     kind: Literal["fact", "calculation", "interpretation"] = "fact"
-    evidence: list[EvidenceRef] = Field(min_length=1, max_length=INTERPRETATION_REFS)
+    evidence: list[EvidenceRef] = Field(min_length=1, max_length=5)
     calculation_id: UUID | None = None
 
     @field_validator("text")

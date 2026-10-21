@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from app.assistant.calculations import SOURCE_NUMBER, parse_number, validate_record
 from app.assistant.deps import TurnRegistry, normalized
-from app.assistant.outputs import INTERPRETATION_REFS, GroundedAnswer
+from app.assistant.outputs import GroundedAnswer
 from app.assistant.selection import matches_target
 from app.grounding.claim_context import claim_context_errors, unsupported_absence_claim
 
@@ -109,8 +109,7 @@ def structural_errors(
                 f"claim {i}: uncited numeric tokens {', '.join(str(n) for n in sorted(missing_numbers))}. Cite exact supporting source numbers/periods; derived results require calculation kind and a recorded calculation ID"
                 + uncited_year_hint(claim, missing_numbers, registry)
             )
-        limit = INTERPRETATION_REFS if claim.kind == "interpretation" else max_refs
-        if len(claim.evidence) > limit:
+        if len(claim.evidence) > max_refs:
             errors.append(f"claim {i}: evidence limit exceeded")
         for ref in claim.evidence:
             try:

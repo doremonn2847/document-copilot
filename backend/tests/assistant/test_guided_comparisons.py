@@ -454,9 +454,7 @@ def test_comparison_writer_selects_only_evidence_shown_in_its_frozen_prompt():
 
     from app.assistant.comparison_citations import (
         ComparisonFact,
-        ComparisonInterpretation,
         prepare_comparison_citations,
-        resolve_comparison_claim,
     )
     from app.assistant.comparisons import prepare_comparison
     from app.assistant.outputs import Contract
@@ -501,31 +499,18 @@ def test_comparison_writer_selects_only_evidence_shown_in_its_frozen_prompt():
     assert d.registry.comparison_evidence_ids == ["E2", "E3"]
 
     schema = create_model(
-        "Submission",
-        __base__=Contract,
-        claims=(list[ComparisonFact | ComparisonInterpretation], ...),
+        "Submission", __base__=Contract, claims=(list[ComparisonFact], ...)
     ).model_json_schema()
     prepare_comparison_citations(schema, d)
-    choices = {
-        key
-        for definition in schema["$defs"].values()
-        for key in definition.get("enum", [])
-        if isinstance(key, str)
-    }
-    assert choices == {"E2", "E3"}
+    fact = schema["$defs"]["ComparisonFact"]["properties"]
+    assert fact["evidence_ids"]["items"]["enum"] == ["E2", "E3"]
 
-    def interpretation(apple_ids):
-        return ComparisonInterpretation(
-            text="Apple and NVIDIA rely on manufacturing partners.",
-            evidence_by_company={"AAPL": apple_ids, "NVDA": ["E3"]},
-        )
-
-    assert resolve_comparison_claim(interpretation(["E2"]), d).evidence_ids == [
-        "E2",
-        "E3",
-    ]
-    with pytest.raises(ModelRetry):
-        resolve_comparison_claim(interpretation(["E1"]), d)
+    answer = final_comparison_answer(
+        SimpleNamespace(deps=d),
+        [ComparisonFact(text=shared.text, evidence_ids=["E2"])],
+        [],
+    )
+    assert [ref.exact_quote for ref in answer.claims[0].evidence] == [shared.text]
     with pytest.raises(ModelRetry, match="Unknown evidence IDs"):
         final_comparison_answer(
             SimpleNamespace(deps=d),
@@ -864,11 +849,13 @@ def test_final_guided_submission_withholds_invalid_claims_on_the_wire(all_invali
     from tests.assistant.test_orchestrator import Agent as StubAgent
 
     d = withholding_deps()
-    # Live draft: an Apple-only group carried a claim about both companies.
-    both = {
-        "text": "Both companies describe supplier dependence.",
-        "kind": "interpretation",
-        "evidence_by_company": {"AAPL": ["E1"]},
+    # Cites evidence the writer was never shown: the wire enum blocks this, the
+    # mock bypasses it, and the submission check rejects it.
+    unknown = {
+        "text": "Apple depends on many suppliers.",
+        "kind": "fact",
+        "evidence_ids": ["E999"],
+        "calculation_id": None,
     }
     facts = [
         {
@@ -886,7 +873,7 @@ def test_final_guided_submission_withholds_invalid_claims_on_the_wire(all_invali
 
     def respond(request):
         requests.append(json.loads(request.content))
-        claims = [both] if all_invalid else [facts[0], both, facts[1]]
+        claims = [unknown] if all_invalid else [facts[0], unknown, facts[1]]
         return completion({"claims": claims, "gaps": []}, len(requests))
 
     judge = StubAgent([verdicts(True, True)])

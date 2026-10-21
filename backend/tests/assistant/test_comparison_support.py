@@ -100,25 +100,6 @@ def test_uncited_year_feedback_names_same_company_sources_or_a_gap():
     assert "state that limitation as a gap" in error
 
 
-@pytest.mark.parametrize("kind,allowed", [("interpretation", True), ("fact", False)])
-def test_ten_references_fit_an_interpretation_but_not_a_fact(kind, allowed):
-    # Two companies across five corpus years: one source per company-year.
-    sources = [
-        (ticker, year, f"We depend on suppliers in {year}.")
-        for ticker in ("AAPL", "NVDA")
-        for year in range(2021, 2026)
-    ]
-    if kind == "fact":
-        sources = [("AAPL", 2025, f"Supplier risk {i} exists.") for i in range(6)]
-    registry, answer = comparison(
-        "Apple and NVIDIA describe supplier dependence across the cited years.",
-        sources,
-        kind=kind,
-    )
-    errors = structural_errors(answer, registry, searches=1, max_refs=5)
-    assert ("claim 0: evidence limit exceeded" not in errors) is allowed
-
-
 @pytest.mark.parametrize(
     "text,quotes",
     [

@@ -332,3 +332,16 @@ latent production fault is fixed (`9810fb4`). Quote anchoring was reverted
 production cap. Across six live runs every per-year fact was correct; every
 grounding failure was a model-written trend interpretation. Phase 6 remains
 open pending a decision on interpretations.
+
+**Owner decision: comparisons publish facts and gaps only.** The comparison
+writer can no longer submit interpretations. Answers list cited per-filing facts
+for each company/year; requested trends, urgency and cross-company assessments
+become R-ID gaps stating that the cited passages alone do not establish them, so
+analysts compare the cited passages directly. Removed with it: company-grouped
+citations, single/cross-company allocations, the ten-reference interpretation
+cap (back to five references per claim) and the plural-wording check. Kept:
+frozen-evidence ID scoping, gap target evidence for the judge, uncited-year
+repair hints, final-attempt withholding and judge text clipping. Interpretations
+can be revisited once a judge is shown to catch reversed relationships and
+excerpt-inferred trends. Offline: **355 passed, 15 integration deselected**.
+Live confirmation of the facts-only contract is pending; phase 6 remains open.

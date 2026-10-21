@@ -1,4 +1,4 @@
-"""Exercise company-scoped selection through the real writer/repair boundary."""
+"""Exercise the facts-only comparison writer through the real writer/repair boundary."""
 
 import asyncio
 import json
@@ -8,7 +8,6 @@ import pytest
 from openai import AsyncOpenAI
 
 from app.assistant.comparisons import ComparisonReady, build_comparison_writer
-from app.assistant.selection import SelectedClaim
 from app.chat.orchestrator import GroundingRejected, run_grounded
 from app.config import settings
 from app.grounding.judge import SupportDecision, SupportReport
@@ -70,10 +69,24 @@ def completion(args, index):
     )
 
 
+FACTS = [
+    {
+        "text": text,
+        "kind": "fact",
+        "evidence_ids": [key],
+        "calculation_id": None,
+    }
+    for text, key in [
+        ("Apple depends on suppliers.", "E1"),
+        ("NVIDIA depends on suppliers.", "E6"),
+    ]
+]
+
+
 @pytest.mark.parametrize(
     "repeated_bad,judge_support", [(False, True), (True, True), (False, False)]
 )
-def test_writer_requires_company_groups_and_repairs_captured_flat_selection(
+def test_writer_offers_only_displayed_facts_and_repairs_an_interpretation(
     repeated_bad, judge_support
 ):
     d = citation_deps()
@@ -83,54 +96,37 @@ def test_writer_requires_company_groups_and_repairs_captured_flat_selection(
         body = json.loads(request.content)
         requests.append(body)
         schema = body["tools"][0]["function"]["parameters"]
-        groups = schema["$defs"]["ComparisonInterpretation"]["properties"][
-            "evidence_by_company"
-        ]
-        ids = {"AAPL": [f"E{i}" for i in range(1, 6)], "NVDA": ["E6"]}
-        # Two single-company branches (ten each) plus one five-plus-five branch.
-        assert len(groups["anyOf"]) == 3
-        for allocation in groups["anyOf"]:
-            required = set(allocation["required"])
-            assert required in ({"AAPL"}, {"NVDA"}, {"AAPL", "NVDA"})
-            assert allocation["additionalProperties"] is False
-            assert {item["maxItems"] for item in allocation["properties"].values()} == (
-                {10} if len(required) == 1 else {5}
-            )
-            for ticker in required:
-                branch = allocation["properties"][ticker]
-                assert branch["minItems"] == 1
-                definition = schema["$defs"][branch["items"]["$ref"].split("/")[-1]]
-                assert definition["enum"] == ids[ticker]
+        assert "ComparisonInterpretation" not in schema["$defs"]
+        assert schema["properties"]["claims"]["items"] == {
+            "$ref": "#/$defs/ComparisonFact"
+        }
+        ids = schema["$defs"]["ComparisonFact"]["properties"]["evidence_ids"]
+        assert ids["items"]["enum"] == [f"E{i}" for i in range(1, 7)]
         if len(requests) == 1 or repeated_bad:
-            # The exact failure pattern from both live drafts: five Apple IDs.
-            claim = SelectedClaim(
-                text="Apple and NVIDIA describe supplier dependence.",
-                kind="interpretation",
-                evidence_ids=[f"E{i}" for i in range(1, 6)],
-            ).model_dump(mode="json")
+            # The live failure shape: a cross-filing trend written as a claim.
+            claims = [
+                {
+                    "text": "Apple and NVIDIA supplier wording shifts over time.",
+                    "kind": "interpretation",
+                    "evidence_ids": ["E1", "E6"],
+                    "calculation_id": None,
+                }
+            ]
         else:
-            history = json.dumps(body["messages"])
-            assert "evidence_by_company" in history
-            assert "original comparison evidence" in history
-            claim = {
-                "text": "Apple and NVIDIA describe supplier dependence.",
-                "kind": "interpretation",
-                "evidence_by_company": {"AAPL": ["E1"], "NVDA": ["E6"]},
-            }
-        return completion({"claims": [claim], "gaps": []}, len(requests))
+            claims = FACTS
+        return completion({"claims": claims, "gaps": []}, len(requests))
 
     judge = StubAgent(
         [
             SupportReport(
                 decisions=[
                     SupportDecision(
-                        claim_index=0,
+                        claim_index=i,
                         supported=judge_support,
-                        reason="supported"
-                        if judge_support
-                        else "unsupported_interpretation",
+                        reason="supported" if judge_support else "unsupported_fact",
                         evidence_assessment="Mock verdict.",
                     )
+                    for i in range(2)
                 ]
             )
         ]
@@ -158,159 +154,14 @@ def test_writer_requires_company_groups_and_repairs_captured_flat_selection(
         assert len(judge.calls) == (0 if repeated_bad else 1)
     else:
         result = asyncio.run(check())
-        refs = result.answer.claims[0].evidence
-        assert {d.registry.passages[r.chunk_id].ticker for r in refs} == {
-            "AAPL",
-            "NVDA",
-        }
+        assert [claim.kind for claim in result.answer.claims] == ["fact", "fact"]
         assert len(judge.calls) == 1
     assert len(requests) == 2
     assert d.generator_usage.requests == 2
 
 
-@pytest.mark.parametrize(
-    "groups",
-    [
-        {"MSFT": ["E1"]},
-        {"NVDA": ["E1"]},
-        {"AAPL": ["E1"], "NVDA": ["E2"]},
-        {"AAPL": ["E1"], "NVDA": ["E999"]},
-        {"AAPL": ["E1"], "NVDA": ["E6"], "MSFT": ["E1"]},
-    ],
-)
-def test_group_resolution_rejects_uncompared_foreign_unknown_and_extra_sources(
-    groups,
-):
-    from pydantic_ai import ModelRetry
-
-    from app.assistant.comparison_citations import (
-        ComparisonInterpretation,
-        resolve_comparison_claim,
-    )
-
-    d = citation_deps()
-    claim = ComparisonInterpretation(
-        text="Apple and NVIDIA describe dependence.", evidence_by_company=groups
-    )
-    before = dict(d.registry.evidence_refs)
-    with pytest.raises(ModelRetry):
-        resolve_comparison_claim(claim, d)
-    assert d.registry.evidence_refs == before
-    assert claim.evidence_by_company == groups
-
-
-def test_group_resolution_rejects_more_than_ten_references_in_total():
-    from pydantic_ai import ModelRetry
-
-    from app.assistant.comparison_citations import (
-        ComparisonInterpretation,
-        resolve_comparison_claim,
-    )
-
-    d = citation_deps()
-    for year in range(2021, 2026):
-        p = passage(f"NVIDIA depends on suppliers in {year}.").model_copy(
-            update={"ticker": "NVDA", "corpus_year": year}
-        )
-        d.registry.evidence_id(p, p.text)
-    claim = ComparisonInterpretation(
-        text="Apple and NVIDIA describe dependence.",
-        evidence_by_company={
-            "AAPL": [f"E{i}" for i in range(1, 6)],
-            "NVDA": [f"E{i}" for i in range(6, 12)],
-        },
-    )
-    with pytest.raises(ModelRetry, match="At most 10"):
-        resolve_comparison_claim(claim, d)
-
-
-@pytest.mark.parametrize(
-    "text,allowed",
-    [
-        # Live draft: an Apple-only group carried a claim about both companies.
-        ("Across the evidence, both companies describe supplier dependence.", False),
-        ("Neither company shows a clear urgency trend.", False),
-        ("Apple's supplier wording recurs in each filing.", True),
-        ("NVIDIA's risk wording also does not establish increasing urgency.", True),
-    ],
-)
-def test_single_company_group_rejects_wording_about_several_companies(text, allowed):
-    from pydantic_ai import ModelRetry
-
-    from app.assistant.comparison_citations import (
-        ComparisonInterpretation,
-        resolve_comparison_claim,
-    )
-
-    d = citation_deps()
-    ticker, ids = ("NVDA", ["E6"]) if text.startswith("NVIDIA") else ("AAPL", ["E1"])
-    claim = ComparisonInterpretation(text=text, evidence_by_company={ticker: ids})
-    if allowed:
-        assert resolve_comparison_claim(claim, d).evidence_ids == ids
-    else:
-        with pytest.raises(ModelRetry, match="several companies"):
-            resolve_comparison_claim(claim, d)
-
-
-def test_interpretations_above_the_fact_limit_resolve_through_final_submission():
-    # Live draft: a seven-source NVIDIA trend and a 5+5 comparison failed with
-    # too_long because the resolved claim still carried the five-ID fact limit.
-    from types import SimpleNamespace
-
-    from app.assistant.comparison_citations import ComparisonInterpretation
-    from app.assistant.comparisons import final_comparison_answer
-
-    d = citation_deps()
-    for year in range(2019, 2025):
-        p = passage(f"NVIDIA depends on suppliers in {year}.").model_copy(
-            update={"ticker": "NVDA", "corpus_year": year}
-        )
-        d.registry.evidence_id(p, p.text)
-    nvidia_ids = [f"E{i}" for i in range(6, 13)]
-    claims = [
-        ComparisonInterpretation(
-            text="NVIDIA's supplier wording recurs across the cited filings.",
-            evidence_by_company={"NVDA": nvidia_ids},
-        ),
-        ComparisonInterpretation(
-            text="Apple and NVIDIA both describe supplier dependence.",
-            evidence_by_company={
-                "AAPL": [f"E{i}" for i in range(1, 6)],
-                "NVDA": nvidia_ids[:5],
-            },
-        ),
-    ]
-    answer = final_comparison_answer(SimpleNamespace(deps=d), claims, [])
-    assert [len(claim.evidence) for claim in answer.claims] == [7, 10]
-
-
-def test_group_resolution_preserves_only_selected_quotes_and_reference_total():
-    from types import SimpleNamespace
-
-    from app.assistant.comparison_citations import (
-        ComparisonInterpretation,
-        resolve_comparison_claim,
-    )
-    from app.assistant.comparisons import final_comparison_answer
-
-    d = citation_deps()
-    claim = ComparisonInterpretation(
-        text="Apple and NVIDIA describe dependence.",
-        evidence_by_company={"NVDA": ["E6"], "AAPL": ["E1", "E2", "E3", "E4"]},
-    )
-    selected = resolve_comparison_claim(claim, d)
-    assert selected.evidence_ids == ["E1", "E2", "E3", "E4", "E6"]
-    answer = final_comparison_answer(SimpleNamespace(deps=d), [claim], [])
-    assert list(answer.claims[0].evidence) == [
-        d.registry.evidence_refs[k] for k in selected.evidence_ids
-    ]
-    assert not answer.gaps
-
-
 @pytest.mark.parametrize("empty_corpus", [False, True])
-def test_missing_company_allows_only_observed_single_company_interpretations(
-    empty_corpus,
-):
+def test_writer_cites_only_observed_evidence_or_reports_gaps(empty_corpus):
     d = citation_deps()
     d.registry.evidence_refs = (
         {}
@@ -323,19 +174,13 @@ def test_missing_company_allows_only_observed_single_company_interpretations(
         body = json.loads(request.content)
         requests.append(body)
         schema = body["tools"][0]["function"]["parameters"]
+        fact = schema["$defs"]["ComparisonFact"]["properties"]
         if empty_corpus:
-            assert "ComparisonInterpretation" not in schema["$defs"]
-            assert schema["properties"]["claims"]["items"] == {
-                "$ref": "#/$defs/ComparisonFact"
-            }
             assert schema["properties"]["claims"]["maxItems"] == 0
         else:
-            # NVIDIA has no evidence, so only an Apple-only interpretation remains.
-            groups = schema["$defs"]["ComparisonInterpretation"]["properties"][
-                "evidence_by_company"
+            assert fact["evidence_ids"]["items"]["enum"] == [
+                f"E{i}" for i in range(1, 6)
             ]
-            assert "anyOf" not in groups
-            assert groups["required"] == ["AAPL"]
         return completion({"claims": [], "gaps": []}, 1)
 
     async def check():
@@ -355,61 +200,11 @@ def test_missing_company_allows_only_observed_single_company_interpretations(
     assert len(requests) == 1
 
 
-def test_single_company_multi_year_interpretation_uses_one_required_group():
-    from app.assistant.comparison_citations import (
-        ComparisonInterpretation,
-        resolve_comparison_claim,
-    )
-
-    d = citation_deps()
-    d.registry.comparison_targets = [
-        SearchFilters(ticker="AAPL", corpus_years=[2021, 2025])
-    ]
-    claim = ComparisonInterpretation(
-        text="Apple describes supplier dependence in both selected periods.",
-        evidence_by_company={"AAPL": ["E1", "E5"]},
-    )
-    assert resolve_comparison_claim(claim, d).evidence_ids == ["E1", "E5"]
-
-
-def test_single_company_interpretation_in_pair_comparison_cannot_name_both():
-    from types import SimpleNamespace
-
-    from pydantic_ai import ModelRetry
-
-    from app.assistant.comparison_citations import (
-        ComparisonInterpretation,
-        resolve_comparison_claim,
-    )
-    from app.assistant.comparisons import final_comparison_answer
-
-    d = citation_deps()
-    # The live supplier draft had to spend one of Apple's five slots on NVIDIA.
-    apple_trend = ComparisonInterpretation(
-        text="Apple's supplier wording stays consistent across the cited filings.",
-        evidence_by_company={"AAPL": [f"E{i}" for i in range(1, 6)]},
-    )
-    assert resolve_comparison_claim(apple_trend, d).evidence_ids == [
-        f"E{i}" for i in range(1, 6)
-    ]
-    answer = final_comparison_answer(SimpleNamespace(deps=d), [apple_trend], [])
-    assert {
-        d.registry.passages[r.chunk_id].ticker for r in answer.claims[0].evidence
-    } == {"AAPL"}
-    both = ComparisonInterpretation(
-        text="Apple and NVIDIA both depend on suppliers.",
-        evidence_by_company={"AAPL": ["E1"]},
-    )
-    with pytest.raises(ModelRetry, match="NVDA"):
-        final_comparison_answer(SimpleNamespace(deps=d), [both], [])
-
-
-def test_company_enums_share_definitions_at_the_existing_span_budget():
+def test_fact_choices_fit_the_existing_span_budget():
     from pydantic import create_model
 
     from app.assistant.comparison_citations import (
         ComparisonFact,
-        ComparisonInterpretation,
         prepare_comparison_citations,
     )
     from app.assistant.deps import MAX_EVIDENCE_SPANS
@@ -424,77 +219,14 @@ def test_company_enums_share_definitions_at_the_existing_span_budget():
         p = passage(" ".join(spans)).model_copy(update={"ticker": ticker})
         for span in spans:
             d.registry.evidence_id(p, span)
-    submission = create_model(
-        "Submission",
-        __base__=Contract,
-        claims=(list[ComparisonFact | ComparisonInterpretation], ...),
-    )
-    schema = submission.model_json_schema()
+    schema = create_model(
+        "Submission", __base__=Contract, claims=(list[ComparisonFact], ...)
+    ).model_json_schema()
     prepare_comparison_citations(schema, d)
-    evidence_choices = [
-        key
-        for definition in schema["$defs"].values()
-        for key in definition.get("enum", [])
-        if isinstance(key, str) and key.startswith("E")
+    enum = schema["$defs"]["ComparisonFact"]["properties"]["evidence_ids"]["items"][
+        "enum"
     ]
-    assert len(evidence_choices) == len(set(evidence_choices)) == MAX_EVIDENCE_SPANS
-
-
-@pytest.mark.parametrize("company_count", [1, 2, 3, 4, 5])
-def test_wire_schema_allows_one_or_all_companies_within_ten_references(
-    company_count,
-):
-    from itertools import product
-
-    from pydantic import create_model
-
-    from app.assistant.comparison_citations import (
-        ComparisonFact,
-        ComparisonInterpretation,
-        prepare_comparison_citations,
-    )
-    from app.assistant.outputs import Contract
-
-    d = citation_deps()
-    tickers = ["AAPL", "NVDA", "MSFT", "AMZN", "GOOGL"][:company_count]
-    d.registry.comparison_targets = [SearchFilters(ticker=t) for t in tickers]
-    for ticker in tickers[2:]:
-        p = passage().model_copy(update={"ticker": ticker})
-        d.registry.evidence_id(p, p.text)
-    submission = create_model(
-        "Submission",
-        __base__=Contract,
-        claims=(list[ComparisonFact | ComparisonInterpretation], ...),
-    )
-    schema = submission.model_json_schema()
-    prepare_comparison_citations(schema, d)
-    groups = schema["$defs"]["ComparisonInterpretation"]["properties"][
-        "evidence_by_company"
-    ]
-    branches = groups.get("anyOf", [groups])
-    share = 10 // company_count
-    # Keep the exhaustive grid small for four or five companies (share is two).
-    top = 12 if company_count <= 3 else 4
-    for counts in product(range(top), repeat=company_count):
-        allowed = any(
-            all(
-                branch["properties"][ticker]["minItems"]
-                <= count
-                <= branch["properties"][ticker]["maxItems"]
-                if ticker in branch["properties"]
-                else count == 0
-                for ticker, count in zip(tickers, counts)
-            )
-            for branch in branches
-        )
-        cited = sum(count > 0 for count in counts)
-        expected = (
-            cited == 1
-            and sum(counts) <= 10
-            or cited == company_count
-            and max(counts) <= share
-        )
-        assert allowed == expected, counts
+    assert len(enum) == len(set(enum)) == MAX_EVIDENCE_SPANS
 
 
 @pytest.mark.parametrize("company_count", [1, 2, 3, 5, 6])
@@ -529,12 +261,7 @@ def test_writer_wire_schema_needs_no_strict_mode_rewrite(company_count):
     schema = function["parameters"]
     assert function["strict"] is True
     assert schema["type"] == "object" and "anyOf" not in schema
-    # Allocation and enum fragments are added after pydantic-ai's strict-mode
-    # rewrite, so the schema actually sent must already be a fixed point of it.
+    # Enum fragments are added after pydantic-ai's strict-mode rewrite, so the
+    # schema actually sent must already be a fixed point of it.
     assert OpenAIJsonSchemaTransformer(deepcopy(schema), strict=True).walk() == schema
-    groups = schema["$defs"]["ComparisonInterpretation"]["properties"][
-        "evidence_by_company"
-    ]
-    branches = groups.get("anyOf", [groups])
-    # Equal shares keep a cross-company branch available up to ten companies.
-    assert any(len(b["required"]) == company_count for b in branches)
+    assert "ComparisonInterpretation" not in schema["$defs"]
