@@ -29,19 +29,25 @@ export async function messageHistory(threadId: string, signal: AbortSignal): Pro
     const page = await api.get<unknown>(`/chat/threads/${encodeURIComponent(threadId)}/messages?limit=200&offset=${offset}`, signal)
     if (!Array.isArray(page)) throw new Error('The server returned invalid message history.')
     for (const value of page) {
-      if (!record(value) || typeof value.id !== 'string' || typeof value.content !== 'string'
+      if (!record(value) || typeof value.id !== 'string' || (typeof value.content !== 'string' && value.content !== null)
         || (value.role !== 'USER' && value.role !== 'ASSISTANT' && value.role !== 'SYSTEM')) {
         throw new Error('The server returned an invalid message.')
       }
-      const parts: ChatMessage['parts'] = [{ type: 'text', text: value.content, state: 'done' }]
+      const parts: ChatMessage['parts'] = [{ type: 'text', text: value.content ?? '', state: 'done' }]
       if (value.role === 'ASSISTANT' && Array.isArray(value.parts)) {
         for (const part of value.parts) {
-          if (record(part) && part.type === 'data-citation') {
-            const data = parseCitation(part.data)
-            parts.push({ type: 'data-citation', id: String(data.index), data })
-          }
-          if (record(part) && part.type === 'data-answer') {
-            parts.push({ type: 'data-answer', id: 'answer', data: parseAnswer(part.data) })
+          // One bad stored part must not hide the thread: skip it. A missing source
+          // shows as unavailable; a missing answer part falls back to the text.
+          try {
+            if (record(part) && part.type === 'data-citation') {
+              const data = parseCitation(part.data)
+              parts.push({ type: 'data-citation', id: String(data.index), data })
+            }
+            if (record(part) && part.type === 'data-answer') {
+              parts.push({ type: 'data-answer', id: 'answer', data: parseAnswer(part.data) })
+            }
+          } catch {
+            continue
           }
         }
       }

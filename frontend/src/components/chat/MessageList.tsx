@@ -81,14 +81,17 @@ export default function MessageList({ messages, provisional }: { messages: ChatM
     const citations = message.parts.filter((part) => part.type === 'data-citation').map((part) => part.data)
     const text = message.parts.filter((part) => part.type === 'text').map((part) => part.text).join('')
     const pending = provisional && message.role === 'assistant' && index === messages.length - 1
+    const cited = answer ? answer.data.blocks.flatMap((b) => (b.kind === 'claim' ? b.citations : [])) : []
+    const missing = [...new Set(cited)].filter((n) => !citations.some((c) => c.index === n))
     return <article key={message.id} className={message.role === 'user' ? 'ml-8 rounded-xl bg-muted p-4' : 'mr-8 p-4'}>
       <p className="mb-2 text-xs font-semibold text-muted-foreground">{message.role === 'user' ? 'You' : 'Document Copilot'}</p>
       {message.role === 'assistant' && answer
         ? <Blocks messageId={message.id} blocks={answer.data.blocks} />
         : <p className="whitespace-pre-wrap break-words">{text}</p>}
-      {message.role === 'assistant' && citations.length > 0 && <div className="mt-4 space-y-2 border-t pt-3" aria-label="Sources">
+      {message.role === 'assistant' && (citations.length > 0 || missing.length > 0) && <div className="mt-4 space-y-2 border-t pt-3" aria-label="Sources">
         <p className="text-xs font-semibold">Sources</p>
         {citations.map((citation) => <Source key={citation.index} messageId={message.id} citation={citation} />)}
+        {missing.map((n) => <p key={n} className="rounded border border-dashed p-2 text-sm text-muted-foreground">[{n}] Source unavailable: its stored details could not be read.</p>)}
       </div>}
       {pending && <p className="mt-2 text-xs text-muted-foreground">Provisional reply: not yet saved</p>}
     </article>

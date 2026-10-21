@@ -36,7 +36,7 @@ cannot open a browser, so tasks end at code, offline tests and builds.
    scroll to the matching source, showing company, form, filing date, corpus
    year, fiscal year (unverified), page or "page unverified", section, excerpt
    and the SEC link. Keyboard-accessible.
-4. [ ] **Robust history.** A malformed stored citation must not hide a whole
+4. [x] **Robust history.** Done: malformed stored parts are skipped, null bodies tolerated, missing cited sources shown as unavailable; text-only messages unchanged. A malformed stored citation must not hide a whole
    thread: skip it and show "source unavailable". Verify old (stub/text-only)
    and new messages both render.
 5. [ ] **Empty state and example questions.** The new-chat page lists example
