@@ -47,6 +47,16 @@ cannot open a browser, so tasks end at code, offline tests and builds.
    unmounting the workspace (onboarding finding).
 7. [x] **Accessibility and layout.** Done: unique composer ids, Ctrl/Cmd+Enter to send, focusable citation and example buttons, tighter spacing on narrow screens. Needs the owner's manual keyboard/size check. Unique ids per mounted composer, focus
    order, aria labels for sources, long answers and narrow (mobile) widths.
+8. [ ] **Ratio regression (correctness, found tonight).** The Microsoft ratio
+   question now uses growth percentages (94.44%) instead of dollar increases
+   (65.56%). Reproduce offline from `autopilot-ex-msft-ratio.json`, fix
+   deterministically, then confirm with at most two capped paid runs.
+9. [ ] **Sales-vs-supply-chain false claim (found tonight).** Analyse
+   `autopilot-ex-supplier.json`; fix only if a deterministic or narrowly
+   scoped check exists, otherwise record the analysis for the owner.
+10. [ ] **AI search planning.** "Does Apple's 2025 10-K say nothing about AI?"
+   searched for R&D wording. Make "does X mention Y" questions search for Y,
+   then confirm with capped paid runs.
 
 ## Morning summary
 
