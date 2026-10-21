@@ -100,9 +100,10 @@ def test_redundant_company_and_year_words_removed(config):
         [SearchFilters(ticker="MSFT")],
         config,
     ) == ["Azure", "cloud", "services"]
-    # Live run: "AI disclosure 10-K" left one topical word for a 10-K filter.
+    # Live runs: "AI disclosure 10-K" and "AI disclosure mention" each left one
+    # topical word.
     assert filter_keywords(
-        ["AI", "10-K", "artificial", "intelligence"],
+        ["AI", "10-K", "disclosure", "mention", "artificial", "intelligence"],
         [SearchFilters(ticker="AAPL", form="10-K", corpus_years=[2025])],
         config,
     ) == ["AI", "artificial", "intelligence"]

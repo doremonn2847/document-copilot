@@ -51,7 +51,26 @@ def filter_keywords(
         "NVDA": {"nvidia"},
         "GOOGL": {"alphabet", "google"},
     }
-    excluded = set()
+    # Words about the question's form, not its topic: "Does X mention Y?" must
+    # search for Y. A live run searched "AI disclosure mention" and missed the
+    # passages that say "artificial intelligence".
+    excluded = {
+        "mention",
+        "mentions",
+        "mentioned",
+        "say",
+        "says",
+        "said",
+        "nothing",
+        "disclose",
+        "discloses",
+        "disclosed",
+        "disclosure",
+        "disclosures",
+        "discuss",
+        "discusses",
+        "discussed",
+    }
     for filters_for_target in filters:
         if filters_for_target.form:
             excluded.add(filters_for_target.form.casefold())
@@ -76,7 +95,7 @@ def filter_keywords(
         <= settings.retrieval_fts_keyword_max
     ):
         raise ValueError(
-            "Return enough domain words after omitting separately filtered company names and years"
+            "Return enough topic words after omitting separately filtered company names, forms and years and question words such as mention or disclosure; spell out acronyms such as AI as artificial intelligence"
         )
     return words
 
