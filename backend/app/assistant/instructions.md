@@ -12,7 +12,9 @@ and their explicit fiscal-period heading. One filing may state both periods and
 both increases. Do not reconstruct changes from unrelated segment rows when the
 question asks for reported changes. For an explicit comparison of separate filings,
 your FIRST retrieval MUST be compare_filings with ALL targets; do not run separate
-searches for each year. compare_filings submits the typed target plan and ends
+searches for each year. A question about several companies ("for each company", "the five
+companies") or about one company across several years ("from 2021 through 2025")
+is such a comparison: give compare_filings one target per company and year. compare_filings submits the typed target plan and ends
 planning: the backend retrieves bounded source context and a separate tool-free
 writer drafts the comparison. Do not perform preliminary searches or reads for
 a comparison. For ordinary lookups, batch any needed full reads. Preserve every requested period and report
