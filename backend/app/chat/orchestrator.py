@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 from dataclasses import dataclass
 from time import monotonic
 from uuid import UUID
@@ -16,7 +17,7 @@ from pydantic_ai.usage import UsageLimits
 
 from app.assistant.agent import build_agent
 from app.assistant.comparisons import ComparisonReady, build_comparison_writer
-from app.assistant.deps import BudgetExceeded, DocumentAgentDeps
+from app.assistant.deps import BudgetExceeded, DocumentAgentDeps, TurnRegistry
 from app.assistant.facts import build_fact_extractor, build_input_judge
 from app.assistant.failure_diagnostics import (
     http_failure_diagnostics,
@@ -25,8 +26,9 @@ from app.assistant.failure_diagnostics import (
     unexpected_response_diagnostics,
 )
 from app.assistant.model_settings import ModelOutputLimitExceeded
-from app.assistant.outputs import EvidenceGap, GroundedAnswer
+from app.assistant.outputs import AnswerClaim, EvidenceGap, GroundedAnswer
 from app.assistant.rendering import AcceptedReply, render_answer
+from app.assistant.selection import matches_target, with_coverage
 from app.config import settings
 from app.grounding.claim_context import financial_context_only
 from app.grounding.judge import build_judge, judge_answer, support_errors
@@ -78,6 +80,75 @@ class GroundedRun:
     diagnostics: dict
 
 
+ITEM_ERROR = re.compile(r"^(claim|gap) (\d+): ")
+
+
+def covered_targets(registry: TurnRegistry, claims: list[AnswerClaim]) -> set[int]:
+    cited = [registry.passages[ref.chunk_id] for c in claims for ref in c.evidence]
+    return {
+        i
+        for i, target in enumerate(registry.comparison_targets)
+        if any(matches_target(p, target) for p in cited)
+    }
+
+
+def withhold_failed(
+    answer: GroundedAnswer,
+    errors: list[str],
+    deps: DocumentAgentDeps,
+    *,
+    source: str,
+    attempt: int,
+) -> tuple[GroundedAnswer, list[str]]:
+    """On the final guided attempt, drop failed claims instead of the whole answer.
+
+    This is usually after the single repair; a comparison first planned on the
+    final attempt is pruned on its only draft. Remaining claims keep every
+    check. Answer-level errors and rejected server-owned coverage gaps still
+    fail closed.
+    """
+    claims, gaps = set(), set()
+    for error in errors:
+        match = ITEM_ERROR.match(error)
+        if not match:
+            return answer, errors
+        index = int(match[2])
+        if match[1] == "claim":
+            claims.add(index)
+        elif answer.gaps[index].request_quote is not None:
+            gaps.add(index)
+        else:
+            return answer, errors
+    kept_claims = [claim for i, claim in enumerate(answer.claims) if i not in claims]
+    if not kept_claims:
+        # Withholding trims a failed answer; it never turns one into "no evidence".
+        return answer, errors
+    if source == "grounding" and covered_targets(
+        deps.registry, answer.claims
+    ) - covered_targets(deps.registry, kept_claims):
+        # The judge has already run, so a target losing its claims would be
+        # published without a judged statement of what remains unestablished.
+        return answer, errors
+    kept_gaps = [gap for i, gap in enumerate(answer.gaps) if i not in gaps]
+    pruned = with_coverage(deps.registry, kept_claims, kept_gaps)
+    deps.withheld.append(
+        {
+            "stage": "withheld",
+            "source": source,
+            "attempt": attempt,
+            "claims": sorted(claims),
+            "gaps": sorted(gaps),
+        }
+    )
+    return pruned, structural_errors(
+        pruned,
+        deps.registry,
+        searches=deps.completed_retrievals,
+        max_claims=deps.settings.assistant_max_claims,
+        max_refs=deps.settings.assistant_claim_refs,
+    )
+
+
 async def run_grounded(
     question: str,
     history: list[dict],
@@ -99,9 +170,12 @@ async def run_grounded(
     reports = deps.validation_reports
     started = monotonic()
     guided_comparison = False
+    structural = []
     for attempt in range(deps.settings.assistant_grounding_repairs + 1):
+        final = attempt == deps.settings.assistant_grounding_repairs
         if deps.progress:
             await deps.progress("repairing" if attempt else "analyzing")
+        deps.prune_unverified = guided_comparison and final
         try:
             with capture_run_messages() as captured:
                 result = await agent.run(
@@ -124,6 +198,7 @@ async def run_grounded(
                         "Comparison writer is required for comparison plans"
                     )
                 guided_comparison = True
+                deps.prune_unverified = final
                 agent = comparison_writer
                 prompt = json.dumps(
                     {
@@ -182,6 +257,11 @@ async def run_grounded(
                 "errors": errors,
             }
         )
+        structural = errors
+        if errors and guided_comparison and final:
+            answer, errors = withhold_failed(
+                answer, errors, deps, source="structural", attempt=attempt
+            )
         if not errors and (answer.claims or guided_comparison and answer.gaps):
             if deps.progress:
                 await deps.progress("verifying")
@@ -199,10 +279,19 @@ async def run_grounded(
             )
             errors = support_errors(checked, len(answer.claims), len(answer.gaps))
             reports.append(checked.model_dump())
+            if errors and guided_comparison and final:
+                answer, errors = withhold_failed(
+                    answer, errors, deps, source="grounding", attempt=attempt
+                )
         if not errors:
+            reports.extend(deps.withheld)
             return GroundedRun(
                 answer,
-                render_answer(answer, deps.registry),
+                render_answer(
+                    answer,
+                    deps.registry,
+                    withheld=sum(len(report["claims"]) for report in deps.withheld),
+                ),
                 diagnostics(deps, started),
             )
         messages = result.all_messages()
@@ -228,7 +317,11 @@ async def run_grounded(
                     for key, ref in deps.registry.evidence_refs.items()
                 ]
             )
-    if deps.registry.comparison_targets and financial_context_only(errors):
+    # Withholding may have replaced financial-context errors with judge errors;
+    # the pre-withholding structural result keeps that fallback available.
+    if deps.registry.comparison_targets and (
+        financial_context_only(errors) or financial_context_only(structural)
+    ):
         # No draft claims survive this fallback; it reports verification failure,
         # not an assertion that the filings lack the requested information.
         answer = GroundedAnswer(
@@ -326,6 +419,11 @@ async def generate_reply(
                 structural_validation=structural_failure_summary(
                     deps.validation_reports
                 ),
+                withheld=[
+                    report
+                    for report in deps.validation_reports
+                    if report.get("stage") == "withheld"
+                ],
                 financial_context_fallback=any(
                     report.get("stage") == "financial_context_fallback"
                     for report in deps.validation_reports

@@ -10,6 +10,7 @@ from app.assistant.comparisons import (
     final_comparison_answer,
     request_spans,
 )
+from app.assistant.rendering import WITHHELD_NOTICE
 from app.assistant.selection import SelectedClaim
 from app.assistant.tools import expose_groups
 from app.retrieval.types import SearchFilters
@@ -716,3 +717,361 @@ def test_guided_judge_wire_requires_one_verdict_per_server_owned_key(omit_key):
     else:
         asyncio.run(check())
     assert len(requests) == 1
+
+
+def withholding_deps():
+    from tests.assistant.test_comparison_citations import citation_deps
+
+    d = citation_deps()
+    d.settings = d.settings.model_copy(
+        update={
+            "assistant_grounding_repairs": 1,
+            "assistant_max_claims": 20,
+            "assistant_claim_refs": 5,
+            "openai_agent_request_limit": 20,
+        }
+    )
+    # As prepare_comparison does, so judge payloads carry shown target evidence.
+    d.registry.request_spans = request_spans(d.question)
+    return d
+
+
+def verdicts(*supported, gaps=()):
+    from app.grounding.judge import GapDecision, SupportDecision, SupportReport
+
+    return SupportReport(
+        decisions=[
+            SupportDecision(
+                claim_index=i,
+                supported=ok,
+                reason="supported" if ok else "unsupported_interpretation",
+                evidence_assessment="Fixture verdict.",
+            )
+            for i, ok in enumerate(supported)
+        ],
+        gap_decisions=[
+            GapDecision(
+                gap_index=i,
+                request_id=request_id,
+                warranted=warranted,
+                evidence_assessment="Fixture gap verdict.",
+            )
+            for i, (warranted, request_id) in enumerate(gaps)
+        ],
+    )
+
+
+def run_withholding(d, draft, judge, *, planner=None):
+    from app.assistant.comparisons import ComparisonReady
+    from app.chat.orchestrator import run_grounded
+    from tests.assistant.test_orchestrator import Agent as StubAgent
+
+    return asyncio.run(
+        run_grounded(
+            d.question,
+            [],
+            d,
+            planner or StubAgent([ComparisonReady(evidence="[Source fixture]")]),
+            judge,
+            comparison_writer=StubAgent([draft, draft]),
+        )
+    )
+
+
+def withheld_reports(d):
+    return [r for r in d.validation_reports if r.get("stage") == "withheld"]
+
+
+@pytest.mark.parametrize("failure", ["structural", "grounding", "grounding_uncovers"])
+def test_final_guided_attempt_withholds_failed_claims_but_keeps_coverage(failure):
+    from app.assistant.comparisons import ComparisonReady
+    from app.assistant.outputs import AnswerClaim, GroundedAnswer
+    from app.chat.orchestrator import GroundingRejected, run_grounded
+    from tests.assistant.test_orchestrator import Agent as StubAgent
+
+    d = withholding_deps()
+    refs = d.registry.evidence_refs
+    interpretation = (
+        "Apple repeats supplier dependence in its 2023 filing."
+        if failure == "structural"
+        else "Apple repeats supplier dependence across filings."
+    )
+    draft = GroundedAnswer(
+        status="answered",
+        claims=[
+            AnswerClaim(text="Apple depends on suppliers.", evidence=[refs["E1"]]),
+            AnswerClaim(
+                text=interpretation,
+                kind="interpretation",
+                evidence=[refs["E1"], refs["E2"]],
+            ),
+            AnswerClaim(text="NVIDIA depends on suppliers.", evidence=[refs["E6"]]),
+        ],
+    )
+    if failure == "structural":
+        # Attempt 0 fails structurally (uncited 2023) and never reaches the judge.
+        judge = StubAgent([verdicts(True, True)])
+    elif failure == "grounding":
+        judge = StubAgent([verdicts(True, False, True)] * 2)
+    else:
+        # Withholding NVIDIA's only claim would publish an unjudged coverage gap.
+        judge = StubAgent([verdicts(True, True, False)] * 2)
+    writer = StubAgent([draft, draft])
+
+    def run():
+        return asyncio.run(
+            run_grounded(
+                d.question,
+                [],
+                d,
+                StubAgent([ComparisonReady(evidence="[Source fixture]")]),
+                judge,
+                comparison_writer=writer,
+            )
+        )
+
+    if failure == "grounding_uncovers":
+        with pytest.raises(GroundingRejected):
+            run()
+        assert not [r for r in d.validation_reports if r.get("stage") == "withheld"]
+        return
+    result = run()
+    assert [claim.text for claim in result.answer.claims] == [
+        "Apple depends on suppliers.",
+        "NVIDIA depends on suppliers.",
+    ]
+    assert result.answer.status == "answered"
+    assert result.reply.text.endswith(WITHHELD_NOTICE)
+    (report,) = [r for r in d.validation_reports if r.get("stage") == "withheld"]
+    assert report == {
+        "stage": "withheld",
+        "source": failure,
+        "attempt": 1,
+        "claims": [1],
+        "gaps": [],
+    }
+    assert len(judge.calls) == (1 if failure == "structural" else 2)
+
+
+@pytest.mark.parametrize("all_invalid", [False, True])
+def test_final_guided_submission_withholds_invalid_claims_on_the_wire(all_invalid):
+    import httpx
+    from openai import AsyncOpenAI
+
+    from app.assistant.comparisons import ComparisonReady, build_comparison_writer
+    from app.chat.orchestrator import GroundingRejected, run_grounded
+    from tests.assistant.test_comparison_citations import completion
+    from tests.assistant.test_orchestrator import Agent as StubAgent
+
+    d = withholding_deps()
+    # Live draft: an Apple-only group carried a claim about both companies.
+    both = {
+        "text": "Both companies describe supplier dependence.",
+        "kind": "interpretation",
+        "evidence_by_company": {"AAPL": ["E1"]},
+    }
+    facts = [
+        {
+            "text": text,
+            "kind": "fact",
+            "evidence_ids": [key],
+            "calculation_id": None,
+        }
+        for text, key in [
+            ("Apple depends on suppliers.", "E1"),
+            ("NVIDIA depends on suppliers.", "E6"),
+        ]
+    ]
+    requests = []
+
+    def respond(request):
+        requests.append(json.loads(request.content))
+        claims = [both] if all_invalid else [facts[0], both, facts[1]]
+        return completion({"claims": claims, "gaps": []}, len(requests))
+
+    judge = StubAgent([verdicts(True, True)])
+
+    async def check():
+        async with (
+            httpx.AsyncClient(transport=httpx.MockTransport(respond)) as http,
+            AsyncOpenAI(
+                api_key="offline-test", max_retries=0, http_client=http
+            ) as client,
+        ):
+            return await run_grounded(
+                d.question,
+                [],
+                d,
+                StubAgent([ComparisonReady(evidence="[Source fixture]")]),
+                judge,
+                comparison_writer=build_comparison_writer(d.settings, client),
+            )
+
+    if all_invalid:
+        with pytest.raises(GroundingRejected):
+            asyncio.run(check())
+        assert len(judge.calls) == 0
+    else:
+        result = asyncio.run(check())
+        assert [claim.text for claim in result.answer.claims] == [
+            "Apple depends on suppliers.",
+            "NVIDIA depends on suppliers.",
+        ]
+        # Only the final submission withholds; the first one went to repair.
+        assert [r for r in d.validation_reports if r.get("stage") == "withheld"] == [
+            {"stage": "withheld", "source": "submission", "claims": [1]}
+        ]
+        assert len(judge.calls) == 1
+    assert len(requests) == 2
+
+
+def facts_draft(d, *extra_claims, gaps=()):
+    from app.assistant.outputs import AnswerClaim, GroundedAnswer
+
+    refs = d.registry.evidence_refs
+    claims = [
+        AnswerClaim(text="Apple depends on suppliers.", evidence=[refs["E1"]]),
+        *extra_claims,
+    ]
+    return GroundedAnswer(
+        status="partial" if gaps else "answered", claims=claims, gaps=list(gaps)
+    )
+
+
+def test_final_attempt_withholds_an_unwarranted_model_gap_without_a_notice():
+    from app.assistant.outputs import AnswerClaim, EvidenceGap
+    from tests.assistant.test_orchestrator import Agent as StubAgent
+
+    d = withholding_deps()
+    gap = EvidenceGap(
+        request_quote=d.question,
+        reason="missing_evidence",
+        missing_detail="Supplier risk wording is not established.",
+    )
+    nvidia = AnswerClaim(
+        text="NVIDIA depends on suppliers.", evidence=[d.registry.evidence_refs["E6"]]
+    )
+    judge = StubAgent([verdicts(True, True, gaps=[(False, "R1")])] * 2)
+    result = run_withholding(d, facts_draft(d, nvidia, gaps=[gap]), judge)
+    assert result.answer.status == "answered" and not result.answer.gaps
+    assert WITHHELD_NOTICE not in result.reply.text
+    assert withheld_reports(d) == [
+        {
+            "stage": "withheld",
+            "source": "grounding",
+            "attempt": 1,
+            "claims": [],
+            "gaps": [0],
+        }
+    ]
+
+
+@pytest.mark.parametrize("warranted", [True, False])
+def test_structural_withholding_sends_the_new_coverage_gap_to_the_judge(warranted):
+    from app.assistant.outputs import AnswerClaim
+    from app.chat.orchestrator import GroundingRejected
+    from tests.assistant.test_orchestrator import Agent as StubAgent
+
+    d = withholding_deps()
+    # NVIDIA's only claim states an uncited year, so withholding uncovers NVDA.
+    nvidia = AnswerClaim(
+        text="NVIDIA depends on suppliers in 2023.",
+        evidence=[d.registry.evidence_refs["E6"]],
+    )
+    judge = StubAgent([verdicts(True, gaps=[(warranted, None)])])
+    if not warranted:
+        with pytest.raises(GroundingRejected):
+            run_withholding(d, facts_draft(d, nvidia), judge)
+        assert not withheld_reports(d)
+    else:
+        result = run_withholding(d, facts_draft(d, nvidia), judge)
+        assert result.answer.status == "partial"
+        (gap,) = result.answer.gaps
+        assert gap.target.ticker == "NVDA" and gap.request_quote is None
+        assert result.reply.text.endswith(WITHHELD_NOTICE)
+    assert len(judge.calls) == 1
+
+
+def test_grounding_withholding_refuses_to_leave_a_target_with_only_a_narrow_gap():
+    from app.assistant.outputs import AnswerClaim, EvidenceGap
+    from app.chat.orchestrator import GroundingRejected
+    from tests.assistant.test_orchestrator import Agent as StubAgent
+
+    d = withholding_deps()
+    nvidia = AnswerClaim(
+        text="NVIDIA depends on suppliers.", evidence=[d.registry.evidence_refs["E6"]]
+    )
+    narrow = EvidenceGap(
+        target=SearchFilters(ticker="NVDA"),
+        request_quote=d.question,
+        reason="missing_evidence",
+        missing_detail="Supplier concentration percentages are not established.",
+    )
+    judge = StubAgent([verdicts(True, False, gaps=[(True, "R1")])] * 2)
+    with pytest.raises(GroundingRejected):
+        run_withholding(d, facts_draft(d, nvidia, gaps=[narrow]), judge)
+    assert not withheld_reports(d)
+
+
+@pytest.mark.parametrize("case", ["answer_level_error", "every_claim_fails"])
+def test_final_attempt_fails_closed_when_withholding_cannot_isolate_failures(case):
+    from app.assistant.outputs import AnswerClaim, GroundedAnswer
+    from app.chat.orchestrator import GroundingRejected
+    from tests.assistant.test_orchestrator import Agent as StubAgent
+
+    d = withholding_deps()
+    refs = d.registry.evidence_refs
+    bad = AnswerClaim(text="Apple depends on suppliers in 2023.", evidence=[refs["E1"]])
+    if case == "answer_level_error":
+        # "Claim limit exceeded" has no claim index, so nothing can be isolated.
+        d.settings = d.settings.model_copy(update={"assistant_max_claims": 1})
+        draft = facts_draft(d, bad)
+    else:
+        draft = GroundedAnswer(status="answered", claims=[bad])
+    judge = StubAgent([])
+    with pytest.raises(GroundingRejected):
+        run_withholding(d, draft, judge)
+    assert not withheld_reports(d) and not judge.calls
+
+
+def test_financial_context_fallback_survives_structural_withholding():
+    from app.assistant.outputs import AnswerClaim
+    from app.grounding.validator import structural_errors
+    from tests.assistant.test_orchestrator import Agent as StubAgent
+
+    d = withholding_deps()
+    revenue = passage("Revenue was USD 100 million.").model_copy(
+        update={"ticker": "NVDA"}
+    )
+    key = d.registry.evidence_id(revenue, revenue.text)
+    figure = AnswerClaim(
+        text="NVIDIA revenue was USD 100 million.",
+        evidence=[d.registry.evidence_refs[key]],
+    )
+    draft = facts_draft(d, figure)
+    errors = structural_errors(draft, d.registry, searches=1)
+    assert errors and all(e.startswith("claim 1: financial") for e in errors)
+    # The judge rejects the coverage gap that withholding the figure creates.
+    judge = StubAgent([verdicts(True, gaps=[(False, None)])])
+    result = run_withholding(d, draft, judge)
+    assert result.answer.status == "insufficient_evidence"
+    assert {gap.reason for gap in result.answer.gaps} == {"ambiguous_figures"}
+    assert not withheld_reports(d)
+
+
+def test_non_guided_answers_never_withhold_claims():
+    from app.assistant.outputs import AnswerClaim
+    from app.chat.orchestrator import GroundingRejected, run_grounded
+    from tests.assistant.test_orchestrator import Agent as StubAgent
+
+    d = withholding_deps()
+    d.registry.comparison_targets = []
+    d.registry.request_spans = {}
+    nvidia = AnswerClaim(
+        text="NVIDIA depends on suppliers.", evidence=[d.registry.evidence_refs["E6"]]
+    )
+    draft = facts_draft(d, nvidia)
+    judge = StubAgent([verdicts(True, False)] * 2)
+    with pytest.raises(GroundingRejected):
+        asyncio.run(run_grounded(d.question, [], d, StubAgent([draft, draft]), judge))
+    assert not withheld_reports(d) and not d.prune_unverified

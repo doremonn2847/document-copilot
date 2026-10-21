@@ -256,3 +256,33 @@ each missing year, or directs the limitation into a gap; a single-company
 group rejects wording about several companies ("both/neither/the two
 companies"); writer instructions state both rules. Offline: **362 passed, 15
 integration deselected**. Live confirmation is pending; phase 6 remains open.
+
+**Year-feedback live check.** One more approved run with unchanged caps failed
+closed in 27.7 seconds: **3 answering, 0 judging, 1 keyword, 1 embedding**
+(answering 14,042 input / 2,199 output tokens; 27 evidence IDs). The draft had
+eight per-year facts, an NVIDIA trend interpretation and reasonable gaps. One
+interpretation discussed both companies ("Apple's wording … while NVIDIA's …")
+with an Apple-only group, and `missing_company_evidence` rejected it. The repair
+feedback listed NVIDIA candidate IDs, yet the writer resubmitted the same group.
+This was the third consecutive run in which the single repair did not correct
+one claim, so the whole answer was discarded for one sentence.
+
+**Design decision: withhold failed claims on the final guided attempt.** After
+the single repair (or on a comparison first planned on the final attempt), the
+writer's submission and the orchestrator drop only claims that fail submission,
+structural or judge checks, plus model-written gaps the judge rejects. No check
+is weakened. It still fails closed when every claim fails, when an error is not
+tied to one claim (for example the claim limit), when the judge rejects a
+server-owned coverage gap, or when judge-stage pruning would leave a covered
+company/year without claims. Coverage gaps created by submission- or
+structural-stage withholding are judged with the target's shown evidence. A
+fixed server notice tells the analyst that statements were omitted. Withheld
+reports (indices only) are recorded only for accepted answers. The financial
+context fallback still applies to the pre-withholding structural errors.
+
+An adversarial review (three lenses, one skeptic per finding) refuted two
+findings and confirmed the rest, all addressed above: silent omission, the
+financial fallback regression, a narrow gap masking a lost target, diagnostics
+for rejected turns, and missing tests. Mutation checks confirm the new tests
+fail when each guard is removed. Offline: **375 passed, 15 integration
+deselected**. Live confirmation is pending; phase 6 remains open.

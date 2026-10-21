@@ -108,8 +108,32 @@ def final_comparison_answer(
                 request_quote=quote,
             )
         )
-    selected = [resolve_comparison_claim(claim, ctx.deps) for claim in claims]
-    return final_answer(ctx, selected, resolved)
+    if not ctx.deps.prune_unverified:
+        selected = [resolve_comparison_claim(claim, ctx.deps) for claim in claims]
+        return final_answer(ctx, selected, resolved)
+    selected = []
+    withheld = []
+    rejection = None
+    for index, claim in enumerate(claims):
+        try:
+            candidate = resolve_comparison_claim(claim, ctx.deps)
+            # Runs the per-claim submission checks, such as citing every named company.
+            final_answer(ctx, [candidate], [])
+        except ModelRetry as error:
+            withheld.append(index)
+            rejection = rejection or error
+            continue
+        selected.append(candidate)
+    if rejection and not selected:
+        # Withholding trims a failed answer; it never turns one into "no evidence".
+        raise rejection
+    answer = final_answer(ctx, selected, resolved)
+    if withheld:
+        # Indices into the submitted claims only: messages may carry model or source text.
+        ctx.deps.withheld.append(
+            {"stage": "withheld", "source": "submission", "claims": withheld}
+        )
+    return answer
 
 
 def build_comparison_writer(

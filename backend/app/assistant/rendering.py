@@ -33,7 +33,12 @@ def calculation_text(record: CalculationRecord) -> str:
     )
 
 
-def render_answer(answer: GroundedAnswer, registry: TurnRegistry) -> AcceptedReply:
+WITHHELD_NOTICE = "Some drafted statements were omitted because they could not be verified against the cited filings."
+
+
+def render_answer(
+    answer: GroundedAnswer, registry: TurnRegistry, *, withheld: int = 0
+) -> AcceptedReply:
     indices = {}
     citations = []
     lines = []
@@ -112,5 +117,8 @@ def render_answer(answer: GroundedAnswer, registry: TurnRegistry) -> AcceptedRep
             else GAPS[gap.reason]
         )
         lines.append(target + message)
+    if withheld:
+        # Fixed server text: an answer that lost claims must not read as complete.
+        lines.append(WITHHELD_NOTICE)
     text = "\n\n".join(lines)
     return AcceptedReply(text=text, parts=[{"type": "text", "text": text}, *citations])

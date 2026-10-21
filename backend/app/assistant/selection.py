@@ -8,7 +8,7 @@ from uuid import UUID
 from pydantic import Field, ValidationError, field_validator
 from pydantic_ai import ModelRetry, RunContext
 
-from app.assistant.deps import DocumentAgentDeps, normalized
+from app.assistant.deps import DocumentAgentDeps, TurnRegistry, normalized
 from app.assistant.outputs import AnswerClaim, Contract, EvidenceGap, GroundedAnswer
 from app.grounding.claim_context import missing_company_evidence
 from app.retrieval.types import RetrievedPassage, SearchFilters
@@ -151,22 +151,28 @@ def final_answer(
                         "At most 25 individual evidence gaps are supported; narrow the targets."
                     )
         gaps = list({gap.model_dump_json(): gap for gap in expanded}.values())
-        cited = [
-            registry.passages[ref.chunk_id] for c in resolved for ref in c.evidence
-        ]
-        for target in registry.comparison_targets:
-            if not any(matches_target(p, target) for p in cited) and not any(
-                g.target == target for g in gaps
-            ):
-                gaps.append(EvidenceGap(target=target, reason="missing_evidence"))
-        return GroundedAnswer(
-            status="partial"
-            if resolved and gaps
-            else "answered"
-            if resolved
-            else "insufficient_evidence",
-            claims=resolved,
-            gaps=gaps,
-        )
+        return with_coverage(registry, resolved, gaps)
     except ValidationError as error:
         raise ModelRetry(str(error)) from None
+
+
+def with_coverage(
+    registry: TurnRegistry, claims: list[AnswerClaim], gaps: list[EvidenceGap]
+) -> GroundedAnswer:
+    """Add server-owned gaps for comparison targets that no claim cites."""
+    gaps = list(gaps)
+    cited = [registry.passages[ref.chunk_id] for c in claims for ref in c.evidence]
+    for target in registry.comparison_targets:
+        if not any(matches_target(p, target) for p in cited) and not any(
+            g.target == target for g in gaps
+        ):
+            gaps.append(EvidenceGap(target=target, reason="missing_evidence"))
+    return GroundedAnswer(
+        status="partial"
+        if claims and gaps
+        else "answered"
+        if claims
+        else "insufficient_evidence",
+        claims=claims,
+        gaps=gaps,
+    )

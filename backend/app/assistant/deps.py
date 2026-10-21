@@ -144,6 +144,10 @@ class DocumentAgentDeps:
     fact_judge: "Agent[None, SupportReport] | None" = None
     fact_preparations: int = 0
     fact_checks: int = 0
+    # Set on the final guided-comparison attempt: withhold failed claims, keep verified ones.
+    prune_unverified: bool = False
+    # Withholding reports, recorded only if the pruned answer is accepted.
+    withheld: list[dict] = field(default_factory=list)
 
     async def begin(self, stage: str, *, search: bool = False) -> None:
         self.tool_calls += 1
