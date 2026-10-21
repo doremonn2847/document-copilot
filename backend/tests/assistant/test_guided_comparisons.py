@@ -1043,8 +1043,10 @@ def test_financial_context_fallback_survives_structural_withholding():
     assert not withheld_reports(d)
 
 
-def test_non_guided_answers_never_withhold_claims():
+def test_non_guided_final_attempt_withholds_failed_claims_with_notice():
+    # Live client questions failed whole when one of several claims kept failing.
     from app.assistant.outputs import AnswerClaim
+    from app.assistant.rendering import WITHHELD_NOTICE
     from app.chat.orchestrator import GroundingRejected, run_grounded
     from tests.assistant.test_orchestrator import Agent as StubAgent
 
@@ -1056,6 +1058,16 @@ def test_non_guided_answers_never_withhold_claims():
     )
     draft = facts_draft(d, nvidia)
     judge = StubAgent([verdicts(True, False)] * 2)
+    result = asyncio.run(
+        run_grounded(d.question, [], d, StubAgent([draft, draft]), judge)
+    )
+    assert [c.text for c in result.answer.claims] == ["Apple depends on suppliers."]
+    assert WITHHELD_NOTICE in result.reply.text
+    assert withheld_reports(d) and not d.prune_unverified
+    # Withholding never turns an answer whose every claim failed into a reply.
+    d = withholding_deps()
+    d.registry.comparison_targets = []
+    d.registry.request_spans = {}
+    judge = StubAgent([verdicts(False, False)] * 2)
     with pytest.raises(GroundingRejected):
         asyncio.run(run_grounded(d.question, [], d, StubAgent([draft, draft]), judge))
-    assert not withheld_reports(d) and not d.prune_unverified

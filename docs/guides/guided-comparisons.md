@@ -280,6 +280,13 @@ fixed server notice tells the analyst that statements were omitted. Withheld
 reports (indices only) are recorded only for accepted answers. The financial
 context fallback still applies to the pre-withholding structural errors.
 
+Extended 2026-10-22 (phase 8): the orchestrator also withholds on the final
+attempt of non-comparison answers, after client questions Q03 and the Apple AI
+question failed whole because one of several claims or an unwarranted gap kept
+failing. Writer-submission pruning stays guided-only. A gap counts as
+model-written when it has a request quote or model-written detail, matching the
+judge's definition of server-owned gaps.
+
 An adversarial review (three lenses, one skeptic per finding) refuted two
 findings and confirmed the rest, all addressed above: silent omission, the
 financial fallback regression, a narrow gap masking a lost target, diagnostics
