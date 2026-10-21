@@ -67,9 +67,9 @@ def render_answer(
 ) -> AcceptedReply:
     indices = {}
     citations = []
-    lines = []
+    blocks = []
     for claim in answer.claims:
-        labels = []
+        numbers = []
         for ref in claim.evidence:
             key = (ref.chunk_id, normalized(ref.exact_quote))
             if key not in indices:
@@ -99,39 +99,70 @@ def render_answer(
                         },
                     }
                 )
-            labels.append(f"[{indices[key]}]")
-        prefix = (
-            "Interpretation: "
-            if claim.kind == "interpretation"
-            else "Calculation: "
-            if claim.kind == "calculation"
-            else ""
-        )
-        text = claim.text
+            numbers.append(indices[key])
+        label = None
         if claim.kind == "fact" and registry.comparison_targets:
             p = registry.passages[claim.evidence[0].chunk_id]
-            text = f"{p.ticker} / {p.form} / corpus {p.corpus_year if p.corpus_year is not None else 'unverified'}: {text}"
-        if claim.calculation_id:
-            text = calculation_text(registry.calculations[claim.calculation_id])
-        lines.append(prefix + text + " " + " ".join(dict.fromkeys(labels)))
-    for gap in answer.gaps:
-        label = target_label(gap.target) if gap.target else ""
-        message = (
-            "Not established from the retrieved evidence: " + gap.missing_detail
-            if gap.missing_detail
-            else GAPS[gap.reason]
+            label = f"{p.ticker} / {p.form} / corpus {p.corpus_year if p.corpus_year is not None else 'unverified'}"
+        blocks.append(
+            {
+                "kind": "claim",
+                "claim_kind": claim.kind,
+                "label": label,
+                "text": calculation_text(registry.calculations[claim.calculation_id])
+                if claim.calculation_id
+                else claim.text,
+                "citations": list(dict.fromkeys(numbers)),
+            }
         )
-        lines.append(f"{label}: {message}" if label else message)
+    for gap in answer.gaps:
+        blocks.append(
+            {
+                "kind": "gap",
+                "label": target_label(gap.target) if gap.target else None,
+                "text": "Not established from the retrieved evidence: "
+                + gap.missing_detail
+                if gap.missing_detail
+                else GAPS[gap.reason],
+            }
+        )
     # Fixed server text below states only what the server observed this turn.
-    lines += [
-        f"No indexed passage was retrieved for {label}."
+    blocks += [
+        {"kind": "notice", "text": f"No indexed passage was retrieved for {label}."}
         for label in dict.fromkeys(target_label(f) for f in registry.unmatched_filters)
         if label
     ]
     if withheld:
         # An answer that lost claims must not read as complete.
-        lines.append(WITHHELD_NOTICE)
+        blocks.append({"kind": "notice", "text": WITHHELD_NOTICE})
     if advice:
-        lines.insert(0, ADVICE_NOTICE)
-    text = "\n\n".join(lines)
-    return AcceptedReply(text=text, parts=[{"type": "text", "text": text}, *citations])
+        blocks.insert(0, {"kind": "notice", "text": ADVICE_NOTICE})
+    text = "\n\n".join(block_text(block) for block in blocks)
+    return AcceptedReply(
+        text=text,
+        parts=[
+            {"type": "text", "text": text},
+            # Structured blocks let the browser lay out claims, gaps and notices.
+            {"type": "data-answer", "id": "answer", "data": {"blocks": blocks}},
+            *citations,
+        ],
+    )
+
+
+def block_text(block: dict) -> str:
+    """The plain-text form kept for history, replay and older clients."""
+    if block["kind"] != "claim":
+        return (
+            f"{block['label']}: {block['text']}"
+            if block.get("label")
+            else block["text"]
+        )
+    prefix = {"interpretation": "Interpretation: ", "calculation": "Calculation: "}
+    label = f"{block['label']}: " if block["label"] else ""
+    return (
+        prefix.get(block["claim_kind"], "")
+        + label
+        + block["text"]
+        + " "
+        + " ".join(f"[{number}]" for number in block["citations"])
+    )

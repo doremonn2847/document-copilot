@@ -571,3 +571,36 @@ def test_server_coverage_gap_does_not_claim_the_filings_lack_evidence():
         in text
     )
     assert "do not provide" not in text
+
+
+def test_structured_answer_blocks_match_the_plain_text_reply():
+    from app.assistant.outputs import EvidenceGap
+    from app.assistant.rendering import ADVICE_NOTICE, block_text, render_answer
+    from app.retrieval.types import SearchFilters
+
+    answer, registry = answer_and_registry()
+    registry.comparison_targets = [SearchFilters(ticker="AAPL")]
+    partial = GroundedAnswer(
+        status="partial",
+        claims=answer.claims,
+        gaps=[
+            EvidenceGap(
+                target=SearchFilters(ticker="NVDA", corpus_years=[2021]),
+                reason="missing_evidence",
+            )
+        ],
+    )
+    reply = render_answer(partial, registry, withheld=1, advice=True)
+    (structured,) = [p for p in reply.parts if p["type"] == "data-answer"]
+    blocks = structured["data"]["blocks"]
+    assert [b["kind"] for b in blocks] == ["notice", "claim", "gap", "notice"]
+    assert blocks[0]["text"] == ADVICE_NOTICE
+    claim = blocks[1]
+    assert claim["label"] == "AAPL / 10-K / corpus unverified"
+    assert claim["citations"] == [1] and claim["claim_kind"] == "fact"
+    assert blocks[2]["label"] == "NVDA / corpus years 2021"
+    # The text part stays the plain-text join of the same blocks.
+    assert reply.text == "\n\n".join(block_text(b) for b in blocks)
+    assert reply.text.startswith(
+        ADVICE_NOTICE + "\n\nAAPL / 10-K / corpus unverified: "
+    )

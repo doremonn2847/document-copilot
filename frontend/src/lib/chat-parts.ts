@@ -7,7 +7,33 @@ export type Citation = {
   fiscal_year: number | null; page: string | null; section: string | null
   source_kind?: 'original_table_context' | 'indexed_chunk'
 }
-export type ChatMessage = UIMessage<unknown, { citation: Citation; status: { stage: string } }>
+export type AnswerBlock =
+  | { kind: 'claim'; claim_kind: 'fact' | 'calculation' | 'interpretation'; label: string | null; text: string; citations: number[] }
+  | { kind: 'gap'; label: string | null; text: string }
+  | { kind: 'notice'; text: string }
+export type Answer = { blocks: AnswerBlock[] }
+export type ChatMessage = UIMessage<unknown, { citation: Citation; status: { stage: string }; answer: Answer }>
+
+function parseBlock(value: unknown): AnswerBlock {
+  if (typeof value !== 'object' || value === null) throw new Error('Invalid answer block.')
+  const block = value as Record<string, unknown>
+  const label = block.label ?? null
+  if (typeof block.text !== 'string' || (label !== null && typeof label !== 'string')) throw new Error('Invalid answer block.')
+  if (block.kind === 'notice') return { kind: 'notice', text: block.text }
+  if (block.kind === 'gap') return { kind: 'gap', label, text: block.text }
+  if (block.kind === 'claim' && (block.claim_kind === 'fact' || block.claim_kind === 'calculation' || block.claim_kind === 'interpretation')
+    && Array.isArray(block.citations) && block.citations.every(Number.isInteger)) {
+    return { kind: 'claim', claim_kind: block.claim_kind, label, text: block.text, citations: block.citations as number[] }
+  }
+  throw new Error('Invalid answer block.')
+}
+
+export function parseAnswer(value: unknown): Answer {
+  if (typeof value !== 'object' || value === null || !Array.isArray((value as { blocks?: unknown }).blocks)) {
+    throw new Error('Invalid structured answer.')
+  }
+  return { blocks: (value as { blocks: unknown[] }).blocks.map(parseBlock) }
+}
 
 export function parseCitation(value: unknown): Citation {
   if (typeof value !== 'object' || value === null) throw new Error('Invalid source metadata.')

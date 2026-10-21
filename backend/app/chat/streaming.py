@@ -88,7 +88,7 @@ async def stream_turn(
             )
         yield event({"type": "text-end", "id": "reply"})
         for part in answer.parts:
-            if part["type"] == "data-citation":
+            if part["type"].startswith("data-"):
                 yield event(part)
         if await request.is_disconnected():
             return

@@ -45,9 +45,10 @@ def test_rendered_metadata_and_normalized_citations_are_saved_in_same_transactio
     assert "INSERT INTO public.chat_messages" in c.calls[1][0]
     assert c.calls[1][1][-1].obj == reply.parts
     assert "INSERT INTO public.message_citations" in c.calls[2][0]
-    assert c.calls[2][1][2] == reply.parts[1]["data"]["chunk_id"]
-    assert reply.parts[1]["data"]["fiscal_year"] is None
-    assert reply.parts[1]["data"]["page"] is None
+    citation = next(part for part in reply.parts if part["type"] == "data-citation")
+    assert c.calls[2][1][2] == citation["data"]["chunk_id"]
+    assert citation["data"]["fiscal_year"] is None
+    assert citation["data"]["page"] is None
 
 
 def test_completed_replay_preserves_citations_and_reused_question_rejected():

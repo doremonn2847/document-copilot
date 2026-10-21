@@ -1,4 +1,4 @@
-import { parseCitation, type ChatMessage } from '@/lib/chat-parts'
+import { parseAnswer, parseCitation, type ChatMessage } from '@/lib/chat-parts'
 import { api } from '@/lib/api'
 import { ApiError } from '@/lib/http'
 
@@ -39,6 +39,9 @@ export async function messageHistory(threadId: string, signal: AbortSignal): Pro
           if (record(part) && part.type === 'data-citation') {
             const data = parseCitation(part.data)
             parts.push({ type: 'data-citation', id: String(data.index), data })
+          }
+          if (record(part) && part.type === 'data-answer') {
+            parts.push({ type: 'data-answer', id: 'answer', data: parseAnswer(part.data) })
           }
         }
       }

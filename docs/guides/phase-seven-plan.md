@@ -23,7 +23,7 @@ cannot open a browser, so tasks end at code, offline tests and builds.
 
 ## Tasks
 
-1. [ ] **Structured answer parts.** The backend currently streams one text block.
+1. [x] **Structured answer parts.** Done: `data-answer` blocks streamed, persisted and restored; text part unchanged (367 backend tests). The backend currently streams one text block.
    Add a `data-answer` part listing each claim (text, kind, company/year label,
    citation numbers) and each gap/notice (label, message, kind). Keep the text
    part for compatibility; persist it with the message parts so history
