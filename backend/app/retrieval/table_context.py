@@ -68,10 +68,11 @@ def original_table_context(
                 if set(re.findall(r"\b20\d{2}\b", heading.group())) & header_years:
                     contexts.append(heading.group())
                     break
-        # The first complete rows include headers and stay small enough to be
-        # exposed fairly across multi-year targets. Never cut through a row.
-        if len(table) > 1600:
-            end = table.rfind("\n", 0, 1600)
+        # Keep the body rows: the first 1,600 characters of a padded table held
+        # only its headers. Exposure picks header and relevant rows to fit each
+        # target's share. Never cut through a row.
+        if len(table) > 20000:
+            end = table.rfind("\n", 0, 20000)
             table = table[:end] if end > 0 else ""
         if table:
             contexts.append(table)

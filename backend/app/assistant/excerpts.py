@@ -4,6 +4,7 @@ import re
 from bisect import bisect_right
 
 SENTENCE_BREAK = re.compile(r"(?<=[.!?])\s+|\n+")
+YEAR = re.compile(r"\b(?:19|20)\d{2}\b")
 
 STOP_WORDS = {
     "the",
@@ -80,3 +81,29 @@ def focused_excerpt(text: str, limit: int, terms: set[str]) -> str:
 
     start = max(starts, key=lambda index: (relevance(window(index), terms), -index))
     return window(start)
+
+
+def table_rows(table: str, limit: int, terms: set[str]) -> list[str]:
+    """Verbatim year-header rows plus the rows that match the focus terms.
+
+    Docling pads Markdown cells to about 300 characters a row, so cutting a
+    table at the limit kept only its headers and none of the AWS or segment
+    amounts. Each returned line is an exact source substring, in table order.
+    """
+    lines = [line for line in table.split("\n") if re.search(r"\w", line)]
+    headers = [i for i, line in enumerate(lines[:6]) if YEAR.search(line)]
+    # Label-only rows ("Operating Income (Loss)") carry no amounts.
+    ranked = sorted(
+        (i for i in range(len(lines)) if i not in headers),
+        key=lambda i: (not re.search(r"\d", lines[i]), -relevance(lines[i], terms), i),
+    )
+    chosen, size = [], 0
+    for i in [*headers, *ranked]:
+        if i not in headers and terms and not relevance(lines[i], terms):
+            break
+        # Leave room for the "[E12] " ID and newline the caller adds per row.
+        if size + len(lines[i]) + 10 > limit:
+            continue
+        chosen.append(i)
+        size += len(lines[i]) + 10
+    return [lines[i] for i in sorted(chosen)]

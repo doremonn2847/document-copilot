@@ -8,7 +8,7 @@ from uuid import UUID
 from pydantic_ai import ModelRetry, RunContext
 
 from app.assistant.deps import MAX_EVIDENCE_SPANS, BudgetExceeded, DocumentAgentDeps
-from app.assistant.excerpts import focus_terms, focused_excerpt, relevance
+from app.assistant.excerpts import focus_terms, focused_excerpt, relevance, table_rows
 from app.assistant.facts import calculate_from_facts, prepare_facts
 from app.assistant.outputs import GroundedAnswer
 from app.assistant.rendering import calculation_text
@@ -87,20 +87,18 @@ def expose_groups(
                         deps.settings.assistant_evidence_chars
                         - deps.registry.exposed_characters,
                     )
-                    span = source_span
-                    if len(span) > room:
-                        if span.startswith("|"):
-                            end = span.rfind("\n", 0, max(0, room))
-                            span = span[:end] if end > 0 else ""
-                        else:
-                            span = ""
-                    if (
-                        not span
-                        or len(deps.registry.evidence_refs) >= MAX_EVIDENCE_SPANS
-                    ):
-                        continue
-                    key = deps.registry.evidence_id(p, span)
-                    context_output += f"[{key}] {span}\n"
+                    spans = [source_span]
+                    if len(source_span) > room:
+                        spans = (
+                            table_rows(source_span, room, terms)
+                            if source_span.startswith("|")
+                            else []
+                        )
+                    for span in spans:
+                        if len(deps.registry.evidence_refs) >= MAX_EVIDENCE_SPANS:
+                            break
+                        key = deps.registry.evidence_id(p, span)
+                        context_output += f"[{key}] {span}\n"
             if context_output:
                 prefix += "[Verbatim original-source table context]\n" + context_output
             room = min(
