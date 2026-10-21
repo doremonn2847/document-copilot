@@ -78,3 +78,8 @@ All tasks are ticked. The autopilot continues in [phase 8](phase-eight-plan.md)
   (17% / 18% growth rates) instead of 65.56% ($19.8B / $30.2B) accepted on
   2026-10-19; the input judge accepted the percentage inputs, and the
   rendered labels are garbled. Both are excluded from the example list.
+- **02:03, interruption:** Claude Code stopped the backend (8001), the frontend
+  (5173) and the paid phase-8 batch because the machine was critically low on
+  memory (0.6 GB free of 13.8 GB, mostly the browser). The servers were not
+  restarted automatically; restart them before the browser check. Paid runs
+  paused at 277/400 (one killed run counted at its 20-request cap).
