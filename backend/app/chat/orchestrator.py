@@ -99,6 +99,38 @@ def covered_targets(registry: TurnRegistry, claims: list[AnswerClaim]) -> set[in
     }
 
 
+def drop_unwarranted_gaps(
+    answer: GroundedAnswer, errors: list[str], deps: DocumentAgentDeps
+) -> tuple[GroundedAnswer, list[str]]:
+    """On the final attempt, drop gaps the judge found unwarranted when every claim passed.
+
+    Live drafts kept adding a gap rebutting the question's premise ("does the
+    filing say nothing about AI?") after supported claims had answered it.
+    Removing an unwarranted limitation adds no content; claim failures and
+    other errors still fail closed.
+    """
+    gaps = set()
+    for error in errors:
+        match = ITEM_ERROR.match(error)
+        if not match or match[1] != "gap" or "unwarranted" not in error:
+            return answer, errors
+        gaps.add(int(match[2]))
+    if not answer.claims:
+        return answer, errors
+    kept = [g for i, g in enumerate(answer.gaps) if i not in gaps]
+    pruned = answer.model_copy(
+        update={"gaps": kept, "status": answer.status if kept else "answered"}
+    )
+    deps.validation_reports.append({"stage": "dropped_gaps", "gaps": sorted(gaps)})
+    return pruned, structural_errors(
+        pruned,
+        deps.registry,
+        searches=deps.completed_retrievals,
+        max_claims=deps.settings.assistant_max_claims,
+        max_refs=deps.settings.assistant_claim_refs,
+    )
+
+
 def withhold_failed(
     answer: GroundedAnswer,
     errors: list[str],
@@ -293,6 +325,8 @@ async def run_grounded(
                 answer, errors = withhold_failed(
                     answer, errors, deps, source="grounding", attempt=attempt
                 )
+            elif errors and final:
+                answer, errors = drop_unwarranted_gaps(answer, errors, deps)
         if not errors:
             reports.extend(deps.withheld)
             return GroundedRun(

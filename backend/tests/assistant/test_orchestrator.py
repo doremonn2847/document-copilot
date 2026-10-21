@@ -310,3 +310,81 @@ def test_advice_questions_get_the_fixed_decline_before_the_cited_facts():
         run_grounded("Should I buy NVIDIA stock?", [], d, Agent([answer]), judge)
     )
     assert result.reply.text.startswith(ADVICE_NOTICE)
+
+
+def test_final_attempt_drops_only_unwarranted_gaps_after_supported_claims():
+    # Live: drafts kept rebutting "does the filing say nothing about AI?" in a gap.
+    from app.assistant.outputs import EvidenceGap
+    from app.grounding.judge import GapDecision
+    from app.retrieval.types import SearchFilters
+
+    d = deps()
+    d.completed_retrievals = 1
+    d.settings.openai_agent_request_limit = 20
+    d.settings.assistant_grounding_repairs = 1
+    d.settings.assistant_max_claims = 20
+    d.settings.assistant_claim_refs = 5
+    p = passage("Risks can increase with artificial intelligence features.").model_copy(
+        update={"ticker": "AAPL", "corpus_year": 2025}
+    )
+    d.registry.expose(p, p.text)
+    claim = AnswerClaim(
+        text=p.text, evidence=[EvidenceRef(chunk_id=p.chunk_id, exact_quote=p.text)]
+    )
+    draft = GroundedAnswer(
+        status="partial",
+        claims=[claim],
+        gaps=[
+            EvidenceGap(
+                target=SearchFilters(ticker="AAPL", form="10-K", corpus_years=[2025]),
+                reason="missing_evidence",
+                missing_detail="The no-AI premise is not supported.",
+            )
+        ],
+    )
+
+    def report(supported):
+        return SupportReport(
+            decisions=[
+                SupportDecision(
+                    claim_index=0,
+                    evidence_assessment="Fixture verdict.",
+                    supported=supported,
+                    reason="supported" if supported else "unsupported_fact",
+                )
+            ],
+            gap_decisions=[
+                GapDecision(
+                    gap_index=0,
+                    warranted=False,
+                    evidence_assessment="The claims answer the question.",
+                )
+            ],
+        )
+
+    question = "Does Apple's 2025 10-K say nothing about AI?"
+    result = asyncio.run(
+        run_grounded(
+            question, [], d, Agent([draft, draft]), Agent([report(True), report(True)])
+        )
+    )
+    assert result.answer.gaps == [] and result.answer.status == "answered"
+    assert result.reply.text == p.text + " [1]"
+    # A failed claim still fails the whole answer closed.
+    d = deps()
+    d.completed_retrievals = 1
+    d.settings.openai_agent_request_limit = 20
+    d.settings.assistant_grounding_repairs = 1
+    d.settings.assistant_max_claims = 20
+    d.settings.assistant_claim_refs = 5
+    d.registry.expose(p, p.text)
+    with pytest.raises(GroundingRejected):
+        asyncio.run(
+            run_grounded(
+                question,
+                [],
+                d,
+                Agent([draft, draft]),
+                Agent([report(False), report(False)]),
+            )
+        )
