@@ -8,7 +8,7 @@ from app.assistant.deps import TurnRegistry
 from app.assistant.outputs import AnswerClaim, EvidenceRef, GroundedAnswer
 from app.grounding.validator import structural_errors
 from app.retrieval.types import SearchFilters
-from tests.assistant.test_contracts import assertions_for, passage
+from tests.assistant.test_contracts import passage
 
 
 def comparison(text, sources, *, kind="interpretation"):
@@ -224,9 +224,6 @@ def test_natural_year_wording_reaches_judge_instead_of_false_fallback(supported)
                             claim_index=0,
                             evidence_assessment="Explicit source fiscal year, currency scale and amount agree.",
                             supported=supported,
-                            assertions=assertions_for(
-                                answer.claims[0].evidence[0].exact_quote
-                            ),
                             reason="supported"
                             if supported
                             else "unit_or_period_mismatch",

@@ -9,13 +9,6 @@ from app.assistant.outputs import AnswerClaim, EvidenceRef, GroundedAnswer
 from app.retrieval.types import RetrievedPassage
 
 
-def assertions_for(quote):
-    """A judge assertion anchored to verbatim cited words, as the server requires."""
-    from app.grounding.judge import Assertion
-
-    return [Assertion(assertion="Fixture assertion.", supporting_quote=quote)]
-
-
 def passage(text="Revenue was 100 million dollars."):
     return RetrievedPassage(
         chunk_id=uuid4(),
