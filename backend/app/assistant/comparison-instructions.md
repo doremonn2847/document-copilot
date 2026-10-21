@@ -7,9 +7,11 @@ invent IDs. State small factual claims from one filing each. The server labels
 each factual claim with its actual company and corpus year. Do not infer fiscal
 years, page labels or financial units from corpus years or filing dates.
 
-Interpretations use kind=interpretation and evidence_by_company, with a nonempty
-selection for EVERY company required by the schema. Each company's field allows
-only that company's displayed E IDs. Facts keep kind=fact and evidence_ids.
+Interpretations use kind=interpretation and evidence_by_company. A single-company
+interpretation, such as one filer's wording across years, cites only that
+company. A cross-company interpretation needs a nonempty selection for EVERY
+compared company, and must cite each company it names. Each company's field
+allows only that company's displayed E IDs. Facts keep kind=fact and evidence_ids.
 Never submit an interpretation with the flat evidence_ids format, and never use
 another claim's citations. Company groups establish provenance, not support:
 select only passages that support the actual statement.
@@ -18,8 +20,9 @@ Each claim has a FIVE-reference TOTAL limit across all company groups. Split
 comparisons into small, period-specific statements rather than putting ten
 company/year targets in one interpretation. Cite the compared periods for each
 company named in a trend. Repeated risk language does not establish increasing
-urgency. If a required company has no evidence, interpretations are unavailable;
-return supported facts and a specific requested-aspect gap instead. Omit any
+urgency. If a compared company has no evidence, cross-company interpretations
+are unavailable; return supported facts, single-company interpretations and a
+specific requested-aspect gap instead. Omit any
 interpretation you cannot support within the reference limit.
 
 The backend adds missing-company/year coverage gaps from submitted citations.

@@ -169,3 +169,39 @@ combined-limit correction is still pending; no second paid run was made.
 Post-correction verification: **345 offline tests passed, 15 integration tests
 deselected**; affected Python lint/format checks passed. FastAPI was restarted
 and health returned HTTP 200. Phase 6 remains open.
+
+## Combined-budget live check and single-company interpretations (2026-10-21)
+
+**Writer scope.** With the default four-search budget, the planner can search
+before handing off to the writer. The writer schema previously offered every
+evidence ID from the turn, including spans absent from its frozen prompt. The
+registry now records the IDs displayed by the comparison retrieval, and only
+those are selectable or resolvable by the writer. A wire test also confirms
+that pydantic-ai's OpenAI strict-mode transformer leaves the hand-built
+writer schema unchanged for one through six companies (commit `bbcb262`).
+
+**Owner-approved capped run.** Same supplier question and caps as before
+(4 answering × 4,000, 2 judging × 2,000, 2 keyword × 150, 1 embedding; zero
+retries; no chat/database writes). It failed closed with `GroundingRejected`
+in **35.5 seconds**: **3 answering, 0 judging, 1 keyword, 1 embedding**.
+Answering usage was 14,397 input / 1,915 output tokens; 29 evidence IDs.
+
+The combined five-reference budget held: interpretations selected 5 and 4
+references, each covering both companies. Both drafts instead failed the
+structural check on claim 7, an Apple-only trend statement saying the 2024
+language "adds" prepayments and equipment. Because every interpretation had to
+cite every compared company, it cited Apple 2021 twice, 2022, 2023 and one
+NVIDIA passage, leaving no 2024 source, so `2024` was an uncited numeric token.
+The statement was also unsupported: the cited Apple 2022 passage already
+mentions prepayments. The repair resubmitted the same citations. The NVIDIA
+trend interpretation likewise carried an unrelated Apple citation. The judge
+was not reached.
+
+**Owner decision.** Interpretations may now cite exactly one compared company
+(up to five of its references) or every compared company (the existing
+allocation). For two companies the schema offers two single-company branches
+plus the four shared allocations; beyond five companies only single-company
+interpretations remain. An interpretation naming several companies must still
+cite each of them (`missing_company_evidence` at final submission). There is no
+budget increase or automatic source attachment. Offline: **353 passed, 15
+integration deselected**. Live confirmation is pending; phase 6 remains open.

@@ -35,8 +35,25 @@ def compared_companies(deps: DocumentAgentDeps) -> list[str]:
     return sorted(companies)
 
 
+def allocation(company_refs: dict[str, dict], limits: dict[str, int]) -> dict:
+    return {
+        "type": "object",
+        "properties": {
+            ticker: {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": limit,
+                "items": company_refs[ticker],
+            }
+            for ticker, limit in limits.items()
+        },
+        "required": list(limits),
+        "additionalProperties": False,
+    }
+
+
 def prepare_comparison_citations(schema: dict, deps: DocumentAgentDeps) -> None:
-    """Scope wire choices and require every compared company's own sources."""
+    """Scope wire choices to one compared company's or every compared company's sources."""
     definitions = schema["$defs"]
     refs_by_company = {}
     for key, ref in deps.registry.selectable_refs().items():
@@ -55,37 +72,27 @@ def prepare_comparison_citations(schema: dict, deps: DocumentAgentDeps) -> None:
     fact["calculation_id"]["enum"] = [None]
 
     companies = compared_companies(deps)
-    if 1 <= len(companies) <= 5 and all(ticker in company_refs for ticker in companies):
-        allocations = []
-        # Each branch allocates the same five slots across all required companies.
+    observed = [ticker for ticker in companies if ticker in company_refs]
+    branches = []
+    if len(companies) > 1:
+        # A one-company trend should not spend slots on companies it does not discuss.
+        branches += [allocation(company_refs, {ticker: 5}) for ticker in observed]
+    if 1 <= len(companies) <= 5 and observed == companies:
+        # A cross-company branch allocates the same five slots across every company.
         for cuts in combinations(range(1, 5), len(companies) - 1):
             boundaries = (0, *cuts, 5)
             limits = [right - left for left, right in pairwise(boundaries)]
-            allocations.append(
-                {
-                    "type": "object",
-                    "properties": {
-                        ticker: {
-                            "type": "array",
-                            "minItems": 1,
-                            "maxItems": limit,
-                            "items": company_refs[ticker],
-                        }
-                        for ticker, limit in zip(companies, limits)
-                    },
-                    "required": companies,
-                    "additionalProperties": False,
-                }
-            )
-        groups = allocations[0] if len(allocations) == 1 else {"anyOf": allocations}
+            branches.append(allocation(company_refs, dict(zip(companies, limits))))
+    if branches:
+        groups = branches[0] if len(branches) == 1 else {"anyOf": branches}
         groups["description"] = (
-            "Select supporting passages for every compared company. Five references total; split or narrow broader interpretations."
+            "Cite one compared company's passages for a single-company interpretation, or every compared company's passages for a cross-company one. Five references total; split or narrow broader interpretations."
         )
         definitions["ComparisonInterpretation"]["properties"]["evidence_by_company"] = (
             groups
         )
     else:
-        # Missing-company evidence cannot support an all-company synthesis.
+        # Without observed evidence no interpretation can be supported.
         schema["properties"]["claims"]["items"] = {"$ref": "#/$defs/ComparisonFact"}
         del definitions["ComparisonInterpretation"]
     if not company_refs:
@@ -102,13 +109,16 @@ def resolve_comparison_claim(
             )
         return SelectedClaim.model_validate(claim.model_dump())
     companies = compared_companies(deps)
-    if not companies or set(claim.evidence_by_company) != set(companies):
+    groups = set(claim.evidence_by_company)
+    if not companies or not (
+        groups == set(companies) or len(groups) == 1 and groups <= set(companies)
+    ):
         raise ModelRetry(
-            f"Company citation groups must include exactly: {', '.join(companies)}."
+            f"Company citation groups must name one compared company or exactly: {', '.join(companies)}."
         )
     refs = deps.registry.selectable_refs()
     selected = []
-    for ticker in companies:
+    for ticker in [ticker for ticker in companies if ticker in groups]:
         for key in claim.evidence_by_company[ticker]:
             ref = refs.get(key)
             if ref is None or deps.registry.passages[ref.chunk_id].ticker != ticker:
