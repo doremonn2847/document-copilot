@@ -393,3 +393,11 @@ lines; the other results flagged three issues, now addressed or recorded:
   discuss artificial-intelligence risks. Open retrieval-quality item for phase 8.
 
 Offline: **364 passed, 15 integration deselected**.
+
+**AI-question diagnosis.** An approved retrieval-only run (15 embedding tokens,
+1 keyword request) showed retrieval was correct: the top three fused passages
+were the AI-risk chunks 14, 17 and 20. The miss was in display: search results
+show an 800-character focused excerpt that ended at the character limit, so two
+of the three AI sentences were cut and shown as uncitable previews. Excerpt
+windows now end on sentence boundaries; an offline replay of the same passages
+makes all three AI sentences citable (E5, E8, E11).
