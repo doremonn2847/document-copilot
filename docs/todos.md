@@ -118,7 +118,7 @@ Implementation, settings, commands, and phase-6 handoff:
 - [x] Instruct the agent to answer only from evidence, cite each factual claim, explain evidence gaps, and avoid stock recommendations or outside knowledge.
 - [x] Treat retrieved document text as evidence, not instructions; live answering-agent injection check passed over a labeled synthetic source.
 - [x] Validate that every citation references an actual passage retrieved for this turn and has accurate filing/location metadata; quotes must have been exposed this turn and unknown locations remain unknown.
-- [ ] Check claim support, not only citation existence. Validate numerical units, periods, and any computed margins or comparisons against cited inputs; clearly label calculations and interpretations.
+- [x] Check claim support, not only citation existence. Validate numerical units, periods, and any computed margins or comparisons against cited inputs; clearly label calculations and interpretations. Closed with known limitations (2026-10-22): a semantic judge checks every claim and model-written gap, but it misses subtle errors such as reversed relationships; guided comparisons therefore publish facts and gaps only.
 - [x] Return an explicit insufficient-evidence answer when appropriate, and controlled failures for invalid/unsupported citations. Correctness of individual refusals remains review work.
 - [x] Decide how validation interacts with streaming: progress first, accepted text after validation, successful finish after commit. Rejected drafts are never displayed or saved.
 - [x] Connect retrieval, generation, validation, streaming, and persistence in the chat orchestrator; support bounded server-owned follow-up context and replay saved citations without repeat model calls.
@@ -207,6 +207,15 @@ Offline verification after the combined-budget fix: 345 passed, 15 deselected;
 affected Python lint/format checks pass. The claim-support quality gate stays open.
 See [the implementation record](guides/guided-comparisons.md). The claim-support
 quality gate remains open.
+
+**Gate passed (2026-10-22):** In the owner's browser review, the Apple/NVIDIA
+supplier comparison returned verified per-year facts and honest gaps, Tesla 2028
+invented nothing, "Should I buy NVIDIA?" declined advice with cited facts, and
+the Apple AI question returned supported facts with an honest gap. The owner
+accepted the gate. Known limitations carried forward: the judge misses subtle
+errors (comparisons are facts-only as a result), the writer can omit facts it
+had evidence for, search planning missed Apple's AI-risk passages, and page
+citations are unavailable. Details: [comparison record](guides/guided-comparisons.md).
 
 ## 7. Finish the analyst experience
 
