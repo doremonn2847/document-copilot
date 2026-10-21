@@ -6,6 +6,7 @@ checks row/column binding, meaning, and whether a conclusion follows.
 
 import re
 
+from app.assistant.excerpts import focus_terms
 from app.assistant.outputs import AnswerClaim
 from app.retrieval.types import RetrievedPassage
 
@@ -59,6 +60,20 @@ SUBJECT_END = {
 }
 GENERIC = {"the", "total", "net", "overall", "company", "companies", "its", "our"}
 
+# Six-letter stems (as focus_terms returns) that any claim about a filing may use.
+FILLER = {
+    "form",
+    "says",
+    "said",
+    "states",
+    "mentio",
+    "also",
+    "compan",
+    "discus",
+    "descri",
+    "report",
+}
+
 SOURCE = r"(?:filings?|documents?|reports?|10-[kq]s?)"
 ABSENCE = r"(?:never\s+(?:mentions?|discuss(?:es)?|refers?|states?)|(?:does|do|did)\s+not\s+(?:mention|discuss|refer|state)|(?:doesn't|don't|didn't)\s+(?:mention|discuss|refer|state)|(?:contains?|includes?|provides?|makes?)\s+no\s+(?:mention|reference|discussion)|omits?)"
 
@@ -108,6 +123,12 @@ def unquoted_quantified_subjects(claim: AnswerClaim) -> list[str]:
     return subjects
 
 
+def shares_no_wording(claim: AnswerClaim) -> bool:
+    """A live judge accepted a claim whose only quote was the heading "Item 8."."""
+    quotes = " ".join(ref.exact_quote for ref in claim.evidence)
+    return not (focus_terms(claim.text) - FILLER) & focus_terms(quotes)
+
+
 def financial_context_only(errors: list[str]) -> bool:
     """Only missing financial context, plus uncited numbers in those same claims.
 
@@ -154,6 +175,10 @@ def claim_context_errors(
     if unsupported_absence_claim(claim.text):
         errors.append(
             "selected excerpts cannot establish absence from the entire filing. Omit the file-wide claim and report what the retrieved evidence does not establish."
+        )
+    if claim.kind == "fact" and shares_no_wording(claim):
+        errors.append(
+            "the attached quotes share no wording with the claim. Cite the sentences that state it."
         )
     subjects = unquoted_quantified_subjects(claim)
     if subjects:

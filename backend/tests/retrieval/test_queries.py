@@ -38,6 +38,10 @@ def test_both_searches_bind_identical_filters(config, monkeypatch):
         assert "d.fiscal_year = ANY" in sql
     assert "<=>" in calls[0][0] or "<=>" in calls[1][0]
     assert any("plainto_tsquery" in sql and "ts_rank_cd" in sql for sql, _ in calls)
+    # Keywords are bound as data, one array item per word, never spliced into SQL.
+    assert [p["words"] for _, p in calls if "words" in p] == [
+        ["revenue';", "DROP", "TABLE", "users;--"]
+    ]
 
 
 def test_each_fetch_owns_readonly_connection(config, monkeypatch):

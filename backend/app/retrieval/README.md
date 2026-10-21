@@ -47,8 +47,11 @@ failure. A healthy FTS query with zero matches keeps `lexical_available=true`.
 Embedding and database failures propagate; CLI errors print only the exception
 type, never raw provider/connection payloads.
 
-Broad questions can have zero FTS matches because `plainto_tsquery` ANDs all
-words. Inspect branch rankings before changing prompts or adding query planning.
+FTS matches passages containing at least two keywords (all of them when fewer
+than two are searchable) and ranks by how many keywords match, then
+`ts_rank_cd`. ANDing every word returned nothing for questions such as "AI"
+when passages say "artificial intelligence". Inspect branch rankings before
+changing prompts or adding query planning.
 There is no arbitrary relevance threshold; grounding belongs to phase 6.
 
 `corpus_years` filters use stored folder-year metadata. `fiscal_years` filters

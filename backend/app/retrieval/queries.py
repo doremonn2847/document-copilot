@@ -105,7 +105,17 @@ async def full_text_search(
     settings: Settings, text: str, filters: SearchFilters | None, limit: int
 ) -> list[RankedChunkHit]:
     where, params = build_filters(settings, filters)
-    sql = f"SELECT c.id AS chunk_id, ts_rank_cd(c.search_vector, q.query) AS score {FROM_CHUNKS} CROSS JOIN plainto_tsquery(%(config)s::regconfig, %(text)s) AS q(query) WHERE {where} AND c.search_vector @@ q.query ORDER BY score DESC, c.id LIMIT %(limit)s"
+    # ANDing every keyword returned nothing when one word was absent ("AI" in
+    # passages that say "artificial intelligence"). Match any two keywords and
+    # rank by how many match, so full matches still come first.
+    sql = (
+        f"SELECT c.id AS chunk_id, ts_rank_cd(c.search_vector, q.query) AS score {FROM_CHUNKS} "
+        "CROSS JOIN (SELECT array_agg(term) AS terms, string_agg('(' || term::text || ')', ' | ')::tsquery AS query "
+        "FROM unnest(%(words)s::text[]) AS w, plainto_tsquery(%(config)s::regconfig, w) AS term WHERE numnode(term) > 0) AS q "
+        "CROSS JOIN LATERAL (SELECT count(*) AS matched FROM unnest(q.terms) AS term WHERE c.search_vector @@ term) AS m "
+        f"WHERE {where} AND c.search_vector @@ q.query AND m.matched >= least(2, cardinality(q.terms)) "
+        "ORDER BY m.matched DESC, score DESC, c.id LIMIT %(limit)s"
+    )
     rows = await run_in_threadpool(
         fetch_rows,
         settings,
@@ -113,7 +123,7 @@ async def full_text_search(
         {
             **params,
             "config": settings.retrieval_fts_config,
-            "text": text,
+            "words": text.split(),
             "limit": limit,
         },
     )

@@ -463,6 +463,27 @@ def test_quantified_subject_must_come_from_the_attached_quotes(text, rejected):
     assert any("quantified subjects" in e for e in errors) == rejected
 
 
+def test_fact_quotes_must_share_wording_with_the_claim():
+    # Live: the judge accepted an AI claim whose only quote was "Item 8.".
+    p = passage("Item 8. Risks may increase with artificial intelligence features.")
+    registry = TurnRegistry()
+    registry.expose(p, p.text)
+    text = (
+        "Apple's 2025 Form 10-K mentions artificial intelligence in its risk factors."
+    )
+
+    def errors(quote):
+        claim = AnswerClaim(
+            text=text, evidence=[EvidenceRef(chunk_id=p.chunk_id, exact_quote=quote)]
+        )
+        return structural_errors(
+            GroundedAnswer(status="answered", claims=[claim]), registry, searches=1
+        )
+
+    assert any("share no wording" in e for e in errors("Item 8."))
+    assert errors("Risks may increase with artificial intelligence features.") == []
+
+
 def test_verified_calculation_inputs_are_not_sent_for_a_second_semantic_verdict():
     import asyncio
 
