@@ -63,14 +63,16 @@ All tasks are ticked. The autopilot continues in [phase 8](phase-eight-plan.md)
 
 ## Morning summary
 
-Drafted 03:40 while paid work was paused for low memory; finalised at 06:00.
+Drafted 03:40 while paid work was paused for low memory; finalised when the
+owner returned. The temporary paid grant is closed (memory note and ledger
+authorization deleted; counts kept); paid runs need approval again.
 
 **Done.** All ten phase-7 tasks (structured answers, readable layout,
 one-click citations, robust history, examples, failure messages, keyboard and
 layout fixes, ratio regression, false quantified claim, AI search). Phase 8:
 the ten client questions all complete after fixes, the credential check passed,
 and seven grounding/retrieval fixes landed (see
-[phase-8 results](../evaluations/phase-8-results.md)). 28 local commits since
+[phase-8 results](../evaluations/phase-8-results.md)). 33 local commits since
 `82bde5b`, none pushed. Offline suite: 377 passed, 15 integration deselected.
 
 **Not done.** Q01 (revenue mix) and Q02 (AWS vs segments) end as safe
