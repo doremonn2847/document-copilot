@@ -7,6 +7,14 @@ import { chatError, parseThread } from '@/lib/chats'
 import { useAuth } from '@/lib/auth'
 import { chatDocumentId, clearCreation, readCreation, saveCreation, savePending, type PendingCreation } from '@/lib/pending-chat'
 
+// Each example was answered and checked against its cited quotes on 2026-10-22.
+const EXAMPLES = [
+  'What does Microsoft say Azure provides in the 2025 corpus filing?',
+  'How does Amazon describe AWS in its 2025 corpus filing?',
+  'What risks does Alphabet describe about artificial intelligence in its 2025 corpus filing?',
+  'How did NVIDIA describe demand for its Data Center products in its 2025 corpus filing?',
+]
+
 export default function NewChatPage() {
   const navigate = useNavigate()
   const { session } = useAuth()
@@ -39,6 +47,14 @@ export default function NewChatPage() {
       <div className="flex flex-1 flex-col justify-center gap-4 pb-8">
         <h1 className="text-3xl font-semibold tracking-tight">Start a conversation</h1>
         <p className="max-w-lg text-muted-foreground">Ask about SEC filings, or reopen a conversation from the sidebar. Your new chat is saved when you send the first question.</p>
+        <p className="max-w-lg text-sm text-muted-foreground">The corpus holds 10-K filings for Apple, Amazon, Alphabet, Microsoft and NVIDIA, corpus years 2021–2025. Answers cite the passages they rely on and say what the filings do not establish.</p>
+        {!creation && <section aria-label="Example questions" className="space-y-2">
+          <h2 className="text-sm font-semibold">Try an example</h2>
+          <ul className="grid gap-2 sm:grid-cols-2">{EXAMPLES.map((example) => <li key={example}>
+            <button type="button" disabled={busy} onClick={() => void firstSend(example)}
+              className="h-full w-full rounded-md border p-3 text-left text-sm hover:bg-muted focus-visible:outline focus-visible:outline-2 disabled:opacity-50">{example}</button>
+          </li>)}</ul>
+        </section>}
       </div>
       {creation && <div className="mb-4 space-y-3"><p className="whitespace-pre-wrap">{creation.text}</p>
         <p className="text-sm text-muted-foreground">Your submitted question is retained until the conversation is ready.</p>

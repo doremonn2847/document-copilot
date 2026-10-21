@@ -39,7 +39,7 @@ cannot open a browser, so tasks end at code, offline tests and builds.
 4. [x] **Robust history.** Done: malformed stored parts are skipped, null bodies tolerated, missing cited sources shown as unavailable; text-only messages unchanged. A malformed stored citation must not hide a whole
    thread: skip it and show "source unavailable". Verify old (stub/text-only)
    and new messages both render.
-5. [ ] **Empty state and example questions.** The new-chat page lists example
+5. [x] **Empty state and example questions.** Done: corpus scope note plus four one-click examples, each answered live and checked against its quotes (38 paid requests). The new-chat page lists example
    questions validated live tonight (paid, capped), one click to ask.
 6. [ ] **Clear failure messages.** Auth expiry during a stream, network loss,
    interrupted answers and "no evidence" answers each get a specific message
@@ -51,3 +51,17 @@ cannot open a browser, so tasks end at code, offline tests and builds.
 ## Morning summary
 
 (Written by the autopilot at the end of the night.)
+
+### Findings logged during the night
+
+- 01:00, example validation (38 paid requests, capped driver, production
+  settings). Verified correct against quotes: Azure lookup, AWS description,
+  Alphabet AI risks, NVIDIA Data Center demand.
+- **Wrong answer accepted (comparison):** "Compare Apple's and NVIDIA's supplier
+  and manufacturing risks in corpus years 2023 and 2024." Claim 0 said a
+  majority of Apple's *supply chain* is outside the U.S.; its quotes say a
+  majority of *net sales*. The judge accepted it.
+- **Regression (calculation):** the Microsoft ratio question returned 94.44%
+  (17% / 18% growth rates) instead of 65.56% ($19.8B / $30.2B) accepted on
+  2026-10-19; the input judge accepted the percentage inputs, and the
+  rendered labels are garbled. Both are excluded from the example list.
