@@ -345,3 +345,25 @@ repair hints, final-attempt withholding and judge text clipping. Interpretations
 can be revisited once a judge is shown to catch reversed relationships and
 excerpt-inferred trends. Offline: **355 passed, 15 integration deselected**.
 Live confirmation of the facts-only contract is pending; phase 6 remains open.
+
+**Facts-only live check (run 7).** One approved run with unchanged caps was
+**accepted after one repair** in 43.5 seconds: **3 answering, 2 judging,
+1 keyword, 1 embedding** (answering 12,832 input / 1,522 output tokens; judge
+16,682 / 1,780; 29 evidence IDs). The judge rejected two first-draft gaps;
+the repair passed. Manual verification against the shown evidence:
+- All five facts (Apple 2021–2024, NVIDIA 2024) are supported, including the
+  correct direction of Apple's equipment investment and supplier prepayments.
+- The urgency question is reported as gaps ("the cited passages alone do not
+  establish…"), not asserted.
+- Apple 2025 and NVIDIA 2022/2023 coverage gaps are warranted (only unrelated
+  text was shown).
+- NVIDIA 2021 and 2025 coverage gaps were misleading: relevant supplier quotes
+  were shown but not cited, and the server's generic text claimed "the retrieved
+  filings do not provide enough evidence". The judge accepted them.
+
+Fix: the server-generated coverage gap now states only what the server knows,
+"This answer contains no verified statement for this target; check the cited
+filings directly." No false facts were published in this run. Remaining open
+items: the writer can omit available facts (completeness), the mini judge is
+weak at gap relevance, and the owner browser review plus the broader ten-
+question evaluation (phase 8) are still pending.

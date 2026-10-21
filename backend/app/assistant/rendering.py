@@ -11,7 +11,9 @@ class AcceptedReply(Contract):
 
 
 GAPS = {
-    "missing_evidence": "The retrieved filings do not provide enough evidence for this target.",
+    # The server knows only that no accepted claim covers the target, not that
+    # the filings lack the information; a live answer said otherwise wrongly.
+    "missing_evidence": "This answer contains no verified statement for this target; check the cited filings directly.",
     "ambiguous_figures": "The figures or their units and periods could not be verified reliably.",
     "unsupported_causality": "The filings do not establish the requested causal relationship.",
     "ambiguous_question": "Please clarify the company, period, or measure you want to examine.",

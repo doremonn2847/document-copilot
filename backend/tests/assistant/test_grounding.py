@@ -545,3 +545,29 @@ def test_over_long_judge_text_is_clipped_instead_of_failing_the_verdict():
     decision, gap_decision = report.decisions[0], report.gap_decisions[0]
     assert len(decision.evidence_assessment) == 500
     assert len(gap_decision.request_quote) == 1000
+
+
+def test_server_coverage_gap_does_not_claim_the_filings_lack_evidence():
+    # Live run 7: NVIDIA 2021/2025 supplier quotes were shown but not cited,
+    # and the coverage gap wrongly said the filings lacked evidence.
+    from app.assistant.outputs import EvidenceGap
+    from app.assistant.rendering import render_answer
+    from app.retrieval.types import SearchFilters
+
+    answer, registry = answer_and_registry()
+    partial = GroundedAnswer(
+        status="partial",
+        claims=answer.claims,
+        gaps=[
+            EvidenceGap(
+                target=SearchFilters(ticker="NVDA", corpus_years=[2021]),
+                reason="missing_evidence",
+            )
+        ],
+    )
+    text = render_answer(partial, registry).text
+    assert (
+        "NVDA / corpus years 2021: This answer contains no verified statement for this target"
+        in text
+    )
+    assert "do not provide" not in text
