@@ -6,7 +6,7 @@ checks row/column binding, meaning, and whether a conclusion follows.
 
 import re
 
-from app.assistant.excerpts import focus_terms
+from app.assistant.excerpts import STOP_WORDS
 from app.assistant.outputs import AnswerClaim
 from app.retrieval.types import RetrievedPassage
 
@@ -60,18 +60,26 @@ SUBJECT_END = {
 }
 GENERIC = {"the", "total", "net", "overall", "company", "companies", "its", "our"}
 
-# Six-letter stems (as focus_terms returns) that any claim about a filing may use.
+# Stems (see stems()) that any claim about a filing may use.
 FILLER = {
     "form",
     "says",
     "said",
-    "states",
+    "state",
     "mentio",
     "also",
     "compan",
     "discus",
     "descri",
     "report",
+    "its",
+    "are",
+    "has",
+    "was",
+    "were",
+    "those",
+    "such",
+    "but",
 }
 
 SOURCE = r"(?:filings?|documents?|reports?|10-[kq]s?)"
@@ -123,10 +131,25 @@ def unquoted_quantified_subjects(claim: AnswerClaim) -> list[str]:
     return subjects
 
 
-def shares_no_wording(claim: AnswerClaim) -> bool:
-    """A live judge accepted a claim whose only quote was the heading "Item 8."."""
-    quotes = " ".join(ref.exact_quote for ref in claim.evidence)
-    return not (focus_terms(claim.text) - FILLER) & focus_terms(quotes)
+def stems(text: str) -> set[str]:
+    # "risk" and "risks" must match; bare six-letter prefixes kept them apart.
+    return {
+        (word[:-1] if len(word) > 4 and word.endswith("s") else word)[:6]
+        for word in re.findall(r"[a-z]{3,}", text.lower())
+        if word not in STOP_WORDS
+    }
+
+
+def mostly_unquoted(claim: AnswerClaim) -> bool:
+    """Fewer than half of the claim's content words appear in its own quotes.
+
+    Live judges accepted a claim quoting only the heading "Item 8." and, in a
+    25-target comparison, claims listing regulation topics their quotes never
+    named (22% and 33% of words quoted). Verified claims scored at least 64%.
+    """
+    terms = stems(claim.text) - FILLER
+    quoted = terms & stems(" ".join(ref.exact_quote for ref in claim.evidence))
+    return len(quoted) * 2 < len(terms)
 
 
 def financial_context_only(errors: list[str]) -> bool:
@@ -176,9 +199,9 @@ def claim_context_errors(
         errors.append(
             "selected excerpts cannot establish absence from the entire filing. Omit the file-wide claim and report what the retrieved evidence does not establish."
         )
-    if claim.kind == "fact" and shares_no_wording(claim):
+    if claim.kind == "fact" and mostly_unquoted(claim):
         errors.append(
-            "the attached quotes share no wording with the claim. Cite the sentences that state it."
+            "most of the claim's wording is absent from its attached quotes. Cite the sentences that state each detail, or drop the unquoted details."
         )
     subjects = unquoted_quantified_subjects(claim)
     if subjects:

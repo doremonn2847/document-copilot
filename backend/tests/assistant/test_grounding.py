@@ -480,7 +480,7 @@ def test_fact_quotes_must_share_wording_with_the_claim():
             GroundedAnswer(status="answered", claims=[claim]), registry, searches=1
         )
 
-    assert any("share no wording" in e for e in errors("Item 8."))
+    assert any("absent from its attached quotes" in e for e in errors("Item 8."))
     assert errors("Risks may increase with artificial intelligence features.") == []
 
 
@@ -655,3 +655,24 @@ def test_structured_answer_blocks_match_the_plain_text_reply():
     assert reply.text.startswith(
         ADVICE_NOTICE + "\n\nAAPL / 10-K / corpus unverified: "
     )
+
+
+def test_fact_claim_with_mostly_unquoted_details_fails_structurally():
+    # Live Q06: the judge accepted topics the quote never named.
+    quote = "The Company is subject to complex and changing laws and regulations worldwide, which exposes the Company to potential liabilities, increased costs and other adverse effects on the Company's business."
+    p = passage(quote)
+    registry = TurnRegistry()
+    registry.expose(p, p.text)
+
+    def errors(text):
+        claim = AnswerClaim(
+            text=text, evidence=[EvidenceRef(chunk_id=p.chunk_id, exact_quote=quote)]
+        )
+        return structural_errors(
+            GroundedAnswer(status="answered", claims=[claim]), registry, searches=1
+        )
+
+    padded = "Apple's 10-K says its global operations are subject to complex and changing laws and regulations, including machine learning and artificial intelligence, import, export and trade, and foreign exchange controls and cash repatriation restrictions."
+    assert any("absent from its attached quotes" in e for e in errors(padded))
+    faithful = "Apple's 10-K says complex and changing laws and regulations worldwide expose the Company to potential liabilities and increased costs."
+    assert errors(faithful) == []
