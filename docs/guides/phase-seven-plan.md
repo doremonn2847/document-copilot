@@ -41,7 +41,7 @@ cannot open a browser, so tasks end at code, offline tests and builds.
    and new messages both render.
 5. [x] **Empty state and example questions.** Done: corpus scope note plus four one-click examples, each answered live and checked against its quotes (38 paid requests). The new-chat page lists example
    questions validated live tonight (paid, capped), one click to ask.
-6. [ ] **Clear failure messages.** Auth expiry during a stream, network loss,
+6. [x] **Clear failure messages.** Done: an approved user stays in the workspace when a refocus re-check fails transiently (401 still signs out, 403 still moves to pending); existing per-failure messages reviewed and kept. Auth expiry during a stream, network loss,
    interrupted answers and "no evidence" answers each get a specific message
    and a next step. Stop a transient `/auth/me` failure on tab refocus from
    unmounting the workspace (onboarding finding).

@@ -12,6 +12,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null)
   const [revision, setRevision] = useState(0)
   const identity = useRef<string | null>(null)
+  const approvedUser = useRef<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -49,15 +50,22 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
         || user.id !== session.user.id || typeof user.email !== 'string') {
         throw new Error('Invalid authentication response')
       }
+      approvedUser.current = session.user.id
       setStatus('approved')
     }).catch((cause: unknown) => {
       if (controller.signal.aborted) return
       if (cause instanceof ApiError && cause.status === 403) {
+        approvedUser.current = null
         setStatus('pending')
       } else if (cause instanceof ApiError && cause.status === 401) {
+        approvedUser.current = null
         setSession(null)
         setStatus('signed-out')
         void supabase.auth.signOut({ scope: 'local' })
+      } else if (approvedUser.current === session.user.id) {
+        // Token refreshes (e.g. on tab refocus) re-check access. A transient
+        // failure must not unmount the workspace and abort running answers.
+        return
       } else {
         setStatus('error')
         setError(cause instanceof ApiError && cause.isNetworkError
