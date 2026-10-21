@@ -72,6 +72,34 @@ def test_cross_company_interpretation_can_cite_both_companies():
     assert structural_errors(answer, registry, searches=1) == []
 
 
+def test_uncited_year_feedback_names_same_company_sources_or_a_gap():
+    # Live drafts repeated "the 2025 excerpt…" after generic feedback twice.
+    registry = TurnRegistry()
+    cited = passage("We depend on suppliers.").model_copy(update={"corpus_year": 2022})
+    later = passage("Supplier code violations occur.").model_copy(
+        update={"corpus_year": 2023}
+    )
+    other = passage("Foundries supply wafers.").model_copy(
+        update={"ticker": "NVDA", "corpus_year": 2023}
+    )
+    for p in (cited, later, other):
+        registry.evidence_id(p, p.text)
+    answer = GroundedAnswer(
+        status="answered",
+        claims=[
+            AnswerClaim(
+                text="Apple's 2022 wording is specific; the 2023 excerpt adds little.",
+                kind="interpretation",
+                evidence=[registry.evidence_refs["E1"]],
+            )
+        ],
+    )
+    (error,) = structural_errors(answer, registry, searches=1)
+    assert error.startswith("claim 0: uncited numeric tokens 2023.")
+    assert '{"AAPL 2023": ["E2"]}' in error and "NVDA" not in error
+    assert "state that limitation as a gap" in error
+
+
 @pytest.mark.parametrize("kind,allowed", [("interpretation", True), ("fact", False)])
 def test_ten_references_fit_an_interpretation_but_not_a_fact(kind, allowed):
     # Two companies across five corpus years: one source per company-year.

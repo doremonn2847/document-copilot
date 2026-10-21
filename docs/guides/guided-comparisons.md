@@ -239,3 +239,20 @@ Fixes: resolved interpretations keep the ten-reference limit
 an omitted count). The judge is told that such a gap is unwarranted when any
 shown quote addresses the requested aspect. Offline: **357 passed, 15
 integration deselected**. Live confirmation is pending; phase 6 remains open.
+
+**Gap-evidence live check.** One more approved run with unchanged caps failed
+closed in 31.9 seconds: **3 answering, 0 judging, 1 keyword, 1 embedding**
+(answering 14,222 input / 2,504 output tokens; 29 evidence IDs). Both drafts
+were substantively strong: per-year facts for both companies plus single-company
+trend interpretations citing up to ten sources. Both failed structurally:
+interpretations mentioned uncited years as caveats ("the 2025 excerpt does
+not…", NVIDIA 2022/2023), and the repair returned the same text after generic
+"cite exact numbers/periods" feedback (the second ineffective repair in a row).
+One interpretation also said "both companies" while citing only Apple; the
+company-name check cannot see unnamed groups, so it passed structurally.
+
+Fixes: uncited-year feedback now names displayed same-company source IDs for
+each missing year, or directs the limitation into a gap; a single-company
+group rejects wording about several companies ("both/neither/the two
+companies"); writer instructions state both rules. Offline: **362 passed, 15
+integration deselected**. Live confirmation is pending; phase 6 remains open.

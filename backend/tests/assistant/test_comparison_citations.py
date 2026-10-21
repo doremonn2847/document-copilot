@@ -224,6 +224,34 @@ def test_group_resolution_rejects_more_than_ten_references_in_total():
         resolve_comparison_claim(claim, d)
 
 
+@pytest.mark.parametrize(
+    "text,allowed",
+    [
+        # Live draft: an Apple-only group carried a claim about both companies.
+        ("Across the evidence, both companies describe supplier dependence.", False),
+        ("Neither company shows a clear urgency trend.", False),
+        ("Apple's supplier wording recurs in each filing.", True),
+        ("NVIDIA's risk wording also does not establish increasing urgency.", True),
+    ],
+)
+def test_single_company_group_rejects_wording_about_several_companies(text, allowed):
+    from pydantic_ai import ModelRetry
+
+    from app.assistant.comparison_citations import (
+        ComparisonInterpretation,
+        resolve_comparison_claim,
+    )
+
+    d = citation_deps()
+    ticker, ids = ("NVDA", ["E6"]) if text.startswith("NVIDIA") else ("AAPL", ["E1"])
+    claim = ComparisonInterpretation(text=text, evidence_by_company={ticker: ids})
+    if allowed:
+        assert resolve_comparison_claim(claim, d).evidence_ids == ids
+    else:
+        with pytest.raises(ModelRetry, match="several companies"):
+            resolve_comparison_claim(claim, d)
+
+
 def test_interpretations_above_the_fact_limit_resolve_through_final_submission():
     # Live draft: a seven-source NVIDIA trend and a 5+5 comparison failed with
     # too_long because the resolved claim still carried the five-ID fact limit.

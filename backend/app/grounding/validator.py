@@ -1,3 +1,4 @@
+import json
 import re
 from decimal import Decimal
 
@@ -13,6 +14,36 @@ def numeric_tokens(text: str) -> set[Decimal]:
     # Ordinary '(2025) dollars' must retain its negative-value interpretation.
     text = re.sub(r"\(((?:19|20)\d{2})\)(?=\s*:)", r"\1", text)
     return {parse_number(token.group()) for token in SOURCE_NUMBER.finditer(text)}
+
+
+def uncited_year_hint(claim, numbers: set[Decimal], registry: TurnRegistry) -> str:
+    """Make the repair actionable: name same-company sources for each uncited year."""
+    years = sorted(
+        int(n) for n in numbers if n == n.to_integral_value() and 1990 <= n <= 2100
+    )
+    if not years:
+        return ""
+    tickers = {
+        registry.passages[ref.chunk_id].ticker
+        for ref in claim.evidence
+        if ref.chunk_id in registry.passages
+    }
+    candidates = {}
+    for key, ref in registry.selectable_refs().items():
+        p = registry.passages[ref.chunk_id]
+        if p.ticker in tickers and p.corpus_year in years:
+            ids = candidates.setdefault(f"{p.ticker} {p.corpus_year}", [])
+            if len(ids) < 4:
+                ids.append(key)
+    return (
+        f". Uncited years {years}: cite a displayed source of that company and year"
+        + (
+            f" (candidate IDs; check their quotes support the claim: {json.dumps(candidates)})"
+            if candidates
+            else ""
+        )
+        + ", or remove the year from the claim and state that limitation as a gap instead"
+    )
 
 
 def structural_errors(
@@ -76,6 +107,7 @@ def structural_errors(
         if claim.kind != "calculation" and missing_numbers:
             errors.append(
                 f"claim {i}: uncited numeric tokens {', '.join(str(n) for n in sorted(missing_numbers))}. Cite exact supporting source numbers/periods; derived results require calculation kind and a recorded calculation ID"
+                + uncited_year_hint(claim, missing_numbers, registry)
             )
         limit = INTERPRETATION_REFS if claim.kind == "interpretation" else max_refs
         if len(claim.evidence) > limit:

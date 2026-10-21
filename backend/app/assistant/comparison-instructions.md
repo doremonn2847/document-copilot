@@ -10,8 +10,11 @@ years, page labels or financial units from corpus years or filing dates.
 Interpretations use kind=interpretation and evidence_by_company. A single-company
 interpretation, such as one filer's wording across years, cites only that
 company. A cross-company interpretation needs a nonempty selection for EVERY
-compared company, and must cite each company it names. Each company's field
-allows only that company's displayed E IDs. Facts keep kind=fact and evidence_ids.
+compared company, and must cite each company it names; wording such as "both
+companies" also needs every company's group. Each company's field allows only
+that company's displayed E IDs. Facts keep kind=fact and evidence_ids. A claim
+may mention a year only if it cites a source from that year; put limitations
+about other years ("the 2025 excerpt does not…") in gaps, not in claims.
 Never submit an interpretation with the flat evidence_ids format, and never use
 another claim's citations. Company groups establish provenance, not support:
 select only passages that support the actual statement.

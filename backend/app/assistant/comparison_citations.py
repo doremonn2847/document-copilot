@@ -1,5 +1,6 @@
 """Company-scoped citations for the frozen comparison writer."""
 
+import re
 from typing import Annotated, Literal
 
 from pydantic import Field
@@ -8,6 +9,14 @@ from pydantic_ai import ModelRetry
 from app.assistant.deps import DocumentAgentDeps
 from app.assistant.outputs import INTERPRETATION_REFS, Contract
 from app.assistant.selection import SelectedClaim
+
+# Company names are checked at final submission; this catches unnamed groups
+# such as "both companies" that a single company's sources cannot support.
+SEVERAL_COMPANIES = re.compile(
+    r"\b(?:both|all|neither|each|the two|two|three|four|five|these|those)\s+"
+    r"(?:\w+\s+)?(?:compan(?:y|ies)|firms?|filers?)\b",
+    re.IGNORECASE,
+)
 
 
 class ComparisonFact(SelectedClaim):
@@ -121,6 +130,11 @@ def resolve_comparison_claim(
     ):
         raise ModelRetry(
             f"Company citation groups must name one compared company or exactly: {', '.join(companies)}."
+        )
+    if len(groups) == 1 < len(companies) and SEVERAL_COMPANIES.search(claim.text):
+        raise ModelRetry(
+            "A single-company citation group cannot support a statement about several companies. "
+            "Cite every compared company's group, or limit the claim to that one company."
         )
     refs = deps.registry.selectable_refs()
     selected = []
