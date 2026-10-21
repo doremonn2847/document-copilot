@@ -587,3 +587,87 @@ def test_anchored_report_skips_calculations_and_out_of_range_indices():
     # The fact lacks anchors; the calculation result is verified by the server;
     # index 2 is left for support_errors to reject as invalid coverage.
     assert [d.supported for d in report.decisions] == [False, True, True]
+
+
+def test_over_long_judge_text_is_clipped_instead_of_failing_the_verdict():
+    # Strict mode moves maxLength into descriptions, so the provider never
+    # enforces it; an over-long field must not discard every verdict.
+    import asyncio
+    import json
+    from types import SimpleNamespace
+
+    import httpx
+    from openai import AsyncOpenAI
+
+    from app.grounding.judge import build_judge, guided_report_output
+
+    long_assessment = "Supported by the cited quote. " * 40
+    claim = {
+        "assertions": [
+            {"assertion": "A" * 400, "supporting_quote": "q " * 400} for _ in range(12)
+        ],
+        "evidence_assessment": long_assessment,
+        "supported": True,
+        "reason": "supported",
+    }
+    gap = {
+        "request_id": None,
+        "request_quote": "r" * 1200,
+        "warranted": True,
+        "evidence_assessment": long_assessment,
+    }
+
+    def respond(request):
+        return httpx.Response(
+            200,
+            json={
+                "id": "long",
+                "object": "chat.completion",
+                "created": 0,
+                "model": "gpt-4.1-mini",
+                "choices": [
+                    {
+                        "index": 0,
+                        "finish_reason": "tool_calls",
+                        "message": {
+                            "role": "assistant",
+                            "tool_calls": [
+                                {
+                                    "id": "v",
+                                    "type": "function",
+                                    "function": {
+                                        "name": "final_result",
+                                        "arguments": json.dumps(
+                                            {"C0": claim, "G0": gap}
+                                        ),
+                                    },
+                                }
+                            ],
+                        },
+                    }
+                ],
+            },
+        )
+
+    async def check():
+        config = SimpleNamespace(
+            openai_grounding_model="gpt-4.1-mini",
+            grounding_output_tokens=4000,
+            assistant_reasoning_effort="none",
+        )
+        async with (
+            httpx.AsyncClient(transport=httpx.MockTransport(respond)) as http,
+            AsyncOpenAI(api_key="unit-test", http_client=http, max_retries=0) as client,
+        ):
+            result = await build_judge(config, client).run(
+                "Question?", output_type=guided_report_output(1, 1)
+            )
+            return result.output
+
+    report = asyncio.run(check())
+    decision, gap_decision = report.decisions[0], report.gap_decisions[0]
+    assert len(decision.evidence_assessment) == 500
+    assert len(decision.assertions) == 12
+    assert {len(a.assertion) for a in decision.assertions} == {300}
+    assert {len(a.supporting_quote) for a in decision.assertions} == {600}
+    assert len(gap_decision.request_quote) == 1000

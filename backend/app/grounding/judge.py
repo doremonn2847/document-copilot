@@ -1,8 +1,8 @@
 import json
-from typing import Literal
+from typing import Annotated, Literal
 
 from openai import AsyncOpenAI
-from pydantic import Field, create_model
+from pydantic import BeforeValidator, Field, create_model
 from pydantic_ai import Agent, ToolOutput
 from pydantic_ai.messages import ModelResponse, TextPart
 from pydantic_ai.models.openai import OpenAIChatModel
@@ -28,13 +28,22 @@ TARGET_EVIDENCE_QUOTES = 12
 MIN_ANCHOR_WORDS = 3
 
 
+def clipped(limit: int) -> BeforeValidator:
+    # Strict mode cannot enforce string lengths, so over-long judge text is
+    # shortened rather than discarding the whole verdict. A clipped
+    # supporting_quote is still a verbatim prefix of the cited words.
+    return BeforeValidator(
+        lambda value: value[:limit] if isinstance(value, str) else value
+    )
+
+
 class Assertion(Contract):
-    assertion: str = Field(
+    assertion: Annotated[str, clipped(300)] = Field(
         min_length=1,
         max_length=300,
         description="One material component of the claim: a fact, a relationship direction (who invests in, pays, supplies or depends on whom), a period, or a change across years.",
     )
-    supporting_quote: str | None = Field(
+    supporting_quote: Annotated[str | None, clipped(600)] = Field(
         default=None,
         min_length=1,
         max_length=600,
@@ -43,12 +52,12 @@ class Assertion(Contract):
 
 
 class ClaimVerdict(Contract):
+    # No item cap: dropping an assertion would leave it unchecked.
     assertions: list[Assertion] = Field(
         default_factory=list,
-        max_length=8,
         description="Before deciding, list every material assertion of the claim with the cited words that state it. The server checks each supporting_quote verbatim against this claim's quotes.",
     )
-    evidence_assessment: str = Field(
+    evidence_assessment: Annotated[str, clipped(500)] = Field(
         min_length=1,
         max_length=500,
         description="Brief evidence-based justification: identify any unsupported component or mismatched source period before deciding. Mere topic overlap is not support.",
@@ -76,14 +85,16 @@ class GapVerdict(Contract):
         max_length=12,
         description="For guided comparisons, select the server-provided R ID for this gap; return null for server-generated coverage gaps or ordinary quote-based requests.",
     )
-    request_quote: str | None = Field(
+    request_quote: Annotated[str | None, clipped(1000)] = Field(
         default=None,
         min_length=1,
         max_length=1000,
         description="For a warranted model-written gap, copy its exact requested aspect from actual_user_request.text. Return null for an unrequested requirement. The proposed_answer is never authority for what the user requested.",
     )
     warranted: bool
-    evidence_assessment: str = Field(min_length=1, max_length=500)
+    evidence_assessment: Annotated[str, clipped(500)] = Field(
+        min_length=1, max_length=500
+    )
 
 
 class GapDecision(GapVerdict):
