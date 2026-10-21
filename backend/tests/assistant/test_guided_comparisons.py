@@ -240,17 +240,13 @@ def test_guided_wire_path_is_tool_free_and_shares_one_repair(first_failure):
                     evidence_assessment="Fixture support decision.",
                 )
             ],
+            # The server-owned NVDA coverage gap is not sent to the judge.
             gap_decisions=[
                 GapDecision(
                     gap_index=0,
                     request_id="R2",
                     warranted=True,
                     evidence_assessment="Trend remains unverified.",
-                ),
-                GapDecision(
-                    gap_index=1,
-                    warranted=True,
-                    evidence_assessment="Requested target has no cited facts.",
                 ),
             ],
         )
@@ -623,8 +619,9 @@ def test_guided_judge_wire_requires_one_verdict_per_server_owned_key(omit_key):
         requests.append(body)
         schema = body["tools"][0]["function"]["parameters"]
         report_schema = schema
-        assert set(report_schema["properties"]) == {"C0", "G0", "G1"}
-        assert set(report_schema["required"]) == {"C0", "G0", "G1"}
+        # The server-owned NVDA coverage gap gets no verdict key.
+        assert set(report_schema["properties"]) == {"C0", "G0"}
+        assert set(report_schema["required"]) == {"C0", "G0"}
         assert report_schema["additionalProperties"] is False
         assert "claim_index" not in schema["$defs"]["ClaimVerdict"]["properties"]
         assert "gap_index" not in schema["$defs"]["GapVerdict"]["properties"]
@@ -640,15 +637,9 @@ def test_guided_judge_wire_requires_one_verdict_per_server_owned_key(omit_key):
                 "warranted": True,
                 "evidence_assessment": "Trend remains unverified.",
             },
-            "G1": {
-                "request_id": None,
-                "request_quote": None,
-                "warranted": True,
-                "evidence_assessment": "No cited facts for NVIDIA.",
-            },
         }
         if omit_key:
-            del output["G1"]
+            del output["G0"]
         return httpx.Response(
             200,
             json={
@@ -953,10 +944,11 @@ def test_final_attempt_withholds_an_unwarranted_model_gap_without_a_notice():
     ]
 
 
-@pytest.mark.parametrize("warranted", [True, False])
-def test_structural_withholding_sends_the_new_coverage_gap_to_the_judge(warranted):
+def test_structural_withholding_keeps_its_coverage_gap_out_of_judging():
+    # Browser runs failed when the judge rejected server coverage lines, whose
+    # text ("no verified statement for this target") the server knows is true.
     from app.assistant.outputs import AnswerClaim
-    from app.chat.orchestrator import GroundingRejected
+    from app.assistant.rendering import GAPS
     from tests.assistant.test_orchestrator import Agent as StubAgent
 
     d = withholding_deps()
@@ -965,17 +957,13 @@ def test_structural_withholding_sends_the_new_coverage_gap_to_the_judge(warrante
         text="NVIDIA depends on suppliers in 2023.",
         evidence=[d.registry.evidence_refs["E6"]],
     )
-    judge = StubAgent([verdicts(True, gaps=[(warranted, None)])])
-    if not warranted:
-        with pytest.raises(GroundingRejected):
-            run_withholding(d, facts_draft(d, nvidia), judge)
-        assert not withheld_reports(d)
-    else:
-        result = run_withholding(d, facts_draft(d, nvidia), judge)
-        assert result.answer.status == "partial"
-        (gap,) = result.answer.gaps
-        assert gap.target.ticker == "NVDA" and gap.request_quote is None
-        assert result.reply.text.endswith(WITHHELD_NOTICE)
+    judge = StubAgent([verdicts(True)])
+    result = run_withholding(d, facts_draft(d, nvidia), judge)
+    assert result.answer.status == "partial"
+    (gap,) = result.answer.gaps
+    assert gap.target.ticker == "NVDA" and gap.request_quote is None
+    assert GAPS["missing_evidence"] in result.reply.text
+    assert result.reply.text.endswith(WITHHELD_NOTICE)
     assert len(judge.calls) == 1
 
 
@@ -1038,8 +1026,8 @@ def test_financial_context_fallback_survives_structural_withholding():
     draft = facts_draft(d, figure)
     errors = structural_errors(draft, d.registry, searches=1)
     assert errors and all(e.startswith("claim 1: financial") for e in errors)
-    # The judge rejects the coverage gap that withholding the figure creates.
-    judge = StubAgent([verdicts(True, gaps=[(False, None)])])
+    # After the figure is withheld, the judge also rejects the remaining claim.
+    judge = StubAgent([verdicts(False)])
     result = run_withholding(d, draft, judge)
     assert result.answer.status == "insufficient_evidence"
     assert {gap.reason for gap in result.answer.gaps} == {"ambiguous_figures"}

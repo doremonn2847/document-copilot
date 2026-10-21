@@ -424,6 +424,23 @@ async def generate_reply(
                     for report in deps.validation_reports
                     if report.get("stage") == "withheld"
                 ],
+                # Indices only: judge assessments may quote model or source text.
+                judge_rejections=[
+                    {
+                        "claims": [
+                            d["claim_index"]
+                            for d in report["decisions"]
+                            if not d["supported"]
+                        ],
+                        "gaps": [
+                            d["gap_index"]
+                            for d in report["gap_decisions"]
+                            if not d["warranted"]
+                        ],
+                    }
+                    for report in deps.validation_reports
+                    if "decisions" in report and "stage" not in report
+                ],
                 financial_context_fallback=any(
                     report.get("stage") == "financial_context_fallback"
                     for report in deps.validation_reports
