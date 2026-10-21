@@ -341,6 +341,57 @@ def test_guided_judge_checks_request_id_without_quote_echo(request_id, warranted
     assert payload["proposed_answer"]["gaps"][0]["request_id"] == "R2"
 
 
+def test_guided_judge_sees_evidence_shown_for_each_gap_target():
+    # Live answer: "no Apple 2024 supplier wording" was judged warranted although
+    # the writer had been shown Apple 2024 supplier-risk quotes.
+    from app.assistant.outputs import EvidenceGap, GroundedAnswer
+    from app.grounding.judge import judge_prompt
+
+    d = deps()
+    question = "Compare Apple and NVIDIA supplier risks. Assess urgency."
+    apple = passage("Global supply chains can be highly concentrated.").model_copy(
+        update={"corpus_year": 2024}
+    )
+    hidden = passage("Apple suppliers face industrial accidents.").model_copy(
+        update={"corpus_year": 2024}
+    )
+    nvidia = passage("NVIDIA relies on foundries.").model_copy(
+        update={"ticker": "NVDA", "corpus_year": 2024}
+    )
+    for p in (apple, hidden, nvidia):
+        d.registry.evidence_id(p, p.text)
+    d.registry.comparison_evidence_ids = ["E1", "E3"]
+    answer = GroundedAnswer(
+        status="insufficient_evidence",
+        gaps=[
+            EvidenceGap(
+                target=SearchFilters(ticker="AAPL", corpus_years=[2024]),
+                reason="missing_evidence",
+            ),
+            EvidenceGap(
+                request_quote="Assess urgency.",
+                reason="missing_evidence",
+                missing_detail="Trend unverified.",
+            ),
+        ],
+    )
+    d.registry.request_spans = request_spans(question)
+    gaps = json.loads(judge_prompt(question, answer, d.registry))["proposed_answer"][
+        "gaps"
+    ]
+    assert gaps[0]["displayed_target_evidence"] == {
+        "quotes": [{"exact_quote": apple.text, "corpus_year": 2024}],
+        "omitted": 0,
+    }
+    assert "displayed_target_evidence" not in gaps[1]
+    # Ordinary (non-guided) judging keeps its existing payload.
+    d.registry.request_spans = {}
+    gaps = json.loads(judge_prompt(question, answer, d.registry))["proposed_answer"][
+        "gaps"
+    ]
+    assert "displayed_target_evidence" not in gaps[0]
+
+
 def test_twenty_five_empty_targets_keep_coverage_and_requested_aspect_gap():
     d = deps()
     d.question = "Compare all targets. Assess urgency."

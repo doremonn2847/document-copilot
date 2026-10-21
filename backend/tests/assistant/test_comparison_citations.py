@@ -224,6 +224,38 @@ def test_group_resolution_rejects_more_than_ten_references_in_total():
         resolve_comparison_claim(claim, d)
 
 
+def test_interpretations_above_the_fact_limit_resolve_through_final_submission():
+    # Live draft: a seven-source NVIDIA trend and a 5+5 comparison failed with
+    # too_long because the resolved claim still carried the five-ID fact limit.
+    from types import SimpleNamespace
+
+    from app.assistant.comparison_citations import ComparisonInterpretation
+    from app.assistant.comparisons import final_comparison_answer
+
+    d = citation_deps()
+    for year in range(2019, 2025):
+        p = passage(f"NVIDIA depends on suppliers in {year}.").model_copy(
+            update={"ticker": "NVDA", "corpus_year": year}
+        )
+        d.registry.evidence_id(p, p.text)
+    nvidia_ids = [f"E{i}" for i in range(6, 13)]
+    claims = [
+        ComparisonInterpretation(
+            text="NVIDIA's supplier wording recurs across the cited filings.",
+            evidence_by_company={"NVDA": nvidia_ids},
+        ),
+        ComparisonInterpretation(
+            text="Apple and NVIDIA both describe supplier dependence.",
+            evidence_by_company={
+                "AAPL": [f"E{i}" for i in range(1, 6)],
+                "NVDA": nvidia_ids[:5],
+            },
+        ),
+    ]
+    answer = final_comparison_answer(SimpleNamespace(deps=d), claims, [])
+    assert [len(claim.evidence) for claim in answer.claims] == [7, 10]
+
+
 def test_group_resolution_preserves_only_selected_quotes_and_reference_total():
     from types import SimpleNamespace
 

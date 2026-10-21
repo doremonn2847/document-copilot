@@ -23,6 +23,11 @@ class ComparisonInterpretation(Contract):
     ] = Field(min_length=1)
 
 
+class ResolvedInterpretation(SelectedClaim):
+    # Flattened company groups keep the interpretation limit, not the fact limit.
+    evidence_ids: list[str] = Field(max_length=INTERPRETATION_REFS)
+
+
 def compared_companies(deps: DocumentAgentDeps) -> list[str]:
     targets = deps.registry.comparison_targets
     companies = {target.ticker for target in targets if target.ticker}
@@ -132,4 +137,6 @@ def resolve_comparison_claim(
         raise ModelRetry(
             f"At most {INTERPRETATION_REFS} references total per interpretation. Split or narrow the claim; do not drop a compared company's citations."
         )
-    return SelectedClaim(text=claim.text, kind="interpretation", evidence_ids=selected)
+    return ResolvedInterpretation(
+        text=claim.text, kind="interpretation", evidence_ids=selected
+    )

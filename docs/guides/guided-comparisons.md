@@ -215,3 +215,27 @@ for three, two for four or five). The equal share keeps the total enforced in
 one schema branch instead of enumerating every uneven split (126 branches for
 five companies at ten). Uneven cross-company splits such as 6+4 are therefore
 not representable. Offline: **355 passed, 15 integration deselected**.
+
+**Ten-reference live check.** One more approved run with unchanged caps was
+**accepted** in 35.5 seconds: **3 answering, 1 judging, 1 keyword, 1 embedding**
+(answering 14,313 input / 2,006 output tokens; judge 5,587 / 749; 37 evidence
+IDs). This was the first live pass through the guided judge, but the accepted
+answer was not correct:
+
+- The first draft used the new contract well: 8 per-year facts, an Apple-only
+  interpretation (4 sources), an NVIDIA-only one (7) and a 4+5 cross-company
+  one. It failed with `evidence_ids too_long` because resolution rebuilt each
+  interpretation as a `SelectedClaim`, which kept the five-ID fact limit. The
+  repair then dropped all interpretations.
+- The accepted repair reported Apple 2023 and 2024 as lacking supplier-risk
+  wording, although the writer had been shown Apple 2023 (supplier facilities
+  outside the U.S.) and 2024 (concentrated supply chains, supplier accidents)
+  quotes. The judge marked both gaps warranted because it saw only cited
+  evidence, never the evidence displayed for a gap's target.
+
+Fixes: resolved interpretations keep the ten-reference limit
+(`ResolvedInterpretation`), and in guided mode each targeted gap now carries
+`displayed_target_evidence` (up to 12 shown quotes for that company/year, plus
+an omitted count). The judge is told that such a gap is unwarranted when any
+shown quote addresses the requested aspect. Offline: **357 passed, 15
+integration deselected**. Live confirmation is pending; phase 6 remains open.
