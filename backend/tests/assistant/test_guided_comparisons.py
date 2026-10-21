@@ -762,7 +762,7 @@ def withheld_reports(d):
 def test_final_guided_attempt_withholds_failed_claims_but_keeps_coverage(failure):
     from app.assistant.comparisons import ComparisonReady
     from app.assistant.outputs import AnswerClaim, GroundedAnswer
-    from app.chat.orchestrator import GroundingRejected, run_grounded
+    from app.chat.orchestrator import run_grounded
     from tests.assistant.test_orchestrator import Agent as StubAgent
 
     d = withholding_deps()
@@ -790,7 +790,8 @@ def test_final_guided_attempt_withholds_failed_claims_but_keeps_coverage(failure
     elif failure == "grounding":
         judge = StubAgent([verdicts(True, False, True)] * 2)
     else:
-        # Withholding NVIDIA's only claim would publish an unjudged coverage gap.
+        # Browser run: withholding NVIDIA's only claim leaves NVDA uncovered; it
+        # gets the server's always-true coverage line instead of failing closed.
         judge = StubAgent([verdicts(True, True, False)] * 2)
     writer = StubAgent([draft, draft])
 
@@ -806,12 +807,20 @@ def test_final_guided_attempt_withholds_failed_claims_but_keeps_coverage(failure
             )
         )
 
-    if failure == "grounding_uncovers":
-        with pytest.raises(GroundingRejected):
-            run()
-        assert not [r for r in d.validation_reports if r.get("stage") == "withheld"]
-        return
     result = run()
+    if failure == "grounding_uncovers":
+        from app.assistant.rendering import GAPS
+
+        assert [claim.text for claim in result.answer.claims] == [
+            "Apple depends on suppliers.",
+            "Apple repeats supplier dependence across filings.",
+        ]
+        (gap,) = result.answer.gaps
+        assert gap.target.ticker == "NVDA" and gap.request_quote is None
+        assert GAPS["missing_evidence"] in result.reply.text
+        assert result.reply.text.endswith(WITHHELD_NOTICE)
+        assert [r["claims"] for r in withheld_reports(d)] == [[2]]
+        return
     assert [claim.text for claim in result.answer.claims] == [
         "Apple depends on suppliers.",
         "NVIDIA depends on suppliers.",

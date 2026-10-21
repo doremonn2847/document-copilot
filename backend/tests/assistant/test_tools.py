@@ -201,3 +201,57 @@ def test_numeric_preparation_preserves_resolved_short_followups(question):
         assert focus in seen[0]
     else:
         assert seen[0] == question
+
+
+def test_filters_with_no_retrieved_passages_are_reported_to_the_analyst():
+    import asyncio
+
+    from app.assistant.outputs import EvidenceGap, GroundedAnswer
+    from app.assistant.rendering import render_answer
+    from app.assistant.tools import compare_filings, search_filings
+    from app.retrieval.types import (
+        ComparisonResult,
+        ComparisonTargetResult,
+        RetrievalResult,
+        RetrievalUsage,
+        SearchFilters,
+    )
+
+    d = deps()
+    d.question = "What did Tesla report about vehicle revenue in its 2028 10-K?"
+    tesla = SearchFilters(ticker="TSLA", form="10-K", corpus_years=[2028])
+    apple = SearchFilters(ticker="AAPL", corpus_years=[2025])
+
+    class Retriever:
+        async def search(self, query, *, filters=None):
+            return RetrievalResult(passages=[])
+
+        async def compare(self, query, *, targets):
+            return ComparisonResult(
+                targets=[
+                    ComparisonTargetResult(
+                        target=t,
+                        result=RetrievalResult(
+                            passages=[passage()] if t.ticker == "AAPL" else []
+                        ),
+                    )
+                    for t in targets
+                ],
+                usage=RetrievalUsage(),
+            )
+
+    d.retriever = Retriever()
+    ctx = SimpleNamespace(deps=d)
+    asyncio.run(search_filings.__wrapped__(ctx, "Tesla vehicle revenue", tesla))
+    asyncio.run(compare_filings.__wrapped__(ctx, "compare", [tesla, apple]))
+    # Searched twice, recorded once; the AAPL target returned a passage.
+    assert d.registry.unmatched_filters == [tesla]
+
+    answer = GroundedAnswer(
+        status="insufficient_evidence",
+        gaps=[EvidenceGap(target=tesla, reason="missing_evidence")],
+    )
+    text = render_answer(answer, d.registry).text
+    assert text.endswith(
+        "No indexed passage was retrieved for TSLA / 10-K / corpus years 2028."
+    )

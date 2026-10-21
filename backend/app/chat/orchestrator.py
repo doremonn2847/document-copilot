@@ -81,6 +81,13 @@ class GroundedRun:
 
 
 ITEM_ERROR = re.compile(r"^(claim|gap) (\d+): ")
+# Deterministic, so declining investment advice never depends on the model.
+INVESTMENT_ADVICE = re.compile(
+    r"\b(?:should|would|could|do)\s+(?:i|we|you)\s+(?:buy|sell|short|invest|hold)\b"
+    r"|\bbuy\s+or\s+sell\b|\b(?:good|bad|smart|safe)\s+(?:investment|buy)\b"
+    r"|\b(?:price\s+target|stock\s+picks?|undervalued|overvalued|worth\s+buying)\b",
+    re.IGNORECASE,
+)
 
 
 def covered_targets(registry: TurnRegistry, claims: list[AnswerClaim]) -> set[int]:
@@ -104,8 +111,8 @@ def withhold_failed(
 
     This is usually after the single repair; a comparison first planned on the
     final attempt is pruned on its only draft. Remaining claims keep every
-    check. Answer-level errors and rejected server-owned coverage gaps still
-    fail closed.
+    check; a target left without claims gets the server's always-true coverage
+    line. Answer-level errors and errors on server-owned gaps still fail closed.
     """
     claims, gaps = set(), set()
     for error in errors:
@@ -123,13 +130,16 @@ def withhold_failed(
     if not kept_claims:
         # Withholding trims a failed answer; it never turns one into "no evidence".
         return answer, errors
-    if source == "grounding" and covered_targets(
-        deps.registry, answer.claims
-    ) - covered_targets(deps.registry, kept_claims):
-        # The judge has already run, so a target losing its claims would be
-        # published without a judged statement of what remains unestablished.
-        return answer, errors
     kept_gaps = [gap for i, gap in enumerate(answer.gaps) if i not in gaps]
+    if source == "grounding":
+        lost = covered_targets(deps.registry, answer.claims) - covered_targets(
+            deps.registry, kept_claims
+        )
+        targets = deps.registry.comparison_targets
+        if any(gap.target == targets[i] for i in lost for gap in kept_gaps):
+            # A narrow model gap judged alongside the lost claims could read as
+            # if the rest of that target were established.
+            return answer, errors
     pruned = with_coverage(deps.registry, kept_claims, kept_gaps)
     deps.withheld.append(
         {
@@ -291,6 +301,7 @@ async def run_grounded(
                     answer,
                     deps.registry,
                     withheld=sum(len(report["claims"]) for report in deps.withheld),
+                    advice=bool(INVESTMENT_ADVICE.search(question)),
                 ),
                 diagnostics(deps, started),
             )
@@ -335,7 +346,13 @@ async def run_grounded(
             {"stage": "financial_context_fallback", "target_count": len(answer.gaps)}
         )
         return GroundedRun(
-            answer, render_answer(answer, deps.registry), diagnostics(deps, started)
+            answer,
+            render_answer(
+                answer,
+                deps.registry,
+                advice=bool(INVESTMENT_ADVICE.search(question)),
+            ),
+            diagnostics(deps, started),
         )
     raise GroundingRejected("The answer could not be verified against its sources")
 

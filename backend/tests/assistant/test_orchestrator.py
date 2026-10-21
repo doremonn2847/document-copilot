@@ -252,3 +252,61 @@ def test_malformed_judge_coverage_is_service_failure_not_evidence_repair():
     with pytest.raises(InvalidSupportReport):
         asyncio.run(run_grounded("Revenue?", [], d, agent, judge))
     assert len(agent.calls) == 1 and len(judge.calls) == 1
+
+
+@pytest.mark.parametrize(
+    "question,advice",
+    [
+        ("Should I buy NVIDIA stock based on these filings?", True),
+        ("Is Apple a good investment right now?", True),
+        ("What is a fair price target for Microsoft?", True),
+        ("Buy or sell Amazon after the 2025 10-K?", True),
+        ("What does Microsoft say Azure provides in the 2025 filing?", False),
+        ("Compare Apple's and NVIDIA's supplier risks.", False),
+        ("How much did Microsoft invest in AI infrastructure?", False),
+    ],
+)
+def test_investment_advice_requests_are_detected_without_the_model(question, advice):
+    from app.chat.orchestrator import INVESTMENT_ADVICE
+
+    assert bool(INVESTMENT_ADVICE.search(question)) is advice
+
+
+def test_advice_questions_get_the_fixed_decline_before_the_cited_facts():
+    from app.assistant.rendering import ADVICE_NOTICE
+
+    d = deps()
+    d.completed_retrievals = 1
+    d.settings.openai_agent_request_limit = 20
+    d.settings.assistant_grounding_repairs = 0
+    d.settings.assistant_max_claims = 20
+    d.settings.assistant_claim_refs = 5
+    p = passage("Investors may lose all or part of their investment.")
+    d.registry.expose(p, p.text)
+    answer = GroundedAnswer(
+        status="answered",
+        claims=[
+            AnswerClaim(
+                text=p.text,
+                evidence=[EvidenceRef(chunk_id=p.chunk_id, exact_quote=p.text)],
+            )
+        ],
+    )
+    judge = Agent(
+        [
+            SupportReport(
+                decisions=[
+                    SupportDecision(
+                        claim_index=0,
+                        supported=True,
+                        reason="supported",
+                        evidence_assessment="Quoted.",
+                    )
+                ]
+            )
+        ]
+    )
+    result = asyncio.run(
+        run_grounded("Should I buy NVIDIA stock?", [], d, Agent([answer]), judge)
+    )
+    assert result.reply.text.startswith(ADVICE_NOTICE)

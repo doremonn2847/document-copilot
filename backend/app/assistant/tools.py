@@ -185,6 +185,8 @@ async def search_filings(
     await d.begin("searching", search=True)
     result = await d.retriever.search(query, filters=filters)
     d.completed_retrievals += 1
+    if filters:
+        d.registry.record_unmatched(filters, result.passages)
     d.retrieval_usage.append(result.usage.model_dump())
     return (
         expose_groups(
@@ -231,6 +233,8 @@ async def compare_filings(
     for target in targets:
         if target not in d.registry.comparison_targets:
             d.registry.comparison_targets.append(target.model_copy(deep=True))
+    for t in result.targets:
+        d.registry.record_unmatched(t.target, t.result.passages)
     d.retrieval_usage.append(result.usage.model_dump())
     warnings = list(
         dict.fromkeys(warning for t in result.targets for warning in t.result.warnings)

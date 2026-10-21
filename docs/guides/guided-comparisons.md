@@ -367,3 +367,29 @@ filings directly." No false facts were published in this run. Remaining open
 items: the writer can omit available facts (completeness), the mini judge is
 weak at gap relevance, and the owner browser review plus the broader ten-
 question evaluation (phase 8) are still pending.
+
+## Owner browser review follow-ups (2026-10-22)
+
+The owner ran the browser checklist. The Apple/NVIDIA comparison was accepted
+on retry with five verified facts, honest urgency gaps and truthful coverage
+lines; the other results flagged three issues, now addressed or recorded:
+
+- **Withholding refused needlessly.** One attempt failed closed after the judge
+  rejected three claims, because withholding them would leave company/years
+  without claims. Since coverage lines are always true and unjudged, withholding
+  now proceeds and those targets get the coverage line plus the omission
+  notice. It still fails closed when a narrow model-written gap would remain
+  for a target that lost its claims. Server coverage gaps are no longer sent to
+  the judge, and turn logs record rejected claim/gap indices (no text).
+- **"Should I buy NVIDIA stock?"** returned cited risk language without saying
+  it cannot advise. A deterministic question check now prepends a fixed notice:
+  "I can't give investment recommendations. The following reports only what the
+  cited filings say."
+- **Tesla 2028.** Correctly invented nothing. Filters for which retrieval
+  returned no passages now add a fixed line, e.g. "No indexed passage was
+  retrieved for TSLA / 10-K / corpus years 2028."
+- **"Does Apple's 2025 10-K say nothing about AI?"** correctly avoided an absence
+  claim, but retrieval missed chunks 14, 17, 18 and 20, which explicitly
+  discuss artificial-intelligence risks. Open retrieval-quality item for phase 8.
+
+Offline: **364 passed, 15 integration deselected**.

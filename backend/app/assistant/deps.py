@@ -53,6 +53,14 @@ class TurnRegistry:
     evidence_refs: dict[str, EvidenceRef] = field(default_factory=dict)
     displayed_ids: list[str] = field(default_factory=list)
     comparison_evidence_ids: list[str] | None = None
+    # Filters for which retrieval returned nothing. Semantic search has no
+    # relevance cutoff, so this usually means no such filing is indexed; replies
+    # state only that nothing was retrieved.
+    unmatched_filters: list[SearchFilters] = field(default_factory=list)
+
+    def record_unmatched(self, filters: SearchFilters, passages: list) -> None:
+        if not passages and filters not in self.unmatched_filters:
+            self.unmatched_filters.append(filters.model_copy(deep=True))
 
     def evidence_id(self, passage: RetrievedPassage, text: str) -> str:
         ref = EvidenceRef(chunk_id=passage.chunk_id, exact_quote=text)

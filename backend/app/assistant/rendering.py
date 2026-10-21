@@ -3,6 +3,7 @@ from pydantic import Field
 from app.assistant.calculations import CalculationRecord
 from app.assistant.deps import TurnRegistry, normalized
 from app.assistant.outputs import Contract, GroundedAnswer
+from app.retrieval.types import SearchFilters
 
 
 class AcceptedReply(Contract):
@@ -36,10 +37,33 @@ def calculation_text(record: CalculationRecord) -> str:
 
 
 WITHHELD_NOTICE = "Some drafted statements were omitted because they could not be verified against the cited filings."
+ADVICE_NOTICE = "I can't give investment recommendations. The following reports only what the cited filings say."
+
+
+def target_label(f: SearchFilters) -> str:
+    return " / ".join(
+        filter(
+            None,
+            [
+                f.ticker,
+                f.form,
+                "corpus years " + ", ".join(map(str, f.corpus_years))
+                if f.corpus_years
+                else None,
+                "verified fiscal years " + ", ".join(map(str, f.fiscal_years))
+                if f.fiscal_years
+                else None,
+            ],
+        )
+    )
 
 
 def render_answer(
-    answer: GroundedAnswer, registry: TurnRegistry, *, withheld: int = 0
+    answer: GroundedAnswer,
+    registry: TurnRegistry,
+    *,
+    withheld: int = 0,
+    advice: bool = False,
 ) -> AcceptedReply:
     indices = {}
     citations = []
@@ -91,36 +115,23 @@ def render_answer(
             text = calculation_text(registry.calculations[claim.calculation_id])
         lines.append(prefix + text + " " + " ".join(dict.fromkeys(labels)))
     for gap in answer.gaps:
-        target = ""
-        if gap.target and any(gap.target.model_dump(exclude_none=True).values()):
-            f = gap.target
-            target = (
-                " / ".join(
-                    filter(
-                        None,
-                        [
-                            f.ticker,
-                            f.form,
-                            "corpus years " + ", ".join(map(str, f.corpus_years))
-                            if f.corpus_years
-                            else None,
-                            "verified fiscal years "
-                            + ", ".join(map(str, f.fiscal_years))
-                            if f.fiscal_years
-                            else None,
-                        ],
-                    )
-                )
-                + ": "
-            )
+        label = target_label(gap.target) if gap.target else ""
         message = (
             "Not established from the retrieved evidence: " + gap.missing_detail
             if gap.missing_detail
             else GAPS[gap.reason]
         )
-        lines.append(target + message)
+        lines.append(f"{label}: {message}" if label else message)
+    # Fixed server text below states only what the server observed this turn.
+    lines += [
+        f"No indexed passage was retrieved for {label}."
+        for label in dict.fromkeys(target_label(f) for f in registry.unmatched_filters)
+        if label
+    ]
     if withheld:
-        # Fixed server text: an answer that lost claims must not read as complete.
+        # An answer that lost claims must not read as complete.
         lines.append(WITHHELD_NOTICE)
+    if advice:
+        lines.insert(0, ADVICE_NOTICE)
     text = "\n\n".join(lines)
     return AcceptedReply(text=text, parts=[{"type": "text", "text": text}, *citations])
