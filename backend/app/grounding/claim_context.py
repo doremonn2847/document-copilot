@@ -30,6 +30,35 @@ PERIOD = re.compile(
 CURRENCY = re.compile(r"\b(?:USD|U\.S\. dollars?|dollars?)\b|\$", re.IGNORECASE)
 SCALE = re.compile(r"\b(?:thousands?|millions?|billions?|trillions?)\b", re.IGNORECASE)
 
+# "a majority of the company's supply chain": the quantified subject. A live
+# comparison bound "majority" from a net-sales quote to the supply chain and the
+# judge accepted it, so the subject must come from the quotes, not paraphrase.
+QUANTIFIED = re.compile(
+    r"\b(?:majority|most|half|minority|portion|share|percent|%)\s+of\s+(?:the\s+|its\s+|their\s+)?(?:[\w.-]+'s\s+)?([a-z-]+(?:\s+[a-z-]+){0,2})",
+    re.IGNORECASE,
+)
+SUBJECT_END = {
+    "from",
+    "in",
+    "outside",
+    "is",
+    "are",
+    "was",
+    "were",
+    "comes",
+    "come",
+    "came",
+    "and",
+    "or",
+    "that",
+    "which",
+    "to",
+    "for",
+    "by",
+    "with",
+}
+GENERIC = {"the", "total", "net", "overall", "company", "companies", "its", "our"}
+
 SOURCE = r"(?:filings?|documents?|reports?|10-[kq]s?)"
 ABSENCE = r"(?:never\s+(?:mentions?|discuss(?:es)?|refers?|states?)|(?:does|do|did)\s+not\s+(?:mention|discuss|refer|state)|(?:doesn't|don't|didn't)\s+(?:mention|discuss|refer|state)|(?:contains?|includes?|provides?|makes?)\s+no\s+(?:mention|reference|discussion)|omits?)"
 
@@ -58,6 +87,25 @@ def unsupported_absence_claim(text: str) -> bool:
         ):
             return True
     return False
+
+
+def unquoted_quantified_subjects(claim: AnswerClaim) -> list[str]:
+    quotes = {
+        word[:5]
+        for ref in claim.evidence
+        for word in re.findall(r"[a-z]+", ref.exact_quote.lower())
+    }
+    subjects = []
+    for match in QUANTIFIED.finditer(claim.text.replace("’", "'")):
+        words = []
+        for word in match[1].lower().split():
+            if word in SUBJECT_END:
+                break
+            words.append(word)
+        content = [w for w in words if len(w) > 2 and w not in GENERIC]
+        if content and not any(w[:5] in quotes for w in content):
+            subjects.append(" ".join(words))
+    return subjects
 
 
 def financial_context_only(errors: list[str]) -> bool:
@@ -106,6 +154,13 @@ def claim_context_errors(
     if unsupported_absence_claim(claim.text):
         errors.append(
             "selected excerpts cannot establish absence from the entire filing. Omit the file-wide claim and report what the retrieved evidence does not establish."
+        )
+    subjects = unquoted_quantified_subjects(claim)
+    if subjects:
+        errors.append(
+            "quantified subjects must appear in the attached quotes: "
+            + ", ".join(subjects)
+            + ". Say what the quoted share applies to in the source's own terms."
         )
     named = {
         ticker

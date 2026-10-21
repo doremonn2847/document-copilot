@@ -433,6 +433,36 @@ def test_accounting_negative_cannot_support_positive_factual_amount():
     )
 
 
+@pytest.mark.parametrize(
+    "text,rejected",
+    [
+        # Live comparison: "majority" moved from net sales to the supply chain.
+        (
+            "A majority of the company's supply chain comes from outside the U.S.",
+            True,
+        ),
+        (
+            "A majority of the company's total net sales come from outside the U.S.",
+            False,
+        ),
+        ("Most of its revenue comes from outside the U.S.", True),
+    ],
+)
+def test_quantified_subject_must_come_from_the_attached_quotes(text, rejected):
+    p = passage(
+        "The Company has international operations with sales outside the U.S. representing a majority of the Company's total net sales."
+    )
+    registry = TurnRegistry()
+    registry.expose(p, p.text)
+    claim = AnswerClaim(
+        text=text, evidence=[EvidenceRef(chunk_id=p.chunk_id, exact_quote=p.text)]
+    )
+    errors = structural_errors(
+        GroundedAnswer(status="answered", claims=[claim]), registry, searches=1
+    )
+    assert any("quantified subjects" in e for e in errors) == rejected
+
+
 def test_verified_calculation_inputs_are_not_sent_for_a_second_semantic_verdict():
     import asyncio
 
