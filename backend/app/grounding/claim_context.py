@@ -278,12 +278,12 @@ def claim_context_errors(
     if monetary:
         if not CURRENCY.search(claim.text) or not CURRENCY.search(quotes):
             errors.append(
-                "financial amounts require explicit currency units in both the claim and its attached quotes."
+                "financial amounts require explicit currency units in both the claim and its attached quotes. A table often shows $ only on its first and total rows: also cite such a row, or the title or heading that names the currency."
             )
         claim_scales = {s.lower().rstrip("s") for s in SCALE.findall(claim.text)}
         quote_scales = {s.lower().rstrip("s") for s in SCALE.findall(quotes)}
         if claim_scales != quote_scales:
             errors.append(
-                "financial amounts require matching quoted scale (e.g. USD millions); do not omit or infer table units."
+                "financial amounts require matching quoted scale (e.g. USD millions); do not omit or infer table units. Cite the table title or heading that states the scale, such as '(in millions)'."
             )
     return errors
