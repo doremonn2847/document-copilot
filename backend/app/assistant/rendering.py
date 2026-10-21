@@ -120,9 +120,12 @@ def render_answer(
             {
                 "kind": "gap",
                 "label": target_label(gap.target) if gap.target else None,
+                # Clarification and scope replies are unjudged, and "not
+                # established" misreads a question asking which company.
                 "text": "Not established from the retrieved evidence: "
                 + gap.missing_detail
                 if gap.missing_detail
+                and gap.reason not in ("ambiguous_question", "outside_scope")
                 else GAPS[gap.reason],
             }
         )

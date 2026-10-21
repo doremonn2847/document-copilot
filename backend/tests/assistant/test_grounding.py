@@ -707,3 +707,21 @@ def test_table_row_takes_currency_from_its_own_source_table():
     for span in (title, header, aws):
         registry.expose(bare, span)
     assert any("currency" in e for e in structural_errors(answer, registry, searches=1))
+
+
+def test_clarification_gap_uses_fixed_wording_not_not_established():
+    # Live: "How did revenue change last year?" read "Not established from the
+    # retrieved evidence: The question does not name a company...".
+    from app.assistant.rendering import GAPS, render_answer
+
+    answer = GroundedAnswer(
+        status="insufficient_evidence",
+        gaps=[
+            EvidenceGap(
+                reason="ambiguous_question",
+                missing_detail="The question does not name a company or filing year.",
+            )
+        ],
+    )
+    reply = render_answer(answer, TurnRegistry())
+    assert reply.text == GAPS["ambiguous_question"]
