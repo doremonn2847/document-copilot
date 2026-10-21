@@ -54,7 +54,7 @@ cannot open a browser, so tasks end at code, offline tests and builds.
 9. [x] **Sales-vs-supply-chain false claim (found tonight).** Fixed: a structural check requires the subject of "majority/most/% of X" to appear in the claim's own quotes; live rerun (6 paid requests) withheld the repeated false claim and showed the coverage line for Apple 2023. Not caught: unquoted descriptors such as "large and complex" (judge-only). Analyse
    `autopilot-ex-supplier.json`; fix only if a deterministic or narrowly
    scoped check exists, otherwise record the analysis for the owner.
-10. [ ] **AI search planning.** "Does Apple's 2025 10-K say nothing about AI?"
+10. [x] **AI search planning.** Fixed: full-text search now matches any two keywords ranked by how many match (ANDing every word found nothing when passages say "artificial intelligence"), filtered form names and question words (mention, disclosure) are dropped from keywords, fact claims whose quotes share no wording fail structurally (the judge had accepted a quote of just "Item 8."), the judge assesses claims rather than the question premise, and unwarranted gaps are dropped on the final attempt when every claim passed. Live: accepted with three cited AI-risk facts after 7 diagnostic runs (57 paid requests). "Does Apple's 2025 10-K say nothing about AI?"
    searched for R&D wording. Make "does X mention Y" questions search for Y,
    then confirm with capped paid runs.
 
