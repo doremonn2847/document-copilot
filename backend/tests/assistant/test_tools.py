@@ -286,3 +286,24 @@ def test_scaled_comparison_budget_gives_every_target_citable_spans():
 
     assert cited_targets(None) < 25
     assert cited_targets(25 * 1500) == 25
+
+
+def test_table_context_longer_than_a_quote_is_exposed_by_rows():
+    # Live: a whole 5,000+ character table fit the room but not one quote,
+    # and the search tool failed on EvidenceRef validation.
+    from app.assistant.outputs import MAX_QUOTE_CHARS
+
+    pad = " " * 80
+    table = "\n".join(
+        [f"|{pad}| 2024 |{pad}| 2025 |"]
+        + [f"| Revenue line {i} |{pad}| {i},000 |{pad}| {i},500 |" for i in range(40)]
+    )
+    assert len(table) > MAX_QUOTE_CHARS
+    p = passage("Revenue increased in 2025.").model_copy(
+        update={"source_context": [table]}
+    )
+    d = deps()
+    expose_groups(d, [("Search", [p])], focus="revenue line")
+    quotes = [ref.exact_quote for ref in d.registry.evidence_refs.values()]
+    assert quotes and all(len(q) <= MAX_QUOTE_CHARS for q in quotes)
+    assert any("Revenue line" in q for q in quotes)

@@ -10,7 +10,7 @@ from pydantic_ai import ModelRetry, RunContext
 from app.assistant.deps import MAX_EVIDENCE_SPANS, BudgetExceeded, DocumentAgentDeps
 from app.assistant.excerpts import focus_terms, focused_excerpt, relevance, table_rows
 from app.assistant.facts import calculate_from_facts, prepare_facts
-from app.assistant.outputs import GroundedAnswer
+from app.assistant.outputs import MAX_QUOTE_CHARS, GroundedAnswer
 from app.assistant.rendering import calculation_text
 from app.assistant.selection import SelectedClaim, final_answer
 from app.grounding.judge import InvalidSupportReport
@@ -88,7 +88,9 @@ def expose_groups(
                         - deps.registry.exposed_characters,
                     )
                     spans = [source_span]
-                    if len(source_span) > room:
+                    # Whole tables can exceed one quote's limit even when they fit
+                    # the room; a live search tool failed on such a span.
+                    if len(source_span) > min(room, MAX_QUOTE_CHARS):
                         spans = (
                             table_rows(source_span, room, terms)
                             if source_span.startswith("|")

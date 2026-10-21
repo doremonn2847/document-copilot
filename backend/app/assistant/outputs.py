@@ -11,11 +11,14 @@ class Contract(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
+MAX_QUOTE_CHARS = 4000
+
+
 class EvidenceRef(Contract):
     chunk_id: UUID
     exact_quote: str = Field(
         min_length=1,
-        max_length=4000,
+        max_length=MAX_QUOTE_CHARS,
         description=(
             "One contiguous verbatim span of text displayed by a tool. Never join "
             "nonadjacent sentences or omit words inside a quote. Use separate evidence "
