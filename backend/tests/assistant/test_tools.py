@@ -15,6 +15,7 @@ def deps():
         None,
         SimpleNamespace(
             assistant_tool_chars=12000,
+            assistant_comparison_target_chars=1500,
             assistant_reasoning_effort="minimal",
             assistant_evidence_chars=48000,
             assistant_max_chunks=50,
@@ -255,3 +256,33 @@ def test_filters_with_no_retrieved_passages_are_reported_to_the_analyst():
     assert text.endswith(
         "No indexed passage was retrieved for TSLA / 10-K / corpus years 2028."
     )
+
+
+# Filing sentences run to hundreds of characters; short ones hide starvation.
+FILING_SENTENCE = (
+    "The Company depends on component and product manufacturing and logistical "
+    "services provided by outsourcing partners, many of which are located outside "
+    "of the U.S., and substantially all of its hardware products are manufactured "
+    "by partners located primarily in Asia. "
+)
+
+
+def test_scaled_comparison_budget_gives_every_target_citable_spans():
+    # Live: a 25-target comparison exposed one citable span in 12,000 characters.
+    def cited_targets(limit):
+        d = deps()
+        # Live-sized headers: target JSON plus three passage IDs per target.
+        label = '{"ticker":"NVDA","form":"10-K","corpus_years":[2025]} lexical_available=True'
+        groups = [
+            (
+                label.replace("2025", str(2000 + i)),
+                [passage(FILING_SENTENCE * 12) for _ in range(3)],
+            )
+            for i in range(25)
+        ]
+        expose_groups(d, groups, full=True, limit=limit)
+        cited = {ref.chunk_id for ref in d.registry.evidence_refs.values()}
+        return sum(any(p.chunk_id in cited for p in items) for _, items in groups)
+
+    assert cited_targets(None) < 25
+    assert cited_targets(25 * 1500) == 25

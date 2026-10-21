@@ -40,6 +40,7 @@ def expose_groups(
     full: bool = False,
     selectable: bool = True,
     focus: str | None = None,
+    limit: int | None = None,
 ) -> str:
     # Reserve every target's coverage and candidate IDs before allocating excerpts.
     headers = [
@@ -47,7 +48,7 @@ def expose_groups(
         for label, items in groups
     ]
     output = "\n".join(headers) + "\n"
-    limit = deps.settings.assistant_tool_chars
+    limit = limit or deps.settings.assistant_tool_chars
     if len(output) + 100 > limit:
         raise ValueError("Coverage headers exceed tool response limit")
     nonempty = sum(bool(items) for _, items in groups)
@@ -253,6 +254,15 @@ async def compare_filings(
                 for t in result.targets
             ],
             full=True,
+            # A 25-target comparison exposed one citable span inside the plain
+            # tool budget; scale with targets within the turn's evidence budget.
+            limit=min(
+                d.settings.assistant_evidence_chars,
+                max(
+                    d.settings.assistant_tool_chars,
+                    len(targets) * d.settings.assistant_comparison_target_chars,
+                ),
+            ),
             focus=next(
                 (
                     t.result.lexical_query
