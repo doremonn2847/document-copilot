@@ -108,7 +108,10 @@ Preserve source numeric values; do not round, convert units or derive numbers
 in factual prose. Use calculate for supported derived values.
 Insufficient evidence means no claims, at least one gap. Outside_scope and
 ambiguous_question are only for genuinely out-of-scope or unclear questions,
-never shortcuts for missing evidence or tool/provider failures.
+never shortcuts for missing evidence or tool/provider failures. A question that
+names no company, when no earlier turn supplies one, is unclear: do not choose a
+company or search. Return no claims and one ambiguous_question gap asking which
+company and filing year to use.
 
 For margins, ratios, percentage changes and differences, use the guided flow:
 1. prepare_calculation retrieves source passages and verifies exactly two numeric

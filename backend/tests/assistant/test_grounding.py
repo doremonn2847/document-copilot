@@ -676,3 +676,34 @@ def test_fact_claim_with_mostly_unquoted_details_fails_structurally():
     assert any("absent from its attached quotes" in e for e in errors(padded))
     faithful = "Apple's 10-K says complex and changing laws and regulations worldwide expose the Company to potential liabilities and increased costs."
     assert errors(faithful) == []
+
+
+def test_table_row_takes_currency_from_its_own_source_table():
+    # Live Q02: Amazon prints $ only on the first and total rows.
+    title = "Operating income (loss) by segment is as follows (in millions):"
+    header = "| | 2023 | 2024 |"
+    aws = "| AWS | 24,631 | 39,834 |"
+    table = f"{header}\n| North America | $ 14,877 | $ 24,967 |\n{aws}"
+    p = passage("AWS, = 24,631. AWS, = 39,834.").model_copy(
+        update={"source_context": [title, table]}
+    )
+    registry = TurnRegistry()
+    for span in (title, header, aws):
+        registry.expose(p, span)
+    claim = AnswerClaim(
+        text="Amazon's AWS operating income was $39,834 million in 2024.",
+        evidence=[
+            EvidenceRef(chunk_id=p.chunk_id, exact_quote=q)
+            for q in (title, header, aws)
+        ],
+    )
+    answer = GroundedAnswer(status="answered", claims=[claim])
+    assert not any(
+        "currency" in e for e in structural_errors(answer, registry, searches=1)
+    )
+    # A table without any currency marker still fails.
+    bare = p.model_copy(update={"source_context": [title, table.replace("$ ", "")]})
+    registry = TurnRegistry()
+    for span in (title, header, aws):
+        registry.expose(bare, span)
+    assert any("currency" in e for e in structural_errors(answer, registry, searches=1))

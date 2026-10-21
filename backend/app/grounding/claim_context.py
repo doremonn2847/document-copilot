@@ -189,6 +189,24 @@ def missing_company_evidence(
     )
 
 
+def table_shows_currency(claim: AnswerClaim, passages: list[RetrievedPassage]) -> bool:
+    """A cited table row whose own source table prints the currency.
+
+    Statements print $ only on a table's first and total rows (Amazon's
+    segment table: "AWS | 24,631"), so a live AWS claim could not quote it.
+    """
+    by_id = {p.chunk_id: p for p in passages}
+    return any(
+        ref.exact_quote.lstrip().startswith("|")
+        and ref.chunk_id in by_id
+        and any(
+            span.startswith("|") and ref.exact_quote in span and CURRENCY.search(span)
+            for span in by_id[ref.chunk_id].source_context
+        )
+        for ref in claim.evidence
+    )
+
+
 def claim_context_errors(
     claim: AnswerClaim, passages: list[RetrievedPassage]
 ) -> list[str]:
@@ -276,7 +294,9 @@ def claim_context_errors(
         for match in amounts
     )
     if monetary:
-        if not CURRENCY.search(claim.text) or not CURRENCY.search(quotes):
+        if not CURRENCY.search(claim.text) or not (
+            CURRENCY.search(quotes) or table_shows_currency(claim, passages)
+        ):
             errors.append(
                 "financial amounts require explicit currency units in both the claim and its attached quotes. A table often shows $ only on its first and total rows: also cite such a row, or the title or heading that names the currency."
             )
