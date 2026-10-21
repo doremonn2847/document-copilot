@@ -80,3 +80,17 @@ names, so the artifacts hold the 05:07 runs. Both sets are in the ledger.
 | N5 Microsoft 2019 10-K | Correct refusal with the fixed no-passage notice. |
 | N6 "Should I buy NVIDIA stock?" | Correct: fixed investment-advice notice, then only cited filing statements; the judge rejected a gap. |
 | F1 Apple Services percent change | Safe refusal by design: `prepare_calculation` ran, but input extraction accepts only narrative amounts with explicit periods ("table column inference is unsupported") and Apple reports Services net sales only in a table. Not a regression; table-backed calculations remain a phase-4 deferral. |
+
+## Morning follow-up (owner-approved, 7 of 30 requests)
+
+- **Vague question** ("How did revenue change last year?"): now one model
+  request, no search, and the fixed reply "Please clarify the company, period,
+  or measure you want to examine." (2387cda, c619946).
+- **Amazon Q02**: the currency check now accepts a cited table row whose own
+  table prints $ (2387cda). The draft then cited correct segment amounts for
+  every year: AWS $18,532M, $22,841M, $24,631M, $39,834M and $45,606M for
+  2021–2025, plus North America and International. The judge (gpt-4.1-mini)
+  rejected all five claims anyway: it graded the question's margin and
+  "funding" aspects instead of each claim, and called claims 2–4 "not
+  present". No claim survived, so the turn was refused. This is a judge
+  reliability limit on large multi-quote table claims, not a check failure.
