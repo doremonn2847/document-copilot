@@ -18,7 +18,7 @@ The owner raised the paid grant to 400 requests (cumulative) for this phase.
 
 ## Tasks
 
-1. [ ] **Client example questions.** Run the ten brief questions
+1. [x] **Client example questions.** Done: first pass 6/10 accepted; after fixes all ten complete (Q01 and Q02 as safe refusals of unverifiable figures); results in phase-8-results.md. Run the ten brief questions
    (`docs/evaluations/retrieval-cases.json`, Q01–Q10) once each. Record status,
    claims and gaps, claim-by-claim accuracy against quotes, citation location,
    latency and requests.
@@ -29,7 +29,7 @@ The owner raised the paid grant to 400 requests (cumulative) for this phase.
 3. [ ] **Financial comparisons.** Check units, fiscal calendars and segment
    names in the numeric answers from tasks 1–2 (Q02, Q05, Q08, the Microsoft
    ratio, Apple Services percent change S03).
-4. [ ] **Fix and rerun.** Fix the failures found in tasks 1–3 where a
+4. [ ] **Fix and rerun.** In progress: withholding for every answer, fixed-key verdicts, scaled comparison budget, comparison-shape instruction, relevant table rows, quoted-wording check and currency/scale feedback are committed; Q01/Q02 derived and unit-less figures remain. Fix the failures found in tasks 1–3 where a
    deterministic or narrowly scoped fix exists; rerun only the affected cases.
 5. [x] **Credential exposure check.** Done: production bundle and 150 local logs/artifacts hold no privileged keys, URLs or tokens; deployed logs wait for phase 9. Confirm the production frontend bundle
    and backend logs contain no privileged keys (search for key names and

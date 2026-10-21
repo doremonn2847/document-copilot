@@ -49,3 +49,25 @@ Fixes after the first pass (all offline-tested): withholding on the final
 attempt of every answer (Q03), fixed-key judge verdicts for all answers (Q07),
 a comparison evidence budget scaled by target count (Q06), and an instruction
 that multi-company and multi-year questions are comparisons (Q03, Q09).
+
+## Client example questions, after fixes
+
+Reruns 01:52–02:03 with UTF-8 questions. Accuracy was checked claim by claim.
+
+| Case | Result | Accuracy against quotes | Coverage |
+|---|---|---|---|
+| Q01 | **refused** (financial fallback) | Every drafted claim stated mix percentages the writer computed itself; derived numbers need the calculator, which the comparison writer cannot call. | None. Correct outcome, unhelpful answer. |
+| Q02 | accepted, gaps only | No claim kept: AWS/North America/International amounts were now drafted from table rows but failed currency checks (Amazon prints $ only on some rows) and one claim derived "924". | "Figures could not be verified" per year: safe, unhelpful. |
+| Q03 | accepted | Correct: three Data Center demand claims match their quotes; one claim withheld. | Partial: customer concentration and supply constraints reported as not established. |
+| Q05 | accepted | Correct: Search & other, YouTube ads and Cloud revenue for 2021–2024 match Alphabet's reported figures and the current-year column. | Good: Network and subscriptions lines reported as not established. |
+| Q06 | accepted | Run r2: two claims listed topics their quotes never named and the judge accepted them, which led to the quoted-wording check. Run r3: that check withheld the padded claim; the remaining Apple and Microsoft claims match their quotes. | Partial: "what changed" reported as not established. |
+| Q07 | accepted | Correct: Apple single-source and prepayment claims, NVIDIA supplier dependence and Asia-Pacific concentration. | Partial: urgency trend reported as not established. |
+| Q08 | accepted | Correct; an unsupported claim with a derived "30" was withheld. | No capex amounts. |
+| Q09 | accepted | Correct but weak: Alphabet FX exposure, Microsoft segments. | Apple's regional segment table was not retrieved. |
+
+## Negative cases (task 2), partial
+
+| Case | Result |
+|---|---|
+| N1 Tesla 2028 10-K | Correct refusal: no claims, fixed "No indexed passage was retrieved for TSLA / 10-K / corpus years 2028" notice. It spent four searches (12 requests) on a company outside the corpus. |
+| N2–N6, F1 | Not run: the batch was stopped at 02:03 when the machine ran critically low on memory (0.6 GB free of 13.8 GB). N2 was killed mid-run and is counted at its per-run cap (20 requests) in the ledger. |
