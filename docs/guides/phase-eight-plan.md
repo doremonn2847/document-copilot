@@ -22,7 +22,7 @@ The owner raised the paid grant to 400 requests (cumulative) for this phase.
    (`docs/evaluations/retrieval-cases.json`, Q01–Q10) once each. Record status,
    claims and gaps, claim-by-claim accuracy against quotes, citation location,
    latency and requests.
-2. [ ] **Negative cases.** Unsupported company/period, missing figures, an
+2. [x] **Negative cases.** Done: six of seven refuse or answer safely; N4 (ambiguous question) fails as a service error and F1 (Services calculation) never reaches the calculator. Both are recorded for follow-up. Unsupported company/period, missing figures, an
    ambiguous question and "AI caused margin improvement" causal claims
    (smoke cases S04, S05 plus new ones). The right result is a refusal or a
    truthful gap, never an invented fact.

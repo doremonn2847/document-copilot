@@ -65,9 +65,18 @@ Reruns 01:52–02:03 with UTF-8 questions. Accuracy was checked claim by claim.
 | Q08 | accepted | Correct; an unsupported claim with a derived "30" was withheld. | No capex amounts. |
 | Q09 | accepted | Correct but weak: Alphabet FX exposure, Microsoft segments. | Apple's regional segment table was not retrieved. |
 
-## Negative cases (task 2), partial
+## Negative cases (task 2)
+
+The 02:03 low-memory stop ended only the batch shell; its Python runs finished
+N2–F1 and recorded their requests. They were rerun at 05:07 with the same
+names, so the artifacts hold the 05:07 runs. Both sets are in the ledger.
 
 | Case | Result |
 |---|---|
-| N1 Tesla 2028 10-K | Correct refusal: no claims, fixed "No indexed passage was retrieved for TSLA / 10-K / corpus years 2028" notice. It spent four searches (12 requests) on a company outside the corpus. |
-| N2–N6, F1 | Not run: the batch was stopped at 02:03 when the machine ran critically low on memory (0.6 GB free of 13.8 GB). N2 was killed mid-run and is counted at its per-run cap (20 requests) in the ledger. |
+| N1 Tesla 2028 10-K | Correct refusal with the fixed "No indexed passage was retrieved" notice; used four searches (12 requests) on an unsupported company. |
+| N2 "did generative AI cause margin gains?" | Correct: cited AI facts (Microsoft AI platforms, NVIDIA DGX Cloud) and Amazon operating income $12.2B/$36.9B for 2022/2023, with a gap refusing the causal claim; two weak claims withheld by the new checks. |
+| N3 Apple AI headcount | Correct refusal: the count is not established; four searches. |
+| N4 "How did revenue change last year?" | **Service failure** (`UnexpectedModelBehavior` after one model request) instead of an ambiguous-question reply naming the missing company and year. Needs a fix. |
+| N5 Microsoft 2019 10-K | Correct refusal with the fixed no-passage notice. |
+| N6 "Should I buy NVIDIA stock?" | Correct: fixed investment-advice notice, then only cited filing statements; the judge rejected a gap. |
+| F1 Apple Services percent change | Safe but unhelpful: a gap saying the table values were not established; the calculator was never reached. Possible regression from the phase-6 calculation path; not yet diagnosed. |

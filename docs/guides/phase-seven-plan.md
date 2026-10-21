@@ -73,15 +73,20 @@ and seven grounding/retrieval fixes landed (see
 [phase-8 results](../evaluations/phase-8-results.md)). 28 local commits since
 `82bde5b`, none pushed. Offline suite: 376 passed, 15 integration deselected.
 
-**Not done.** Phase-8 negative cases N2–N6 and the Apple Services calculation
-(F1) were not run after the low-memory stop. Q01 (revenue mix) and Q02 (AWS vs
-segments) end as safe refusals: the writer computes mix shares itself, and
-Amazon's table rows lack a currency the checks accept. Phase-8 task 6 needs
+**Not done.** Q01 (revenue mix) and Q02 (AWS vs segments) end as safe
+refusals: the writer computes mix shares itself, and Amazon's table rows lack a
+currency the checks accept. Negative case N4 ("How did revenue change last
+year?") fails as a service error instead of asking which company, and the
+Apple Services percent change (F1) no longer reaches the calculator; both need
+diagnosis. Phase-8 tasks 3 and 4 remain open. Phase-8 task 6 needs
 the owner and client: corpus expansion to S&P 500 10-K/10-Q filings
 (scope and embedding spend) and a two-account confidentiality check.
 
-**Paid requests.** 277 of 400 (one run killed by the memory stop is counted
-at its 20-request cap). Ledger: `data/chunks/assistant/autopilot-ledger.json`.
+**Paid requests.** 349 of 400. The 02:03 memory stop ended only the batch
+shell; its runs finished and were recorded, so the 20-request placeholder for
+an "unmeasured" run was removed. Not knowing that, the six negative cases were
+rerun at 05:07, so they ran twice (42 requests each time). Ledger:
+`data/chunks/assistant/autopilot-ledger.json`.
 
 **Owner checks in the browser** (restart both servers first; Claude Code
 stopped them at 02:03 for low memory):
@@ -112,4 +117,4 @@ stopped them at 02:03 for low memory):
   (5173) and the paid phase-8 batch because the machine was critically low on
   memory (0.6 GB free of 13.8 GB, mostly the browser). The servers were not
   restarted automatically; restart them before the browser check. Paid runs
-  paused at 277/400 (one killed run counted at its 20-request cap).
+  paused until 05:07, when 1.5 GB was free again.
