@@ -63,6 +63,9 @@ def numeric_candidates(deps: DocumentAgentDeps, source_text: str) -> dict[str, O
     candidates = {}
     seen = set()
     size = 0
+    wants_rates = re.search(
+        r"\b(?:percent|percentage|rates?)\b|%", deps.question, re.IGNORECASE
+    )
     for chunk_id, spans in deps.registry.observed.items():
         p = deps.registry.passages[chunk_id]
         for span in spans:
@@ -97,6 +100,15 @@ def numeric_candidates(deps: DocumentAgentDeps, source_text: str) -> dict[str, O
                     elif currency and re.search(r"\bUSD\s*$", before, re.IGNORECASE):
                         unit = "USD"
                     elif re.match(r"\s*(?:%|percent\b)", after, re.IGNORECASE):
+                        # "increased $19.8 billion or 17%": the rate restates the
+                        # currency change; offering it let a live run divide
+                        # growth rates when the question asked about increases.
+                        if not wants_rates and re.search(
+                            r"(?:\$|\bUSD)\s*[\d.,]+\s*(?:million|billion)?\s+or\s*$",
+                            before,
+                            re.IGNORECASE,
+                        ):
+                            continue
                         unit = "percent"
                     else:
                         continue

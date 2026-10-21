@@ -13,6 +13,7 @@ const EXAMPLES = [
   'How does Amazon describe AWS in its 2025 corpus filing?',
   'What risks does Alphabet describe about artificial intelligence in its 2025 corpus filing?',
   'How did NVIDIA describe demand for its Data Center products in its 2025 corpus filing?',
+  "What is the ratio of Microsoft's reported gross-margin increase to revenue increase for fiscal 2022 compared with fiscal 2021? This is a ratio of annual increases, not the company's gross margin.",
 ]
 
 export default function NewChatPage() {

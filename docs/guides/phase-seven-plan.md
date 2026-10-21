@@ -47,7 +47,7 @@ cannot open a browser, so tasks end at code, offline tests and builds.
    unmounting the workspace (onboarding finding).
 7. [x] **Accessibility and layout.** Done: unique composer ids, Ctrl/Cmd+Enter to send, focusable citation and example buttons, tighter spacing on narrow screens. Needs the owner's manual keyboard/size check. Unique ids per mounted composer, focus
    order, aria labels for sources, long answers and narrow (mobile) widths.
-8. [ ] **Ratio regression (correctness, found tonight).** The Microsoft ratio
+8. [x] **Ratio regression (correctness, found tonight).** Fixed: growth rates restating a currency change ("$19.8 billion or 17%") are offered only when the question asks for rates; live rerun returns 65.56% (6 paid requests) and is now an example question. The Microsoft ratio
    question now uses growth percentages (94.44%) instead of dollar increases
    (65.56%). Reproduce offline from `autopilot-ex-msft-ratio.json`, fix
    deterministically, then confirm with at most two capped paid runs.

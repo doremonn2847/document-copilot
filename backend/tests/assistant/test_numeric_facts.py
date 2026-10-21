@@ -144,8 +144,22 @@ def test_no_candidates_without_explicit_period_and_units():
         assert numeric_candidates(d, p.text) == {}
 
 
-def test_candidates_preserve_exact_numeric_tokens_scale_and_observed_quotes():
+@pytest.mark.parametrize(
+    "question,rate_kept",
+    [
+        # Live run: offered "or 18%" as an input and divided growth rates.
+        (
+            "What is the ratio of the gross-margin increase to the revenue increase?",
+            False,
+        ),
+        ("What is the ratio of the two growth rates in percent?", True),
+    ],
+)
+def test_candidates_preserve_exact_numeric_tokens_scale_and_observed_quotes(
+    question, rate_kept
+):
     d = deps()
+    d.question = question
     p = passage(
         "Fiscal Year 2022 Compared with Fiscal Year 2021\nRevenue increased $30.2 billion or 18%.\nLoss was $(100) million."
     )
@@ -153,7 +167,7 @@ def test_candidates_preserve_exact_numeric_tokens_scale_and_observed_quotes():
     values = list(numeric_candidates(d, p.text).values())
     assert [(o.raw_number, o.unit) for o in values] == [
         ("30.2", "USD billions"),
-        ("18", "percent"),
+        *([("18", "percent")] if rate_kept else []),
         ("(100)", "USD millions"),
     ]
     assert values[-1].value == -100
