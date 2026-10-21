@@ -397,6 +397,91 @@ def test_comparison_plan_output_is_hidden_when_budget_is_exhausted(budget):
     )
 
 
+def test_comparison_writer_selects_only_evidence_shown_in_its_frozen_prompt():
+    from pydantic import create_model
+
+    from app.assistant.comparison_citations import (
+        ComparisonFact,
+        ComparisonInterpretation,
+        prepare_comparison_citations,
+        resolve_comparison_claim,
+    )
+    from app.assistant.comparisons import prepare_comparison
+    from app.assistant.outputs import Contract
+    from app.retrieval.types import (
+        ComparisonResult,
+        ComparisonTargetResult,
+        RetrievalResult,
+        RetrievalUsage,
+    )
+
+    d = deps()
+    d.question = "Compare Apple and NVIDIA supplier risks."
+    earlier = passage("Apple sells products online.")
+    shared = passage("Apple relies on outsourcing partners.")
+    nvidia = passage("NVIDIA relies on foundry partners.").model_copy(
+        update={"ticker": "NVDA"}
+    )
+    # A planner search before the handoff exposes E1 (unused) and E2 (reused below).
+    expose_groups(d, [("Search", [earlier, shared])])
+
+    class Retriever:
+        async def compare(self, query, *, targets):
+            return ComparisonResult(
+                targets=[
+                    ComparisonTargetResult(
+                        target=t,
+                        result=RetrievalResult(
+                            passages=[shared] if t.ticker == "AAPL" else [nvidia]
+                        ),
+                    )
+                    for t in targets
+                ],
+                usage=RetrievalUsage(),
+            )
+
+    d.retriever = Retriever()
+    targets = [SearchFilters(ticker=t) for t in ("AAPL", "NVDA")]
+    ready = asyncio.run(
+        prepare_comparison(SimpleNamespace(deps=d), "supplier risks", targets)
+    )
+    assert "[E1]" not in ready.evidence
+    assert d.registry.comparison_evidence_ids == ["E2", "E3"]
+
+    schema = create_model(
+        "Submission",
+        __base__=Contract,
+        claims=(list[ComparisonFact | ComparisonInterpretation], ...),
+    ).model_json_schema()
+    prepare_comparison_citations(schema, d)
+    choices = {
+        key
+        for definition in schema["$defs"].values()
+        for key in definition.get("enum", [])
+        if isinstance(key, str)
+    }
+    assert choices == {"E2", "E3"}
+
+    def interpretation(apple_ids):
+        return ComparisonInterpretation(
+            text="Apple and NVIDIA rely on manufacturing partners.",
+            evidence_by_company={"AAPL": apple_ids, "NVDA": ["E3"]},
+        )
+
+    assert resolve_comparison_claim(interpretation(["E2"]), d).evidence_ids == [
+        "E2",
+        "E3",
+    ]
+    with pytest.raises(ModelRetry):
+        resolve_comparison_claim(interpretation(["E1"]), d)
+    with pytest.raises(ModelRetry, match="Unknown evidence IDs"):
+        final_comparison_answer(
+            SimpleNamespace(deps=d),
+            [ComparisonFact(text=earlier.text, evidence_ids=["E1"])],
+            [],
+        )
+
+
 def test_invalid_expanded_comparison_plan_executes_no_retrieval():
     from app.assistant.comparisons import prepare_comparison
 

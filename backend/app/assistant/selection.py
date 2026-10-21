@@ -58,6 +58,7 @@ def final_answer(
     Uncovered comparison targets become explicit missing-evidence gaps.
     """
     registry = ctx.deps.registry
+    refs = registry.selectable_refs()
     resolved = []
     try:
         if len(gaps) > 25:
@@ -86,19 +87,12 @@ def final_answer(
                     }.values()
                 )
             else:
-                missing = [
-                    key
-                    for key in claim.evidence_ids
-                    if key not in registry.evidence_refs
-                ]
+                missing = [key for key in claim.evidence_ids if key not in refs]
                 if missing:
                     raise ModelRetry(
                         f"Unknown evidence IDs: {missing}. Select displayed E IDs only."
                     )
-                evidence = [
-                    registry.evidence_refs[key]
-                    for key in dict.fromkeys(claim.evidence_ids)
-                ]
+                evidence = [refs[key] for key in dict.fromkeys(claim.evidence_ids)]
             resolved.append(
                 AnswerClaim(
                     text=claim.text,
@@ -113,7 +107,7 @@ def final_answer(
             )
             if missing:
                 candidates = {}
-                for key, ref in registry.evidence_refs.items():
+                for key, ref in refs.items():
                     passage = registry.passages[ref.chunk_id]
                     if passage.ticker in missing:
                         label = f"{passage.ticker} / corpus {passage.corpus_year}"

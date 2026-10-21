@@ -30,7 +30,7 @@ def compared_companies(deps: DocumentAgentDeps) -> list[str]:
     if not targets or any(target.ticker is None for target in targets):
         companies.update(
             deps.registry.passages[ref.chunk_id].ticker
-            for ref in deps.registry.evidence_refs.values()
+            for ref in deps.registry.selectable_refs().values()
         )
     return sorted(companies)
 
@@ -39,7 +39,7 @@ def prepare_comparison_citations(schema: dict, deps: DocumentAgentDeps) -> None:
     """Scope wire choices and require every compared company's own sources."""
     definitions = schema["$defs"]
     refs_by_company = {}
-    for key, ref in deps.registry.evidence_refs.items():
+    for key, ref in deps.registry.selectable_refs().items():
         ticker = deps.registry.passages[ref.chunk_id].ticker
         refs_by_company.setdefault(ticker, []).append(key)
     company_refs = {}
@@ -106,10 +106,11 @@ def resolve_comparison_claim(
         raise ModelRetry(
             f"Company citation groups must include exactly: {', '.join(companies)}."
         )
+    refs = deps.registry.selectable_refs()
     selected = []
     for ticker in companies:
         for key in claim.evidence_by_company[ticker]:
-            ref = deps.registry.evidence_refs.get(key)
+            ref = refs.get(key)
             if ref is None or deps.registry.passages[ref.chunk_id].ticker != ticker:
                 raise ModelRetry(
                     f"Select only {ticker}'s observed evidence IDs in its citation group."

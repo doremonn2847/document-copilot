@@ -356,3 +356,41 @@ def test_wire_schema_enforces_five_total_references_without_losing_valid_allocat
             for branch in branches
         )
         assert allowed == (min(counts) >= 1 and sum(counts) <= 5), counts
+
+
+@pytest.mark.parametrize("company_count", [1, 2, 3, 5, 6])
+def test_writer_wire_schema_needs_no_strict_mode_rewrite(company_count):
+    from copy import deepcopy
+
+    from pydantic_ai.profiles.openai import OpenAIJsonSchemaTransformer
+
+    d = citation_deps()
+    tickers = ["AAPL", "NVDA", "MSFT", "AMZN", "GOOGL", "META"][:company_count]
+    d.registry.comparison_targets = [SearchFilters(ticker=t) for t in tickers]
+    for ticker in tickers[2:]:
+        p = passage().model_copy(update={"ticker": ticker})
+        d.registry.evidence_id(p, p.text)
+    tools = []
+
+    def respond(request):
+        tools.extend(json.loads(request.content)["tools"])
+        return completion({"claims": [], "gaps": []}, 1)
+
+    async def check():
+        async with (
+            httpx.AsyncClient(transport=httpx.MockTransport(respond)) as http,
+            AsyncOpenAI(
+                api_key="offline-test", max_retries=0, http_client=http
+            ) as client,
+        ):
+            await build_comparison_writer(d.settings, client).run(d.question, deps=d)
+
+    asyncio.run(check())
+    (function,) = [tool["function"] for tool in tools]
+    schema = function["parameters"]
+    assert function["strict"] is True
+    assert schema["type"] == "object" and "anyOf" not in schema
+    # Allocation and enum fragments are added after pydantic-ai's strict-mode
+    # rewrite, so the schema actually sent must already be a fixed point of it.
+    assert OpenAIJsonSchemaTransformer(deepcopy(schema), strict=True).walk() == schema
+    assert ("ComparisonInterpretation" in schema["$defs"]) == (company_count <= 5)

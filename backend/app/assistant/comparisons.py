@@ -74,10 +74,15 @@ async def prepare_comparison(
     )
     if not 1 <= total <= 25:
         raise ModelRetry("Comparison requires 1–25 individual company/year targets.")
+    registry = ctx.deps.registry
+    shown = len(registry.displayed_ids)
     evidence = await compare_filings.__wrapped__(ctx, query, targets)
-    if not ctx.deps.registry.comparison_targets:
+    if not registry.comparison_targets:
         raise ModelRetry("Comparison requires 1–25 individual targets.")
-    ctx.deps.registry.request_spans = request_spans(ctx.deps.question)
+    registry.comparison_evidence_ids = list(
+        dict.fromkeys(registry.displayed_ids[shown:])
+    )
+    registry.request_spans = request_spans(ctx.deps.question)
     return ComparisonReady(evidence=evidence)
 
 

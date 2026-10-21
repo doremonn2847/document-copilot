@@ -51,16 +51,24 @@ class TurnRegistry:
     comparison_targets: list[SearchFilters] = field(default_factory=list)
     request_spans: dict[str, str] = field(default_factory=dict)
     evidence_refs: dict[str, EvidenceRef] = field(default_factory=dict)
+    displayed_ids: list[str] = field(default_factory=list)
+    comparison_evidence_ids: list[str] | None = None
 
     def evidence_id(self, passage: RetrievedPassage, text: str) -> str:
         ref = EvidenceRef(chunk_id=passage.chunk_id, exact_quote=text)
-        for key, existing in self.evidence_refs.items():
-            if existing == ref:
-                return key
-        self.expose(passage, text)
-        key = f"E{len(self.evidence_refs) + 1}"
-        self.evidence_refs[key] = ref
+        key = next((k for k, v in self.evidence_refs.items() if v == ref), None)
+        if key is None:
+            self.expose(passage, text)
+            key = f"E{len(self.evidence_refs) + 1}"
+            self.evidence_refs[key] = ref
+        self.displayed_ids.append(key)
         return key
+
+    def selectable_refs(self) -> dict[str, EvidenceRef]:
+        # The guided comparison writer sees only its frozen evidence, so it may cite only that.
+        if self.comparison_evidence_ids is None:
+            return self.evidence_refs
+        return {key: self.evidence_refs[key] for key in self.comparison_evidence_ids}
 
     def expose(self, passage: RetrievedPassage, text: str) -> None:
         if not text or not any(
