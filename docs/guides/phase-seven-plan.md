@@ -28,11 +28,11 @@ cannot open a browser, so tasks end at code, offline tests and builds.
    citation numbers) and each gap/notice (label, message, kind). Keep the text
    part for compatibility; persist it with the message parts so history
    restores it. Old messages without the part fall back to text rendering.
-2. [ ] **Readable answer layout.** Render `data-answer`: claims grouped by
+2. [x] **Readable answer layout.** Done: notices as banners, comparison facts grouped by company with year chips, gaps under "Not established"; old messages fall back to text. Render `data-answer`: claims grouped by
    company with year labels, gaps as distinct "not established" callouts,
    server notices (advice, omitted statements, nothing retrieved) as banners.
    Clear provisional/completed/failed states.
-3. [ ] **One-click citations.** Citation markers become buttons that open and
+3. [x] **One-click citations.** Done: [n] buttons open, scroll to and focus the source, which shows form, filing date, years, page/section, excerpt and SEC link. Citation markers become buttons that open and
    scroll to the matching source, showing company, form, filing date, corpus
    year, fiscal year (unverified), page or "page unverified", section, excerpt
    and the SEC link. Keyboard-accessible.
