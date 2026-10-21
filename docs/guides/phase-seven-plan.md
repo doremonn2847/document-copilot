@@ -63,7 +63,37 @@ All tasks are ticked. The autopilot continues in [phase 8](phase-eight-plan.md)
 
 ## Morning summary
 
-(Written by the autopilot at the end of the night.)
+Drafted 03:40 while paid work was paused for low memory; finalised at 06:00.
+
+**Done.** All ten phase-7 tasks (structured answers, readable layout,
+one-click citations, robust history, examples, failure messages, keyboard and
+layout fixes, ratio regression, false quantified claim, AI search). Phase 8:
+the ten client questions all complete after fixes, the credential check passed,
+and seven grounding/retrieval fixes landed (see
+[phase-8 results](../evaluations/phase-8-results.md)). 28 local commits since
+`82bde5b`, none pushed. Offline suite: 376 passed, 15 integration deselected.
+
+**Not done.** Phase-8 negative cases N2–N6 and the Apple Services calculation
+(F1) were not run after the low-memory stop. Q01 (revenue mix) and Q02 (AWS vs
+segments) end as safe refusals: the writer computes mix shares itself, and
+Amazon's table rows lack a currency the checks accept. Phase-8 task 6 needs
+the owner and client: corpus expansion to S&P 500 10-K/10-Q filings
+(scope and embedding spend) and a two-account confidentiality check.
+
+**Paid requests.** 277 of 400 (one run killed by the memory stop is counted
+at its 20-request cap). Ledger: `data/chunks/assistant/autopilot-ledger.json`.
+
+**Owner checks in the browser** (restart both servers first; Claude Code
+stopped them at 02:03 for low memory):
+
+1. Answers render as blocks: amber notices, claims grouped by company with
+   year chips, a "Not established" section; old conversations still open.
+2. Each [n] opens, scrolls to and focuses its source; Tab reaches every
+   citation and example button; Ctrl+Enter sends.
+3. The five example questions on the new-chat page each answer with citations.
+4. Narrow window (about 375 px) and a long comparison answer scroll cleanly.
+5. Ask "Does Apple's 2025 10-K say nothing about AI?": three cited AI-risk
+   facts are expected.
 
 ### Findings logged during the night
 
