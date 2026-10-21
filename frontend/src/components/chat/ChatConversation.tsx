@@ -1,52 +1,61 @@
 import { useEffect, useRef, useState } from 'react'
 import { useChat } from '@ai-sdk/react'
-import { DefaultChatTransport, type UIMessage } from 'ai'
-import { useLocation, useNavigate, useOutletContext } from 'react-router-dom'
+import { DefaultChatTransport } from 'ai'
+import type { ChatMessage } from '@/lib/chat-parts'
+import { useNavigate } from 'react-router-dom'
 import MessageComposer from '@/components/chat/MessageComposer'
 import MessageList from '@/components/chat/MessageList'
 import { Button } from '@/components/ui/button'
 import { chatError, type FirstMessage } from '@/lib/chats'
 import { env } from '@/lib/env'
 import { streamFetch } from '@/lib/http'
-import type { ChatLayoutContext } from '@/pages/ChatLayout'
 import { useAuth } from '@/lib/auth'
 import { clearPending, savePending } from '@/lib/pending-chat'
 
-export default function ChatConversation({ threadId, history, initial, recovered }: {
-  threadId: string; history: UIMessage[]; initial: FirstMessage | null; recovered: FirstMessage | null
+export default function ChatConversation({ threadId, history, initial, recovered, active, onSaved, onPendingChange }: {
+  threadId: string; history: ChatMessage[]; initial: FirstMessage | null; recovered: FirstMessage | null
+  active: boolean; onSaved: () => void; onPendingChange: (threadId: string, pending: boolean) => void
 }) {
   const { session } = useAuth()
   const userId = session!.user.id
-  const { onSaved } = useOutletContext<ChatLayoutContext>()
   const navigate = useNavigate()
-  const { pathname } = useLocation()
   const completed = useRef(history)
-  const [recoveredQuestion] = useState<UIMessage | null>(() => recovered ? { id: recovered.id, role: 'user', parts: [{ type: 'text', text: recovered.text }] } : null)
-  const pending = useRef<UIMessage | null>(recoveredQuestion)
+  const [recoveredQuestion] = useState<ChatMessage | null>(() => recovered ? { id: recovered.id, role: 'user', parts: [{ type: 'text', text: recovered.text }] } : null)
+  const pending = useRef<ChatMessage | null>(recoveredQuestion)
   const started = useRef(false)
   const bottom = useRef<HTMLDivElement>(null)
   const [failure, setFailure] = useState<string | null>(recovered ? 'The page was reloaded before this reply was confirmed. Retry your question.' : null)
-  const [transport] = useState(() => new DefaultChatTransport({
+  const [progress, setProgress] = useState('Analyzing question…')
+  const [transport] = useState(() => new DefaultChatTransport<ChatMessage>({
     api: `${env.apiBaseUrl}/chat/stream`, fetch: streamFetch,
     prepareSendMessagesRequest: ({ messages }) => ({ body: { threadId, messages: [messages.findLast((message) => message.role === 'user')] } }),
   }))
-  const { messages, setMessages, sendMessage, clearError, stop, status } = useChat({
+  const { messages, setMessages, sendMessage, clearError, stop, status } = useChat<ChatMessage>({
     id: threadId, messages: recoveredQuestion ? [...history, recoveredQuestion] : history, transport,
     onError: (error) => setFailure(chatError(error)),
+    onData: (part) => {
+      if (part.type === 'data-status') {
+        const labels: Record<string, string> = { analyzing: 'Analyzing question…', searching: 'Searching filings…', reading: 'Reading source passages…', calculating: 'Checking calculations…', verifying: 'Verifying source support…', repairing: 'Revising unsupported claims…' }
+        setProgress(labels[part.data.stage] ?? 'Working…')
+      }
+    },
     onFinish: ({ messages: finished, isAbort, isDisconnect, isError, finishReason }) => {
       if (!isAbort && !isDisconnect && !isError && finishReason === 'stop') {
         clearPending(userId, threadId)
         completed.current = finished; pending.current = null; setFailure(null); onSaved()
-      } else setFailure('Reply interrupted. Retry the same question to recover or finish the turn.')
+      } else setFailure((current) => current ?? 'Reply interrupted. Retry the same question to recover or finish the turn.')
     },
   })
   const busy = status === 'submitted' || status === 'streaming'
+  useEffect(() => { onPendingChange(threadId, busy || failure !== null) }, [threadId, busy, failure, onPendingChange])
 
   async function send(text: string, id = crypto.randomUUID()) {
     savePending(userId, threadId, { id, text })
-    const question: UIMessage = { id, role: 'user', parts: [{ type: 'text', text }] }
+    onPendingChange(threadId, true)
+    const question: ChatMessage = { id, role: 'user', parts: [{ type: 'text', text }] }
     pending.current = question
     setFailure(null)
+    setProgress('Analyzing question…')
     await sendMessage(question)
   }
 
@@ -56,19 +65,24 @@ export default function ChatConversation({ threadId, history, initial, recovered
     queueMicrotask(() => {
       if (!active || started.current || !initial) return
       started.current = true
-      navigate(pathname, { replace: true, state: null })
-      const question: UIMessage = { id: initial.id, role: 'user', parts: [{ type: 'text', text: initial.text }] }
+      onPendingChange(threadId, true)
+      navigate(`/chats/${threadId}`, { replace: true, state: null })
+      const question: ChatMessage = { id: initial.id, role: 'user', parts: [{ type: 'text', text: initial.text }] }
       pending.current = question
       void sendMessage(question)
     })
-    return () => { active = false; void stop() }
-  }, [initial, navigate, pathname, sendMessage, stop])
+    return () => { active = false }
+  }, [initial, navigate, threadId, sendMessage, onPendingChange])
 
-  useEffect(() => { bottom.current?.scrollIntoView({ block: 'end' }) }, [messages, status])
+  // Navigation retains busy sessions; only leaving the workspace or Stop cancels.
+  useEffect(() => () => { void stop() }, [stop])
+
+  useEffect(() => { if (active) bottom.current?.scrollIntoView({ block: 'end' }) }, [messages, status, active])
 
   async function retry() {
     if (!pending.current || busy) return
     setMessages(completed.current); clearError(); setFailure(null)
+    setProgress('Analyzing question…')
     await sendMessage(pending.current)
   }
 
@@ -80,7 +94,7 @@ export default function ChatConversation({ threadId, history, initial, recovered
       <div ref={bottom} />
     </div>
     <div aria-live="polite" className="mb-3 text-sm">
-      {busy && <p className="text-muted-foreground">{status === 'submitted' ? 'Waiting for reply…' : 'Receiving reply…'}</p>}
+      {busy && <p className="text-muted-foreground">{progress}</p>}
       {failure && <div className="space-y-2"><p role="alert" className="text-destructive">{failure}</p><Button variant="outline" disabled={busy} onClick={() => void retry()}>Retry question</Button></div>}
     </div>
     <MessageComposer onSend={send} busy={busy} blocked={failure !== null} onStop={() => {

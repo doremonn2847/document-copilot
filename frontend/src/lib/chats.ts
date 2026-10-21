@@ -1,4 +1,4 @@
-import type { UIMessage } from 'ai'
+import { parseCitation, type ChatMessage } from '@/lib/chat-parts'
 import { api } from '@/lib/api'
 import { ApiError } from '@/lib/http'
 
@@ -23,8 +23,8 @@ export async function threadPage(offset: number, signal?: AbortSignal): Promise<
   return data.map(parseThread)
 }
 
-export async function messageHistory(threadId: string, signal: AbortSignal): Promise<UIMessage[]> {
-  const messages: UIMessage[] = []
+export async function messageHistory(threadId: string, signal: AbortSignal): Promise<ChatMessage[]> {
+  const messages: ChatMessage[] = []
   for (let offset = 0; ; offset += 200) {
     const page = await api.get<unknown>(`/chat/threads/${encodeURIComponent(threadId)}/messages?limit=200&offset=${offset}`, signal)
     if (!Array.isArray(page)) throw new Error('The server returned invalid message history.')
@@ -33,8 +33,16 @@ export async function messageHistory(threadId: string, signal: AbortSignal): Pro
         || (value.role !== 'USER' && value.role !== 'ASSISTANT' && value.role !== 'SYSTEM')) {
         throw new Error('The server returned an invalid message.')
       }
-      messages.push({ id: value.id, role: value.role === 'USER' ? 'user' : value.role === 'ASSISTANT' ? 'assistant' : 'system',
-        parts: [{ type: 'text', text: value.content, state: 'done' }] })
+      const parts: ChatMessage['parts'] = [{ type: 'text', text: value.content, state: 'done' }]
+      if (value.role === 'ASSISTANT' && Array.isArray(value.parts)) {
+        for (const part of value.parts) {
+          if (record(part) && part.type === 'data-citation') {
+            const data = parseCitation(part.data)
+            parts.push({ type: 'data-citation', id: String(data.index), data })
+          }
+        }
+      }
+      messages.push({ id: value.id, role: value.role === 'USER' ? 'user' : value.role === 'ASSISTANT' ? 'assistant' : 'system', parts })
     }
     if (page.length < 200) return messages
   }
@@ -47,6 +55,15 @@ export function firstMessage(value: unknown): FirstMessage | null {
 }
 
 export function chatError(error: unknown): string {
+  const safeStreamErrors = [
+    'The reply could not be saved. Retry your question.',
+    'The answer could not be verified against its sources. Try a narrower question.',
+    'The evidence budget was exhausted. Try a narrower question.',
+    'The reply exceeded its time limit. Retry or narrow your question.',
+    'The answering service could not complete this reply. Retry your question.',
+    'The model reached its response limit. Please report this error before retrying.',
+  ]
+  if (error instanceof Error && safeStreamErrors.includes(error.message)) return error.message
   if (error instanceof ApiError) {
     if (error.status === 401) return 'Your session expired. Sign in again.'
     if (error.status === 403) return 'You do not have access to this conversation.'

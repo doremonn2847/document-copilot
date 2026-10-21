@@ -200,9 +200,23 @@ def stream_payload():
     }
 
 
-def test_stream_saves_pair_and_finishes(thread_client):
+def test_stream_saves_pair_and_finishes(thread_client, monkeypatch):
+    from types import SimpleNamespace
+
+    from app.assistant.rendering import AcceptedReply
+    from app.chat import streaming
+
+    async def generate(*_args):
+        return SimpleNamespace(
+            reply=AcceptedReply(
+                text="Verified reply",
+                parts=[{"type": "text", "text": "Verified reply"}],
+            )
+        )
+
+    monkeypatch.setattr(streaming, "generate_reply", generate)
     client, database = thread_client
-    database.results.extend([{"user_id": USER_ID}, [], {"next": 0}])
+    database.results.extend([{"user_id": USER_ID}, [], [], {"next": 0}])
     response = client.post("/chat/stream", json=stream_payload())
     assert response.status_code == 200
     assert response.headers["x-vercel-ai-ui-message-stream"] == "v1"
@@ -242,6 +256,7 @@ def test_completed_stream_retry_does_not_duplicate(thread_client):
                 {
                     "id": uuid5(THREAD_ID, "assistant:question-1"),
                     "content": "Saved reply",
+                    "parts": [{"type": "text", "text": "Saved reply"}],
                 },
             ],
         ]

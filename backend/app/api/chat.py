@@ -41,6 +41,7 @@ async def chat_stream(
             assistant_message_id,
             payload.question,
             existing,
+            user_id=user.id,
         ),
         media_type="text/event-stream",
         headers={

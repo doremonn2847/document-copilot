@@ -1,0 +1,7 @@
+[
+  {"id":"S01","question":"What does Microsoft say Azure provides in the 2025 corpus filing?"},
+  {"id":"S02","question":"Compare Apple's supplier concentration and overseas manufacturing risks in corpus years 2021 and 2025. Make missing periods explicit."},
+  {"id":"S03","question":"In Apple's 2025 corpus filing, what was the annual percentage change in Services net sales from fiscal 2024 to fiscal 2025? Read the exact table and units, and use the calculator."},
+  {"id":"S04","question":"What did Tesla report about vehicle revenue in its 2028 10-K?"},
+  {"id":"S05","question":"Do the Microsoft, Amazon, Alphabet and NVIDIA 2021–2025 filings prove generative AI caused improvements in operating margins? Distinguish reported facts from causal evidence."}
+]

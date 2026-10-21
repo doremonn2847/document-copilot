@@ -34,6 +34,66 @@ def test_missing_required_setting(settings_class, monkeypatch):
     assert any(item["loc"] == ("supabase_url",) for item in error.value.errors())
 
 
+def test_retrieval_settings_limits(settings_class):
+    settings = settings_class(_env_file=None)
+    assert settings.retrieval_candidate_k == 50
+    assert settings.retrieval_fts_keyword_model == "gpt-4o-mini"
+    for overrides in (
+        {"retrieval_top_k": 51},
+        {"retrieval_rrf_k": 0},
+        {"retrieval_fts_config": "simple"},
+        {"retrieval_fts_keyword_min": 5, "retrieval_fts_keyword_max": 3},
+        {"retrieval_fts_keyword_min": 1, "retrieval_fts_keyword_max": 2},
+    ):
+        with pytest.raises(ValidationError):
+            settings_class(_env_file=None, **overrides)
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"openai_grounding_model": " "},
+        {"openai_chat_model": " "},
+        {"assistant_search_calls": 13},
+        {"assistant_tool_calls": 0},
+        {"assistant_tool_chars": 50000},
+        {"assistant_grounding_repairs": 2},
+        {"assistant_claim_refs": 6},
+        {"assistant_deadline_seconds": 0},
+        {"assistant_reasoning_effort": "invalid"},
+    ],
+)
+def test_grounded_answer_settings_limits(settings_class, overrides):
+    with pytest.raises(ValidationError):
+        settings_class(_env_file=None, **overrides)
+
+
+@pytest.mark.parametrize("field", ["openai_chat_model", "openai_grounding_model"])
+@pytest.mark.parametrize("model", ["gpt-5.4-mini", "gpt-5.4-mini-2026-03-17"])
+def test_gpt54_mini_requires_a_supported_reasoning_effort(settings_class, field, model):
+    for effort in ("minimal", "low"):
+        with pytest.raises(ValidationError):
+            settings_class(
+                _env_file=None, **{field: model}, assistant_reasoning_effort=effort
+            )
+    configured = settings_class(
+        _env_file=None,
+        **{field: model},
+        assistant_reasoning_effort="none",
+        assistant_output_tokens=4000,
+    )
+    assert configured.assistant_output_tokens == 4000
+
+
+def test_nano_cannot_use_disabled_reasoning(settings_class):
+    with pytest.raises(ValidationError):
+        settings_class(
+            _env_file=None,
+            openai_chat_model="gpt-5-nano",
+            assistant_reasoning_effort="none",
+        )
+
+
 def test_errors_hide_input(settings_class, monkeypatch):
     monkeypatch.setenv("DATABASE_URL", "invalid-test-secret")
     with pytest.raises(ValidationError) as error:

@@ -27,3 +27,22 @@ pnpm dev
 pnpm tsc --noEmit
 pnpm lint
 ```
+
+## Conversation navigation
+
+The authenticated workspace retains the visible conversation and conversations
+with an active reply or a pending retry. Navigating to another chat hides the
+previous view without stopping its stream. A completed background conversation
+is released from memory and reopened from persisted history. Retryable failures
+retain their actual error while navigating within the workspace.
+
+Stop still aborts the selected conversation. Logout, a change of account, leaving
+the workspace, refreshing, or closing the page releases sessions and interrupts
+unfinished requests. Refresh uses the existing pending-question recovery; this
+is not a backend background-job system. Hidden sessions cannot scroll the visible
+conversation. Each thread keeps its own messages, progress, failure and citations.
+
+2026-10-21: TypeScript, lint and production build checked. Browser confirmation
+is pending: start a reply, switch to another chat, return during generation, then
+verify its saved answer after completion. Also check Stop/retry, a background
+failure, reload recovery and logout. No paid model calls were made for this change.

@@ -1,0 +1,832 @@
+[
+  {
+    "id": "Q01",
+    "question": "Across Apple's 2021–2025 10-Ks, how did the revenue mix between iPhone, Services, Mac, iPad, and Wearables change, and which category appears to have contributed most to any mix shift?",
+    "targets": [
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      }
+    ]
+  },
+  {
+    "id": "Q02",
+    "question": "For Amazon, compare AWS operating income and margin against North America and International from 2021–2025. In which years did AWS appear to fund losses or weaker profitability elsewhere?",
+    "targets": [
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      }
+    ]
+  },
+  {
+    "id": "Q03",
+    "question": "How did NVIDIA describe demand drivers, customer concentration, and supply constraints for its Data Center business from fiscal 2021 through fiscal 2025?",
+    "targets": [
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      }
+    ]
+  },
+  {
+    "id": "Q04",
+    "question": "Across Microsoft's 2021–2025 filings, what changed in the way the company describes Azure, AI infrastructure, and cloud capacity constraints?",
+    "targets": [
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      }
+    ]
+  },
+  {
+    "id": "Q05",
+    "question": "For Alphabet, how did Google Search, YouTube ads, Google Network, subscriptions/platforms/devices, and Google Cloud revenue trends differ across the available 10-Ks?",
+    "targets": [
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      }
+    ]
+  },
+  {
+    "id": "Q06",
+    "question": "Which of the five companies added, removed, or materially changed risk-factor language related to AI, cloud infrastructure, export controls, supply chain concentration, or regulation between 2021 and 2025?",
+    "targets": [
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      }
+    ]
+  },
+  {
+    "id": "Q07",
+    "question": "For Apple and NVIDIA, what do the filings say about supplier concentration or dependence on third-party manufacturing, and did the wording become more or less urgent over time?",
+    "targets": [
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      }
+    ]
+  },
+  {
+    "id": "Q08",
+    "question": "Compare capital expenditures and purchase commitments for Microsoft, Alphabet, Amazon, and NVIDIA. What do the filings imply about the scale and timing of AI/cloud infrastructure investment?",
+    "targets": [
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      }
+    ]
+  },
+  {
+    "id": "Q09",
+    "question": "For each company, summarize the most important geographic revenue exposures disclosed in the latest 10-K, then identify any year-over-year changes that could matter to an analyst.",
+    "targets": [
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      }
+    ]
+  },
+  {
+    "id": "Q10",
+    "question": "If an analyst asks whether the filings prove that generative AI improved margins for any of these companies, what evidence exists in the corpus, and where should the bot refuse to infer beyond the filings?",
+    "targets": [
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AAPL",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "AMZN",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "NVDA",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "MSFT",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2021
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2022
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2023
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2024
+        ],
+        "form": "10-K"
+      },
+      {
+        "ticker": "GOOGL",
+        "corpus_years": [
+          2025
+        ],
+        "form": "10-K"
+      }
+    ]
+  }
+]

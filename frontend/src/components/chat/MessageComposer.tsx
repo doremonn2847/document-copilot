@@ -28,7 +28,7 @@ export default function MessageComposer({ busy = false, blocked = false, onSend,
       <Textarea id="question" value={text} onChange={(event) => setText(event.target.value)} placeholder="Ask a question about SEC filings…"
         maxLength={16000} rows={3} disabled={busy || submitting || blocked} className="resize-none" />
       <div className="flex items-center justify-between gap-4">
-        <p className="text-xs text-muted-foreground">Test replies only. Document search is coming next.</p>
+        <p className="text-xs text-muted-foreground">Answers use retrieved filings. Check the cited passages and any evidence gaps.</p>
         {busy && onStop ? <Button type="button" variant="outline" onClick={onStop}>Stop reply</Button>
           : <Button type="submit" disabled={submitting || blocked || !text.trim()}>{submitting ? 'Sending…' : 'Send'}</Button>}
       </div>

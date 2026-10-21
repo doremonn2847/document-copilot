@@ -11,11 +11,25 @@ from psycopg.rows import dict_row
 
 
 @pytest.mark.integration
-def test_chat_endpoints_isolate_users_and_order_history():
-    asyncio.run(check_endpoints())
+def test_chat_endpoints_isolate_users_and_order_history(monkeypatch):
+    asyncio.run(check_endpoints(monkeypatch))
 
 
-async def check_endpoints():
+async def check_endpoints(monkeypatch):
+    from types import SimpleNamespace
+
+    from app.assistant.rendering import AcceptedReply
+    from app.chat import streaming
+
+    async def generate(*_args):
+        return SimpleNamespace(
+            reply=AcceptedReply(
+                text="Verified fixture",
+                parts=[{"type": "text", "text": "Verified fixture"}],
+            )
+        )
+
+    monkeypatch.setattr(streaming, "generate_reply", generate)
     from app.auth.dependencies import CurrentUser, get_current_user
     from app.config import Settings
     from app.database.connection import get_connection

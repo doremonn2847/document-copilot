@@ -1,18 +1,15 @@
 import { useEffect, useState } from 'react'
-import type { UIMessage } from 'ai'
-import { useLocation, useParams } from 'react-router-dom'
+import type { ChatMessage } from '@/lib/chat-parts'
+import { useLocation } from 'react-router-dom'
 import ChatConversation from '@/components/chat/ChatConversation'
 import { Button } from '@/components/ui/button'
 import { chatError, firstMessage, messageHistory } from '@/lib/chats'
 import { useAuth } from '@/lib/auth'
 import { chatDocumentId, clearPending, readPending, savedQuestionId } from '@/lib/pending-chat'
 
-export default function ChatThreadPage() {
-  const { threadId = '' } = useParams()
-  return <ThreadHistory key={threadId} threadId={threadId} />
-}
-
-function ThreadHistory({ threadId }: { threadId: string }) {
+export default function ChatThreadPage({ threadId, active, onSaved, onPendingChange }: {
+  threadId: string; active: boolean; onSaved: () => void; onPendingChange: (threadId: string, pending: boolean) => void
+}) {
   const location = useLocation()
   const { session } = useAuth()
   const userId = session!.user.id
@@ -22,7 +19,7 @@ function ThreadHistory({ threadId }: { threadId: string }) {
       ? firstMessage(state) : null
   })
   const [recovered, setRecovered] = useState(() => readPending(userId, threadId))
-  const [history, setHistory] = useState<UIMessage[] | null>(null)
+  const [history, setHistory] = useState<ChatMessage[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [revision, setRevision] = useState(0)
   useEffect(() => {
@@ -40,5 +37,5 @@ function ThreadHistory({ threadId }: { threadId: string }) {
   }, [threadId, userId, revision])
   if (error) return <div className="space-y-4 p-6"><p role="alert">{error}</p><Button onClick={() => setRevision((value) => value + 1)}>Retry history</Button></div>
   if (!history) return <p role="status" className="p-6">Loading conversation…</p>
-  return <ChatConversation threadId={threadId} history={history} initial={recovered ? initial : null} recovered={initial ? null : recovered} />
+  return <ChatConversation threadId={threadId} active={active} onSaved={onSaved} onPendingChange={onPendingChange} history={history} initial={recovered ? initial : null} recovered={initial ? null : recovered} />
 }

@@ -19,12 +19,29 @@ def streaming_module(monkeypatch):
         "ALLOWED_ORIGINS": "http://localhost:5173, http://localhost:4173/",
     }.items():
         monkeypatch.setenv(key, value)
+    from types import SimpleNamespace
+
+    from app.assistant.rendering import AcceptedReply
     from app.chat import streaming
 
     async def no_delay(_seconds):
         pass
 
     monkeypatch.setattr(streaming.asyncio, "sleep", no_delay)
+
+    async def history(*_args, **_kwargs):
+        return []
+
+    async def generate(*_args):
+        return SimpleNamespace(
+            reply=AcceptedReply(
+                text="Verified reply",
+                parts=[{"type": "text", "text": "Verified reply"}],
+            )
+        )
+
+    monkeypatch.setattr(streaming.chats, "recent_history", history)
+    monkeypatch.setattr(streaming, "generate_reply", generate)
     return streaming
 
 
@@ -67,7 +84,14 @@ def test_success_commits_before_finish(streaming_module, monkeypatch):
     async def consume():
         events = []
         async for item in streaming_module.stream_turn(
-            Request(), connection, uuid4(), uuid4(), uuid4(), "Revenue?", None
+            Request(),
+            connection,
+            uuid4(),
+            uuid4(),
+            uuid4(),
+            "Revenue?",
+            None,
+            user_id=uuid4(),
         ):
             if '"type": "finish"' in item:
                 assert connection.calls == ["save", "commit"]
@@ -94,7 +118,14 @@ def test_interrupted_turn_never_finishes(streaming_module, monkeypatch, mode):
     async def consume():
         request = Request(disconnect_after=1 if mode == "disconnect" else 100)
         iterator = streaming_module.stream_turn(
-            request, connection, uuid4(), uuid4(), uuid4(), "Revenue?", None
+            request,
+            connection,
+            uuid4(),
+            uuid4(),
+            uuid4(),
+            "Revenue?",
+            None,
+            user_id=uuid4(),
         )
         events = []
         if mode == "cancel":
@@ -115,6 +146,8 @@ def test_interrupted_turn_never_finishes(streaming_module, monkeypatch, mode):
 
 
 def test_retry_replays_without_saving(streaming_module, monkeypatch):
+    from app.assistant.rendering import AcceptedReply
+
     async def unexpected_save(*_args):
         pytest.fail("Completed retries must not create messages")
 
@@ -131,7 +164,8 @@ def test_retry_replays_without_saving(streaming_module, monkeypatch):
                 uuid4(),
                 uuid4(),
                 "Question",
-                "Saved reply",
+                AcceptedReply(text="Saved reply", parts=[]),
+                user_id=uuid4(),
             )
         ]
 

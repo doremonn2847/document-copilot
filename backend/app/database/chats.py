@@ -5,6 +5,8 @@ from fastapi import HTTPException
 from psycopg.types.json import Jsonb
 from starlette.concurrency import run_in_threadpool
 
+from app.assistant.rendering import AcceptedReply
+
 
 async def create_thread(
     connection: psycopg.Connection,
@@ -100,19 +102,50 @@ async def completed_turn(
     user_message_id: UUID,
     assistant_message_id: UUID,
     question: str,
-) -> str | None:
+) -> AcceptedReply | None:
     cursor = await run_in_threadpool(
         connection.execute,
-        """SELECT id, content FROM public.chat_messages
+        """SELECT id, content, parts FROM public.chat_messages
         WHERE thread_id = %s AND id = ANY(%s)""",
         (thread_id, [user_message_id, assistant_message_id]),
     )
-    messages = {row["id"]: row["content"] for row in cursor.fetchall()}
+    messages = {row["id"]: row for row in cursor.fetchall()}
     if not messages:
         return None
-    if len(messages) != 2 or messages.get(user_message_id) != question:
+    if len(messages) != 2 or messages[user_message_id]["content"] != question:
         raise HTTPException(409, "This message ID was already used for another turn")
-    return messages[assistant_message_id]
+    saved = messages[assistant_message_id]
+    return AcceptedReply(text=saved["content"], parts=saved["parts"])
+
+
+async def recent_history(
+    connection: psycopg.Connection, thread_id: UUID, *, pairs: int, characters: int
+) -> list[dict]:
+    cursor = await run_in_threadpool(
+        connection.execute,
+        """SELECT role, content, sequence FROM public.chat_messages
+        WHERE thread_id = %s ORDER BY sequence DESC LIMIT %s""",
+        (thread_id, pairs * 2),
+    )
+    rows = list(reversed(cursor.fetchall()))
+    history = []
+    for i in range(0, len(rows) - 1, 2):
+        a, b = rows[i : i + 2]
+        if (
+            a["role"] != "USER"
+            or b["role"] != "ASSISTANT"
+            or b["sequence"] != a["sequence"] + 1
+        ):
+            continue
+        history.extend(
+            [
+                {"role": "user", "content": a["content"]},
+                {"role": "assistant", "content": b["content"]},
+            ]
+        )
+    while sum(len(m["content"]) for m in history) > characters:
+        del history[:2]
+    return history
 
 
 async def save_turn(
@@ -121,7 +154,7 @@ async def save_turn(
     user_message_id: UUID,
     assistant_message_id: UUID,
     question: str,
-    answer: str,
+    answer: AcceptedReply,
 ) -> None:
     cursor = await run_in_threadpool(
         connection.execute,
@@ -142,10 +175,32 @@ async def save_turn(
             assistant_message_id,
             thread_id,
             sequence + 1,
-            answer,
-            Jsonb([{"type": "text", "text": answer}]),
+            answer.text,
+            Jsonb(answer.parts),
         ),
     )
+    for part in answer.parts:
+        if part["type"] != "data-citation":
+            continue
+        c = part["data"]
+        await run_in_threadpool(
+            connection.execute,
+            """INSERT INTO public.message_citations
+            (id, message_id, chunk_id, citation_index, excerpt, ticker, form, filing_date, page, section)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            (
+                uuid4(),
+                assistant_message_id,
+                c["chunk_id"],
+                c["index"],
+                c["excerpt"],
+                c["ticker"],
+                c["form"],
+                c["filing_date"],
+                c["page"],
+                c["section"],
+            ),
+        )
     await run_in_threadpool(
         connection.execute,
         "UPDATE public.chat_threads SET updated_at = now() WHERE id = %s",
