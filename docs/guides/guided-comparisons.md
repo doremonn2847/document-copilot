@@ -313,3 +313,22 @@ completed but its output was lost to a script bookkeeping bug; it was fixed
 and verified offline with a mocked response before the approved retry.)
 Instructions alone do not fix the judge; the judge model is the weak link.
 Phase 6 remains open pending a judge decision.
+
+**Judge experiments on the run-6 payload (all owner-approved, single calls).**
+
+| Experiment | Result on the reversed Apple interpretation |
+| --- | --- |
+| `gpt-4.1-mini`, stricter instructions | Accepted; restated "supplier-financed" itself |
+| `gpt-5.4-mini`, stricter instructions | Accepted |
+| Claim judged alone (`gpt-4.1-mini` / `gpt-5.4-mini`) | Invalid output / rejected for an unrelated coverage reason |
+| Quote-anchored verdicts, `gpt-4.1-mini` (11,546 in / 2,999 out) | Accepted: whole claim sentences listed as assertions, whole passages pasted as anchors |
+
+Two replay calls produced no usable output because of diagnostic-script
+bookkeeping errors; both scripts were fixed and mock-tested before reruns.
+One anchored attempt failed validation because over-long judge text was
+rejected rather than clipped (strict mode never enforces `maxLength`); that
+latent production fault is fixed (`9810fb4`). Quote anchoring was reverted
+(`733d706`): it did not change the verdict and tripled judge output above the
+production cap. Across six live runs every per-year fact was correct; every
+grounding failure was a model-written trend interpretation. Phase 6 remains
+open pending a decision on interpretations.
