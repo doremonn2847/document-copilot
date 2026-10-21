@@ -71,14 +71,15 @@ layout fixes, ratio regression, false quantified claim, AI search). Phase 8:
 the ten client questions all complete after fixes, the credential check passed,
 and seven grounding/retrieval fixes landed (see
 [phase-8 results](../evaluations/phase-8-results.md)). 28 local commits since
-`82bde5b`, none pushed. Offline suite: 376 passed, 15 integration deselected.
+`82bde5b`, none pushed. Offline suite: 377 passed, 15 integration deselected.
 
 **Not done.** Q01 (revenue mix) and Q02 (AWS vs segments) end as safe
 refusals: the writer computes mix shares itself, and Amazon's table rows lack a
 currency the checks accept. Negative case N4 ("How did revenue change last
-year?") fails as a service error instead of asking which company, and the
-Apple Services percent change (F1) no longer reaches the calculator; both need
-diagnosis. Phase-8 tasks 3 and 4 remain open. Phase-8 task 6 needs
+year?") picks Alphabet instead of asking which company (its earlier service
+failure, caused by tonight's whole-table change, is fixed). The Apple Services
+percent change (F1) is refused because calculations accept narrative amounts
+only, not table cells. Phase-8 tasks 3 and 4 remain open. Phase-8 task 6 needs
 the owner and client: corpus expansion to S&P 500 10-K/10-Q filings
 (scope and embedding spend) and a two-account confidentiality check.
 
