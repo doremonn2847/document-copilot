@@ -286,3 +286,30 @@ financial fallback regression, a narrow gap masking a lost target, diagnostics
 for rejected turns, and missing tests. Mutation checks confirm the new tests
 fail when each guard is removed. Offline: **375 passed, 15 integration
 deselected**. Live confirmation is pending; phase 6 remains open.
+
+**Withholding live check: first accepted guided answer.** One more approved
+run with unchanged caps was **accepted on its first draft** in 34.2 seconds:
+**2 answering, 1 judging, 1 keyword, 1 embedding** (answering 7,999 input /
+1,156 output tokens; judge 9,794 / 1,031; 29 evidence IDs). No repair or
+withholding was needed. Manual verification against the shown evidence:
+- All seven per-year facts (Apple 2021–2024, NVIDIA 2021/2024/2025) and the
+  Apple-versus-NVIDIA emphasis interpretation are supported.
+- Gaps for Apple 2025 and NVIDIA 2022/2023 are warranted: retrieval showed
+  only unrelated text (a competitor list, patent boilerplate) for those years,
+  a retrieval limitation reported honestly. Two further gaps are redundant.
+- **The Apple trend interpretation is unsupported.** It calls the 2024
+  disclosure "supplier-financed equipment/prepayment exposures" although the
+  quote says Apple invested in equipment at partners and prepaid suppliers,
+  and it infers "heavier dependence" from excerpts on different topics in
+  different years. The NVIDIA "moves from … to" interpretation has the same
+  excerpt-trend weakness. The judge accepted all ten claims.
+
+Judge and writer instructions now require exact relationship direction and
+forbid inferring shifts from differently selected excerpts. An approved
+single-call replay of the recorded judge payload with these instructions
+(`gpt-4.1-mini`; 9,912 input / 1,074 output tokens) **still accepted the
+reversed claim**, restating it in its own assessment. (A first replay call
+completed but its output was lost to a script bookkeeping bug; it was fixed
+and verified offline with a mocked response before the approved retry.)
+Instructions alone do not fix the judge; the judge model is the weak link.
+Phase 6 remains open pending a judge decision.

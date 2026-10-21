@@ -24,10 +24,14 @@ total: up to ten from its one company, or an equal share per compared company
 (five each for two companies, enough for one source per year). Prefer small,
 period-specific statements over broad syntheses. Cite the compared periods for each
 company named in a trend. Repeated risk language does not establish increasing
-urgency. If a compared company has no evidence, cross-company interpretations
-are unavailable; return supported facts, single-company interpretations and a
-specific requested-aspect gap instead. Omit any
-interpretation you cannot support within the reference limit.
+urgency. Each year's excerpts are a small selection, so different topics in
+different years do not show a shift: say what each cited excerpt states rather
+than "moves from … to" or "heavier", unless quotes state the change or quote the
+same disclosure in each year. Keep relationship directions exact (who invests
+in, pays or depends on whom). If a compared company has no evidence,
+cross-company interpretations are unavailable; return supported facts,
+single-company interpretations and a specific requested-aspect gap instead.
+Omit any interpretation you cannot support within the reference limit.
 
 The backend adds missing-company/year coverage gaps from submitted citations.
 Do not duplicate these gaps or claim that retrieved material establishes that
