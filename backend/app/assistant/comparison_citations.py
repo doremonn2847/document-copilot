@@ -1,13 +1,12 @@
 """Company-scoped citations for the frozen comparison writer."""
 
-from itertools import combinations, pairwise
 from typing import Annotated, Literal
 
 from pydantic import Field
 from pydantic_ai import ModelRetry
 
 from app.assistant.deps import DocumentAgentDeps
-from app.assistant.outputs import Contract
+from app.assistant.outputs import INTERPRETATION_REFS, Contract
 from app.assistant.selection import SelectedClaim
 
 
@@ -20,7 +19,7 @@ class ComparisonInterpretation(Contract):
     text: str = Field(min_length=1, max_length=2000)
     kind: Literal["interpretation"] = "interpretation"
     evidence_by_company: dict[
-        str, Annotated[list[str], Field(min_length=1, max_length=5)]
+        str, Annotated[list[str], Field(min_length=1, max_length=INTERPRETATION_REFS)]
     ] = Field(min_length=1)
 
 
@@ -76,17 +75,19 @@ def prepare_comparison_citations(schema: dict, deps: DocumentAgentDeps) -> None:
     branches = []
     if len(companies) > 1:
         # A one-company trend should not spend slots on companies it does not discuss.
-        branches += [allocation(company_refs, {ticker: 5}) for ticker in observed]
-    if 1 <= len(companies) <= 5 and observed == companies:
-        # A cross-company branch allocates the same five slots across every company.
-        for cuts in combinations(range(1, 5), len(companies) - 1):
-            boundaries = (0, *cuts, 5)
-            limits = [right - left for left, right in pairwise(boundaries)]
-            branches.append(allocation(company_refs, dict(zip(companies, limits))))
+        branches += [
+            allocation(company_refs, {ticker: INTERPRETATION_REFS})
+            for ticker in observed
+        ]
+    share = INTERPRETATION_REFS // len(companies) if companies else 0
+    if share and observed == companies:
+        # An equal share bounds the cross-company total in one branch instead of
+        # enumerating every allocation; two companies get one source per year each.
+        branches.append(allocation(company_refs, dict.fromkeys(companies, share)))
     if branches:
         groups = branches[0] if len(branches) == 1 else {"anyOf": branches}
         groups["description"] = (
-            "Cite one compared company's passages for a single-company interpretation, or every compared company's passages for a cross-company one. Five references total; split or narrow broader interpretations."
+            f"Cite one compared company's passages for a single-company interpretation, or every compared company's passages for a cross-company one. {INTERPRETATION_REFS} references total; split or narrow broader interpretations."
         )
         definitions["ComparisonInterpretation"]["properties"]["evidence_by_company"] = (
             groups
@@ -127,8 +128,8 @@ def resolve_comparison_claim(
                 )
             if key not in selected:
                 selected.append(key)
-    if len(selected) > 5:
+    if len(selected) > INTERPRETATION_REFS:
         raise ModelRetry(
-            "At most five references total per interpretation. Split or narrow the claim; do not drop a compared company's citations."
+            f"At most {INTERPRETATION_REFS} references total per interpretation. Split or narrow the claim; do not drop a compared company's citations."
         )
     return SelectedClaim(text=claim.text, kind="interpretation", evidence_ids=selected)

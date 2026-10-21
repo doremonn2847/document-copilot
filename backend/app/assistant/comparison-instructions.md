@@ -16,9 +16,10 @@ Never submit an interpretation with the flat evidence_ids format, and never use
 another claim's citations. Company groups establish provenance, not support:
 select only passages that support the actual statement.
 
-Each claim has a FIVE-reference TOTAL limit across all company groups. Split
-comparisons into small, period-specific statements rather than putting ten
-company/year targets in one interpretation. Cite the compared periods for each
+A fact cites at most five references. An interpretation cites at most TEN in
+total: up to ten from its one company, or an equal share per compared company
+(five each for two companies, enough for one source per year). Prefer small,
+period-specific statements over broad syntheses. Cite the compared periods for each
 company named in a trend. Repeated risk language does not establish increasing
 urgency. If a compared company has no evidence, cross-company interpretations
 are unavailable; return supported facts, single-company interpretations and a

@@ -87,14 +87,14 @@ def test_writer_requires_company_groups_and_repairs_captured_flat_selection(
             "evidence_by_company"
         ]
         ids = {"AAPL": [f"E{i}" for i in range(1, 6)], "NVDA": ["E6"]}
-        # Two single-company branches plus the four two-company allocations.
-        assert len(groups["anyOf"]) == 6
+        # Two single-company branches (ten each) plus one five-plus-five branch.
+        assert len(groups["anyOf"]) == 3
         for allocation in groups["anyOf"]:
             required = set(allocation["required"])
             assert required in ({"AAPL"}, {"NVDA"}, {"AAPL", "NVDA"})
             assert allocation["additionalProperties"] is False
-            assert (
-                sum(item["maxItems"] for item in allocation["properties"].values()) == 5
+            assert {item["maxItems"] for item in allocation["properties"].values()} == (
+                {10} if len(required) == 1 else {5}
             )
             for ticker in required:
                 branch = allocation["properties"][ticker]
@@ -176,10 +176,9 @@ def test_writer_requires_company_groups_and_repairs_captured_flat_selection(
         {"AAPL": ["E1"], "NVDA": ["E2"]},
         {"AAPL": ["E1"], "NVDA": ["E999"]},
         {"AAPL": ["E1"], "NVDA": ["E6"], "MSFT": ["E1"]},
-        {"AAPL": [f"E{i}" for i in range(1, 6)], "NVDA": ["E6"]},
     ],
 )
-def test_group_resolution_rejects_uncompared_foreign_unknown_extra_and_over_budget_sources(
+def test_group_resolution_rejects_uncompared_foreign_unknown_and_extra_sources(
     groups,
 ):
     from pydantic_ai import ModelRetry
@@ -200,7 +199,32 @@ def test_group_resolution_rejects_uncompared_foreign_unknown_extra_and_over_budg
     assert claim.evidence_by_company == groups
 
 
-def test_group_resolution_preserves_only_selected_quotes_and_five_reference_total():
+def test_group_resolution_rejects_more_than_ten_references_in_total():
+    from pydantic_ai import ModelRetry
+
+    from app.assistant.comparison_citations import (
+        ComparisonInterpretation,
+        resolve_comparison_claim,
+    )
+
+    d = citation_deps()
+    for year in range(2021, 2026):
+        p = passage(f"NVIDIA depends on suppliers in {year}.").model_copy(
+            update={"ticker": "NVDA", "corpus_year": year}
+        )
+        d.registry.evidence_id(p, p.text)
+    claim = ComparisonInterpretation(
+        text="Apple and NVIDIA describe dependence.",
+        evidence_by_company={
+            "AAPL": [f"E{i}" for i in range(1, 6)],
+            "NVDA": [f"E{i}" for i in range(6, 12)],
+        },
+    )
+    with pytest.raises(ModelRetry, match="At most 10"):
+        resolve_comparison_claim(claim, d)
+
+
+def test_group_resolution_preserves_only_selected_quotes_and_reference_total():
     from types import SimpleNamespace
 
     from app.assistant.comparison_citations import (
@@ -357,7 +381,7 @@ def test_company_enums_share_definitions_at_the_existing_span_budget():
 
 
 @pytest.mark.parametrize("company_count", [1, 2, 3, 4, 5])
-def test_wire_schema_allows_one_or_all_companies_within_five_references(
+def test_wire_schema_allows_one_or_all_companies_within_ten_references(
     company_count,
 ):
     from itertools import product
@@ -388,7 +412,10 @@ def test_wire_schema_allows_one_or_all_companies_within_five_references(
         "evidence_by_company"
     ]
     branches = groups.get("anyOf", [groups])
-    for counts in product(range(6), repeat=company_count):
+    share = 10 // company_count
+    # Keep the exhaustive grid small for four or five companies (share is two).
+    top = 12 if company_count <= 3 else 4
+    for counts in product(range(top), repeat=company_count):
         allowed = any(
             all(
                 branch["properties"][ticker]["minItems"]
@@ -401,7 +428,13 @@ def test_wire_schema_allows_one_or_all_companies_within_five_references(
             for branch in branches
         )
         cited = sum(count > 0 for count in counts)
-        assert allowed == (cited in (1, company_count) and sum(counts) <= 5), counts
+        expected = (
+            cited == 1
+            and sum(counts) <= 10
+            or cited == company_count
+            and max(counts) <= share
+        )
+        assert allowed == expected, counts
 
 
 @pytest.mark.parametrize("company_count", [1, 2, 3, 5, 6])
@@ -443,7 +476,5 @@ def test_writer_wire_schema_needs_no_strict_mode_rewrite(company_count):
         "evidence_by_company"
     ]
     branches = groups.get("anyOf", [groups])
-    # Beyond five companies only single-company interpretations remain.
-    assert any(len(b["required"]) == company_count for b in branches) == (
-        company_count <= 5
-    )
+    # Equal shares keep a cross-company branch available up to ten companies.
+    assert any(len(b["required"]) == company_count for b in branches)

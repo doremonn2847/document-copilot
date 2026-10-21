@@ -205,3 +205,13 @@ interpretations remain. An interpretation naming several companies must still
 cite each of them (`missing_company_evidence` at final submission). There is no
 budget increase or automatic source attachment. Offline: **353 passed, 15
 integration deselected**. Live confirmation is pending; phase 6 remains open.
+
+**Owner decision: ten references per interpretation.** A two-company, five-year
+comparison needs ten company-year sources, which a five-reference total could
+never cite. Interpretations now allow ten references in total (facts remain at
+five via `ASSISTANT_CLAIM_REFS`): up to ten for a single company, or an equal
+share per company in a cross-company group (five each for two companies, three
+for three, two for four or five). The equal share keeps the total enforced in
+one schema branch instead of enumerating every uneven split (126 branches for
+five companies at ten). Uneven cross-company splits such as 6+4 are therefore
+not representable. Offline: **355 passed, 15 integration deselected**.

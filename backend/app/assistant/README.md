@@ -31,12 +31,13 @@ retry loop. The original planner retains its existing schema-validation retry.
 Existing lookups and verified calculator routing remain separate.
 
 Comparison facts select flat `evidence_ids`. Interpretations select
-`evidence_by_company`, with one required nonempty field for every compared
-company and source choices restricted to that company's observed IDs. The
-submission boundary checks those groups again, then resolves only model-selected
-IDs into existing exact quote references. Five references total remain allowed
-per claim; schema allocation branches enforce that combined limit as well as
-each company's nonempty selection. Broad multi-year syntheses must split or narrow. Shared enum
+`evidence_by_company`: either one compared company's group or a nonempty group
+for every compared company, with source choices restricted to each company's
+observed IDs. The submission boundary checks those groups again, then resolves
+only model-selected IDs into existing exact quote references. Interpretations
+allow ten references total (facts five): up to ten for a single company, or an
+equal share per company in a cross-company group, which the schema enforces in
+one branch. Broader syntheses must split or narrow. Shared enum
 definitions avoid doubling the existing source-enumeration budget. When a
 compared company has no observed evidence, interpretations are hidden and the
 writer can return facts and gaps. A single-company comparison requires one group.
