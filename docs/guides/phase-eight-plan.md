@@ -31,7 +31,7 @@ The owner raised the paid grant to 400 requests (cumulative) for this phase.
    ratio, Apple Services percent change S03).
 4. [ ] **Fix and rerun.** Fix the failures found in tasks 1–3 where a
    deterministic or narrowly scoped fix exists; rerun only the affected cases.
-5. [ ] **Credential exposure check.** Confirm the production frontend bundle
+5. [x] **Credential exposure check.** Done: production bundle and 150 local logs/artifacts hold no privileged keys, URLs or tokens; deployed logs wait for phase 9. Confirm the production frontend bundle
    and backend logs contain no privileged keys (search for key names and
    patterns without printing values).
 6. [ ] **Owner/client decisions (not autopilot work).** Expanding the corpus
