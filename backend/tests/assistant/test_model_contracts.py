@@ -68,22 +68,18 @@ def test_judge_wire_separates_assistant_draft_from_actual_user_request():
                                         "name": "final_result",
                                         "arguments": json.dumps(
                                             {
-                                                "decisions": [
-                                                    {
-                                                        "claim_index": 0,
-                                                        "supported": True,
-                                                        "reason": "supported",
-                                                        "evidence_assessment": "Supported.",
-                                                    }
-                                                ],
-                                                "gap_decisions": [
-                                                    {
-                                                        "gap_index": 0,
-                                                        "warranted": False,
-                                                        "request_quote": None,
-                                                        "evidence_assessment": "A fiscal heading was not requested.",
-                                                    }
-                                                ],
+                                                # Fixed verdict keys: indices are the backend's.
+                                                "C0": {
+                                                    "supported": True,
+                                                    "reason": "supported",
+                                                    "evidence_assessment": "Supported.",
+                                                },
+                                                "G0": {
+                                                    "request_id": None,
+                                                    "warranted": False,
+                                                    "request_quote": None,
+                                                    "evidence_assessment": "A fiscal heading was not requested.",
+                                                },
                                             }
                                         ),
                                     },
@@ -112,6 +108,8 @@ def test_judge_wire_separates_assistant_draft_from_actual_user_request():
 
     asyncio.run(check())
     assert len(requests) == 1
+    schema = requests[0]["tools"][0]["function"]["parameters"]
+    assert schema["required"] == ["C0", "G0"]
     messages = requests[0]["messages"]
     assert messages[-1] == {"role": "user", "content": question}
     draft = json.loads(next(m["content"] for m in messages if m["role"] == "assistant"))
