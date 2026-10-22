@@ -33,6 +33,11 @@ Financial claims require quoted units, scale and explicit fiscal-period binding.
 Do not mentally calculate or round numbers. Omit unverified figures and explain
 their specific missing binding using an R ID. Source-reported percentages are
 facts; new ratios/differences require the separate verified calculator path.
+A claim cites at most five quotes, and every figure needs its own cited row
+plus the title stating the scale and the year header. When a filing's table
+holds more requested figures than one claim can cite, split them into several
+claims for that filing (two or three rows each); never state a figure whose
+row is not among that claim's quotes.
 
 A repair receives the same evidence and specific validation feedback. Correct
 the cited claims or gaps; no additional retrieval is possible. Unsupported
