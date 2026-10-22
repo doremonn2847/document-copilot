@@ -85,6 +85,11 @@ JSON lines (structlog). Useful events:
   (check names, claim numbers), `withheld` and `judge_rejections` (indices
   only). Answer and source text are deliberately not logged.
 - `chat_turn_failed`: `thread_id` and a failure `category` (no user text).
+- `assistant_turn_routed`: the front door's decision per turn: `route`
+  (`conversation` skips the filings pipeline, `filings` runs it) and
+  `rewritten` (a follow-up was turned into a standalone question).
+- `assistant_triage_failed`: the front door errored and the turn fell back to
+  the filings pipeline (answers still work; check the `failure_type`).
 
 ## 5. Troubleshooting
 

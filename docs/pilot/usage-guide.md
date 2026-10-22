@@ -21,7 +21,11 @@ and shows the passage behind every statement, so you can check it in one click.
   ratio of Microsoft's gross-margin increase to its revenue increase for fiscal
   2022 compared with fiscal 2021?"
 - Follow-up questions in the same conversation keep context ("What about the
-  2023 filing?").
+  2023 filing?", "And Amazon?"). The assistant rewrites them into a full
+  question and shows it as **"Answered as: …"** above the answer; if that is
+  not what you meant, ask again with the company and year.
+- Greetings, thanks and "what can you do?" get a short direct reply without
+  searching the filings; unrelated requests (weather, coding) are declined.
 - **Ctrl+Enter** sends. Use the example questions on the new-chat page to start.
 
 ## Reading an answer
