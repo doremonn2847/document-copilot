@@ -307,3 +307,33 @@ def test_table_context_longer_than_a_quote_is_exposed_by_rows():
     quotes = [ref.exact_quote for ref in d.registry.evidence_refs.values()]
     assert quotes and all(len(q) <= MAX_QUOTE_CHARS for q in quotes)
     assert any("Revenue line" in q for q in quotes)
+
+
+def test_question_words_pick_table_rows_the_search_keywords_missed():
+    # Live Q02: keywords named only AWS, so North America and International
+    # rows were never citable and drafts fell back to flattened text.
+    pad = " " * 400
+    table = "\n".join(
+        [f"|{pad}| 2023 |{pad}| 2024 |"]
+        + [
+            f"| {label} |{pad}| {a} |{pad}| {b} |"
+            for label, a, b in [
+                ("Operating expenses", "1,000", "2,000"),
+                ("North America", "$ 14,877", "$ 24,967"),
+                ("International", "(2,656)", "3,792"),
+                ("AWS", "24,631", "39,834"),
+                ("Other", "5", "6"),
+            ]
+        ]
+    )
+    p = passage("Segment results.").model_copy(update={"source_context": [table]})
+    d = deps()
+    d.question = "Compare AWS against North America and International."
+    expose_groups(d, [("Search", [p])], focus="AWS operating income", limit=6000)
+    rows = [
+        r.exact_quote.split("|")[1].strip()
+        for r in d.registry.evidence_refs.values()
+        if r.exact_quote.startswith("|")
+    ]
+    assert {"North America", "International", "AWS"} <= set(rows)
+    assert "Other" not in rows

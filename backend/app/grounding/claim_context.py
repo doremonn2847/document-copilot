@@ -190,21 +190,28 @@ def missing_company_evidence(
 
 
 def table_shows_currency(claim: AnswerClaim, passages: list[RetrievedPassage]) -> bool:
-    """A cited table row whose own source table prints the currency.
+    """A cited table row, or Docling's flattened copy of it, whose own source
+    table prints the currency.
 
     Statements print $ only on a table's first and total rows (Amazon's
     segment table: "AWS | 24,631"), so a live AWS claim could not quote it.
     """
     by_id = {p.chunk_id: p for p in passages}
-    return any(
-        ref.exact_quote.lstrip().startswith("|")
-        and ref.chunk_id in by_id
-        and any(
-            span.startswith("|") and ref.exact_quote in span and CURRENCY.search(span)
-            for span in by_id[ref.chunk_id].source_context
-        )
-        for ref in claim.evidence
-    )
+    for ref in claim.evidence:
+        if ref.chunk_id not in by_id:
+            continue
+        quote = ref.exact_quote
+        numbers = [m.group() for m in AMOUNT.finditer(quote)]
+        for span in by_id[ref.chunk_id].source_context:
+            if not (span.startswith("|") and CURRENCY.search(span)):
+                continue
+            if quote.lstrip().startswith("|") and quote in span:
+                return True
+            # Docling also flattens the same table into the chunk text
+            # ("North America, = (2,847)."); live drafts cited only that form.
+            if ", = " in quote and numbers and all(n in span for n in numbers):
+                return True
+    return False
 
 
 def claim_context_errors(

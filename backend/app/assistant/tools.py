@@ -91,8 +91,15 @@ def expose_groups(
                     # Whole tables can exceed one quote's limit even when they fit
                     # the room; a live search tool failed on such a span.
                     if len(source_span) > min(room, MAX_QUOTE_CHARS):
+                        # Search keywords named only AWS, so the North America
+                        # and International rows a question asked for were not
+                        # citable; the question's own words pick rows too.
                         spans = (
-                            table_rows(source_span, room, terms)
+                            table_rows(
+                                source_span,
+                                room,
+                                terms | focus_terms(deps.question or ""),
+                            )
                             if source_span.startswith("|")
                             else []
                         )

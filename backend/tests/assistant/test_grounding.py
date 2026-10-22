@@ -725,3 +725,35 @@ def test_clarification_gap_uses_fixed_wording_not_not_established():
     )
     reply = render_answer(answer, TurnRegistry())
     assert reply.text == GAPS["ambiguous_question"]
+
+
+def test_flattened_table_text_takes_currency_from_its_source_table():
+    # Live Q02: drafts cited Docling's flattened copy ("North America, = (2,847).").
+    title = "Operating income (loss) by segment is as follows (in millions):"
+    header = "| | 2021 | 2022 |"
+    table = f"{header}\n| North America | $ 7,271 | $ (2,847) |"
+    flat = "North America, = (2,847)."
+    p = passage(f"Segments. {flat}").model_copy(
+        update={"source_context": [title, table]}
+    )
+
+    def errors(source_table):
+        registry = TurnRegistry()
+        q = p.model_copy(update={"source_context": [title, source_table]})
+        for span in (title, flat):
+            registry.expose(q, span)
+        claim = AnswerClaim(
+            text="Amazon's North America operating income was $(2,847) million in 2022.",
+            evidence=[
+                EvidenceRef(chunk_id=p.chunk_id, exact_quote=s) for s in (title, flat)
+            ],
+        )
+        answer = GroundedAnswer(status="answered", claims=[claim])
+        return [
+            e
+            for e in structural_errors(answer, registry, searches=1)
+            if "currency" in e
+        ]
+
+    assert errors(table) == []
+    assert errors(table.replace("$ ", ""))
