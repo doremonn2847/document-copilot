@@ -203,3 +203,40 @@ no accepted claim was false.
 questions are thin because table chunks lack recovered headings (phase-4
 deferral); table-backed calculations are unsupported; unsupported companies
 still spend several searches before refusing.
+
+## Rerun after the night features and fixes (autopilot, 2026-10-23)
+
+Code: `main` at 6f34cd2 plus the follow-ups below; same production settings
+and capped driver. Seventeen cases (Q01–Q10, N1–N6, F1), one run each, UTF-8
+questions: **17 of 17 completed** (no service or grounding failures). Every
+claim was read against its own quotes.
+
+| Case | Result against quotes | Change from the 2026-10-22 final run |
+|---|---|---|
+| Q01 Apple revenue mix | Correct: all five categories for 2022–2025 match each table's current-year column; mix shift and 2021 reported as not established. | Better (was a refusal). |
+| Q02 Amazon segments | Correct: AWS, North America and International operating income 2021–2025 match the confirmed values; margins gap kept. | Same; hiding flattened tables did not break it. |
+| Q03 NVIDIA Data Center | Correct; one claim frames a general manufacturing-lead-time sentence as Data Center demand. | Better coverage. |
+| Q04 Microsoft Azure/AI | Correct; 2024 and 2025 uncovered. | Same (thin). |
+| Q05 Alphabet revenue lines | Correct: Search, YouTube, Network, subscriptions and Cloud 2021–2024 match the current-year columns. | Better coverage. |
+| Q06 risk-factor changes | Correct quotes; one Amazon claim calls Business-section competitor text "risk-factor language". | Same quality. |
+| Q07 suppliers | Correct. | Same. |
+| Q08 capex/commitments | Correct Microsoft construction and purchase commitments; an off-topic NVIDIA buyback claim survived. | Same. |
+| Q09 geographic exposure | First run: Apple only, four companies flagged uncovered. Fixed (e24a845): with comparison first, two reruns give Apple, Microsoft and Alphabet currency-exposure claims and a gap per company. | Breadth fixed; regional revenue figures still not retrieved. |
+| Q10 AI and margins | Correct, with the causal notice. | Same. |
+| N1, N3, N4, N6 | Correct refusals / clarification / advice notice. | Same. |
+| N2 AI causation | Correct, but 20 per-year "no verified statement" lines. Fixed (c5cec0e): merged per company. | Presentation fixed. |
+| N5 Microsoft 2019 | Showed 2021 statements without saying 2021. Fixed (4f43586): such claims are labelled with their filing; two reruns: one labelled answer, one refusal. | Fixed. |
+| F1 Apple Services via calculator | Refused (calculator takes narrative amounts only). | Same; the lookup "How much did Apple's Services net sales grow in fiscal 2025?" now answers $109,158M, up 14%, after the search fallback (6f34cd2). |
+
+Fiscal-year lookups checked the same night (paid, owner-approved): NVIDIA
+fiscal-2025 revenue $130,497M; Microsoft fiscal-2024 revenue $245,122M,
+increased $33.2B or 16% (2 of 2 runs; previously refused or a meaningless
+$9B difference); Amazon AWS 2025 sales $128,725M; the Microsoft
+gross-margin/revenue-increase ratio still 65.56%.
+
+Citation pages: table captions now show the chunk's page (7d17dea); only
+fiscal headings borrowed from elsewhere in the filing show "page unverified".
+
+**Open:** Q09 regional revenue tables, Q08 off-topic claims, Q04 2024–2025
+coverage, section labels for quotes outside Item 1A, table-backed
+calculations (F1).
