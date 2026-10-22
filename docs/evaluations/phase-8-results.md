@@ -111,3 +111,11 @@ names, so the artifacts hold the 05:07 runs. Both sets are in the ledger.
   assistant's reply, so the model grades responsiveness to the question.
   Likely fix: judge claims against their own quotes without the question, and
   judge gaps against the question separately.
+- **Split judging** (owner-approved, 4 requests; commit above): claims are
+  judged without the question, gaps with it. Same Q02 input, gpt-5.4-mini:
+  all five correct claims accepted in 3 of 3 claim calls. The gap call judged
+  both gaps unwarranted, including "margins are not provided", which is a
+  real limitation (margins were requested). Final-attempt withholding would
+  then drop it, so the answer shows the verified amounts without saying
+  margins are missing. No false claim results, but gap judging stays the
+  weak point to address next.
