@@ -3,7 +3,7 @@ from typing import Annotated, Literal
 from uuid import UUID
 
 import psycopg
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 from app.auth.dependencies import CurrentUser, get_current_user
@@ -63,3 +63,11 @@ async def list_messages(
     offset: PageOffset = 0,
 ) -> list[dict[str, object]]:
     return await chats.list_messages(connection, user.id, thread_id, limit, offset)
+
+
+@router.delete("/{thread_id}", status_code=204)
+async def delete_thread(
+    thread_id: UUID, user: User, connection: Connection
+) -> Response:
+    await chats.delete_thread(connection, user.id, thread_id)
+    return Response(status_code=204)

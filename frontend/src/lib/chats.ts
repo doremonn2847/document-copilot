@@ -17,6 +17,11 @@ export function parseThread(value: unknown): Thread {
   return { id: value.id, title: value.title, created_at: value.created_at, updated_at: value.updated_at }
 }
 
+// Permanent: the server deletes the thread with its messages and citations.
+export async function deleteThread(threadId: string): Promise<void> {
+  await api.delete<void>(`/chat/threads/${threadId}`)
+}
+
 export async function threadPage(offset: number, signal?: AbortSignal): Promise<Thread[]> {
   const data = await api.get<unknown>(`/chat/threads?limit=50&offset=${offset}`, signal)
   if (!Array.isArray(data)) throw new Error('The server returned an invalid conversation list.')

@@ -38,6 +38,22 @@ async def create_thread(
     return existing
 
 
+async def delete_thread(
+    connection: psycopg.Connection, user_id: UUID, thread_id: UUID
+) -> None:
+    """Delete a thread with its messages and citations (database cascades).
+
+    Takes the same row lock as a streaming turn, so a chat with a reply in
+    progress returns 409 instead of losing the reply mid-save.
+    """
+    await require_thread_owner(connection, user_id, thread_id, lock=True)
+    await run_in_threadpool(
+        connection.execute,
+        "DELETE FROM public.chat_threads WHERE id = %s AND user_id = %s",
+        (thread_id, user_id),
+    )
+
+
 async def list_threads(
     connection: psycopg.Connection, user_id: UUID, limit: int, offset: int
 ) -> list[dict[str, object]]:

@@ -149,6 +149,46 @@ async def check_endpoints(monkeypatch):
             assert (await client.post("/chat/stream", json=payload)).status_code == 409
             current_id = bob
             assert (await client.post("/chat/stream", json=payload)).status_code == 403
+            # Deletion: owner only, and the cascade removes messages and their
+            # citations while the cited filing chunk stays.
+            assert (
+                await client.delete(f"/chat/threads/{alice_thread}")
+            ).status_code == 403
+            chunk = connection.execute(
+                "SELECT id FROM public.document_chunks LIMIT 1"
+            ).fetchone()["id"]
+            answer_id = history[-1]["id"]
+            connection.execute(
+                """INSERT INTO public.message_citations
+                (id, message_id, chunk_id, citation_index, excerpt, ticker, form, filing_date)
+                VALUES (%s, %s, %s, 1, 'Fixture excerpt', 'AAPL', '10-K', '2025-10-31')""",
+                (uuid4(), answer_id, chunk),
+            )
+            current_id = alice
+            response = await client.delete(f"/chat/threads/{alice_thread}")
+            assert response.status_code == 204
+            for table, column, value in (
+                ("chat_threads", "id", alice_thread),
+                ("chat_messages", "thread_id", alice_thread),
+                ("message_citations", "message_id", answer_id),
+            ):
+                assert (
+                    connection.execute(
+                        f"SELECT COUNT(*) AS count FROM public.{table} WHERE {column} = %s",
+                        (value,),
+                    ).fetchone()["count"]
+                    == 0
+                )
+            assert connection.execute(
+                "SELECT 1 FROM public.document_chunks WHERE id = %s", (chunk,)
+            ).fetchone()
+            assert (
+                await client.get(f"/chat/threads/{alice_thread}/messages")
+            ).status_code == 404
+            assert [t["id"] for t in (await client.get("/chat/threads")).json()] == []
+            assert (
+                await client.delete(f"/chat/threads/{alice_thread}")
+            ).status_code == 404
     finally:
         app.dependency_overrides.clear()
         connection.rollback()

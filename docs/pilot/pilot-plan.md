@@ -59,7 +59,9 @@ can be revisited with numbers.
 
 Every wrong or doubtful answer goes into [answer-issues.csv](answer-issues.csv)
 with `issue_type` one of `wrong_fact`, `wrong_citation`, `missing_information`,
-`wrong_refusal` or `slow_or_failed`, and `severity` `blocking` or `minor`. The conversation link lets the
+`wrong_refusal` or `slow_or_failed`, and `severity` `blocking` or `minor`.
+Do not delete a conversation you have logged: deletion is permanent and its
+link stops working. The conversation link lets the
 developer trace it (backend logs: `assistant_turn_finished`).
 
 **Stop rule:** any accepted claim that is false according to its own cited

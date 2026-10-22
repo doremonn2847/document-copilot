@@ -318,3 +318,50 @@ def test_new_answers_are_rate_limited_but_replays_are_not(thread_client, monkeyp
     database.results.extend([{"user_id": USER_ID}, []])
     limited = client.post("/chat/stream", json=stream_payload())
     assert limited.status_code == 429 and "Retry-After" in limited.headers
+
+
+def test_delete_removes_own_thread_after_locking_it(thread_client):
+    client, database = thread_client
+    database.results.append({"user_id": USER_ID})
+    response = client.delete(f"/chat/threads/{THREAD_ID}")
+    assert response.status_code == 204 and response.content == b""
+    lock, delete = database.calls
+    assert "FOR UPDATE NOWAIT" in lock[0]
+    assert delete[0].startswith("DELETE FROM public.chat_threads")
+    assert delete[1] == (THREAD_ID, USER_ID)
+
+
+@pytest.mark.parametrize(
+    "owner,status",
+    [(UUID("00000000-0000-0000-0000-000000000002"), 403), (None, 404)],
+)
+def test_delete_refuses_other_users_and_missing_threads(thread_client, owner, status):
+    client, database = thread_client
+    database.results.append(None if owner is None else {"user_id": owner})
+    response = client.delete(f"/chat/threads/{THREAD_ID}")
+    assert response.status_code == status
+    # Only the ownership check ran; nothing was deleted.
+    assert len(database.calls) == 1
+
+
+def test_delete_waits_for_a_reply_in_progress(thread_client, monkeypatch):
+    import psycopg
+
+    client, database = thread_client
+
+    def locked(*_args):
+        raise psycopg.errors.LockNotAvailable("synthetic-lock-details")
+
+    monkeypatch.setattr(database, "execute", locked)
+    response = client.delete(f"/chat/threads/{THREAD_ID}")
+    assert response.status_code == 409
+
+
+def test_delete_requires_token(thread_client):
+    from app.auth.dependencies import get_current_user
+    from app.main import app
+
+    client, database = thread_client
+    app.dependency_overrides.pop(get_current_user)
+    assert client.delete(f"/chat/threads/{THREAD_ID}").status_code == 401
+    assert database.calls == []
