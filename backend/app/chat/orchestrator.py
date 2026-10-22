@@ -15,7 +15,7 @@ from pydantic_ai.exceptions import (
 )
 from pydantic_ai.usage import UsageLimits
 
-from app.assistant.agent import build_agent
+from app.assistant.agent import EVERY_COMPANY, build_agent
 from app.assistant.comparisons import ComparisonReady, build_comparison_writer
 from app.assistant.deps import BudgetExceeded, DocumentAgentDeps, TurnRegistry
 from app.assistant.facts import build_fact_extractor, build_input_judge
@@ -88,12 +88,6 @@ INVESTMENT_ADVICE = re.compile(
     r"\b(?:should|would|could|do)\s+(?:i|we|you)\s+(?:buy|sell|short|invest|hold)\b"
     r"|\bbuy\s+or\s+sell\b|\b(?:good|bad|smart|safe)\s+(?:investment|buy)\b"
     r"|\b(?:price\s+target|stock\s+picks?|undervalued|overvalued|worth\s+buying)\b",
-    re.IGNORECASE,
-)
-# "For each company ..." answered only Apple in a live run (client Q09) and
-# never said the other four were missing.
-EVERY_COMPANY = re.compile(
-    r"\b(?:each|every|all(?:\s+five)?|the\s+five|these)\s+(?:of\s+the\s+)?compan(?:y|ies)\b",
     re.IGNORECASE,
 )
 

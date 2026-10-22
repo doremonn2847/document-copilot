@@ -54,3 +54,16 @@ def test_a_rejected_unrequested_calculation_can_fall_back_to_search():
     assert guided_tool_choice(d) is None
     d.registry.calculation_pairs[("first", "second")] = "difference"
     assert guided_tool_choice(d) == "none"
+
+
+def test_whole_corpus_questions_start_with_a_comparison():
+    # Live Q09 rerun: "For each company ..." searched only Apple twice.
+    d = deps()
+    d.question = "For each company, summarize the geographic revenue exposures."
+    choice = guided_tool_choice(d)
+    assert isinstance(choice, ToolOrOutput) and choice.function_tools == []
+    d.tool_calls = 1
+    assert guided_tool_choice(d) is None
+    d.tool_calls = 0
+    d.question = "How does Apple describe its suppliers?"
+    assert guided_tool_choice(d) is None

@@ -19,6 +19,20 @@ from app.assistant.outputs import GroundedAnswer
 from app.assistant.selection import final_answer
 from app.assistant.tools import TOOLS, calculate
 
+# "For each company ..." answered only Apple in a live run (client Q09) and
+# never said the other four were missing.
+EVERY_COMPANY = re.compile(
+    r"\b(?:each|every|all(?:\s+five)?|the\s+five|these)\s+(?:of\s+the\s+)?compan(?:y|ies)\b",
+    re.IGNORECASE,
+)
+
+
+def comparison_first(deps: DocumentAgentDeps) -> bool:
+    """A whole-corpus question starts with compare_filings, one target per
+    company. The instructions say so, yet a rerun of client Q09 searched only
+    Apple twice and answered for Apple alone."""
+    return bool(EVERY_COMPANY.search(deps.question)) and deps.tool_calls == 0
+
 
 class EvidenceChoices(AbstractCapability[DocumentAgentDeps]):
     async def prepare_output_tools(
@@ -33,6 +47,8 @@ class EvidenceChoices(AbstractCapability[DocumentAgentDeps]):
             and ctx.deps.tool_calls < ctx.deps.settings.assistant_tool_calls
         )
         for tool in tool_defs:
+            if comparison_first(ctx.deps) and tool.name != "compare_filings":
+                continue
             if tool.name == "calculate":
                 if not calculation_ready:
                     continue
@@ -80,6 +96,8 @@ class EvidenceChoices(AbstractCapability[DocumentAgentDeps]):
 def guided_tool_choice(deps: DocumentAgentDeps | None) -> ToolChoice:
     if deps is None:
         return None
+    if comparison_first(deps):
+        return ToolOrOutput([])
     # Indirect requests can still choose preparation; explicit arithmetic cannot skip it.
     explicit = re.search(
         r"\b(?:calculate|compute)\b|\bratio\s+(?:of|between)\b|\b(?:percentage|percent)\s+change\b|\bpercentage[- ]point\s+difference\b",
