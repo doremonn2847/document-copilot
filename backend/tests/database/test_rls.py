@@ -107,13 +107,19 @@ def test_two_database_identities_and_unapproved_user():
                     ).rowcount
                     == 0
                 )
-                with pytest.raises(psycopg.errors.InsufficientPrivilege), connection.transaction():
+                with (
+                    pytest.raises(psycopg.errors.InsufficientPrivilege),
+                    connection.transaction(),
+                ):
                     connection.execute(
                         "INSERT INTO public.chat_threads (id,user_id,title) VALUES (%s,%s,'Forbidden')",
                         (uuid4(), alice),
                     )
         connection.execute("SET LOCAL ROLE anon")
-        with pytest.raises(psycopg.errors.InsufficientPrivilege), connection.transaction():
+        with (
+            pytest.raises(psycopg.errors.InsufficientPrivilege),
+            connection.transaction(),
+        ):
             connection.execute("SELECT id FROM public.chat_threads")
     finally:
         connection.rollback()

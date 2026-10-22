@@ -147,6 +147,37 @@ async def check_endpoints(monkeypatch):
                 "Different question with reused ID"
             )
             assert (await client.post("/chat/stream", json=payload)).status_code == 409
+
+            # A generated title replaces only the default (first-question) title.
+            async def generated(_question):
+                return "Generated title"
+
+            monkeypatch.setattr(streaming, "summarize_title", generated)
+            titles = {}
+            for title in ("First question", "Renamed by analyst"):
+                response = await client.post("/chat/threads", json={"title": title})
+                thread = response.json()["id"]
+                first = {
+                    "threadId": thread,
+                    "messages": [
+                        {
+                            "id": f"title-{title}",
+                            "role": "user",
+                            "parts": [{"type": "text", "text": "First question"}],
+                        }
+                    ],
+                }
+                assert (
+                    '"type": "finish"'
+                    in (await client.post("/chat/stream", json=first)).text
+                )
+                titles[title] = connection.execute(
+                    "SELECT title FROM public.chat_threads WHERE id = %s", (thread,)
+                ).fetchone()["title"]
+            assert titles == {
+                "First question": "Generated title",
+                "Renamed by analyst": "Renamed by analyst",
+            }
             current_id = bob
             assert (await client.post("/chat/stream", json=payload)).status_code == 403
             # Deletion: owner only, and the cascade removes messages and their
@@ -185,7 +216,9 @@ async def check_endpoints(monkeypatch):
             assert (
                 await client.get(f"/chat/threads/{alice_thread}/messages")
             ).status_code == 404
-            assert [t["id"] for t in (await client.get("/chat/threads")).json()] == []
+            assert alice_thread not in [
+                t["id"] for t in (await client.get("/chat/threads")).json()
+            ]
             assert (
                 await client.delete(f"/chat/threads/{alice_thread}")
             ).status_code == 404

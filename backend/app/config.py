@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     retrieval_neighbor_radius: int = Field(default=1, ge=0, le=3)
     retrieval_fts_config: Literal["english"] = "english"
     retrieval_fts_keyword_model: str = Field(default="gpt-4o-mini", min_length=1)
+    # Conversation titles: a 3-7 word summary needs no reasoning; the cheapest model.
+    openai_title_model: str = Field(default="gpt-4o-mini", min_length=1)
     retrieval_fts_keyword_min: int = Field(default=3, ge=3, le=5)
     retrieval_fts_keyword_max: int = Field(default=5, ge=3, le=5)
     retrieval_fts_keyword_fast_path_tokens: int = Field(default=5, gt=0)
@@ -76,6 +78,7 @@ class Settings(BaseSettings):
         "openai_grounding_model",
         "openai_embedding_model",
         "retrieval_fts_keyword_model",
+        "openai_title_model",
     )
     @classmethod
     def nonblank_model(cls, value: str) -> str:

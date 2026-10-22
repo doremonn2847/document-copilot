@@ -6,7 +6,10 @@ build-backend = "hatchling.build"
 packages = ["app"]
 
 [tool.pytest.ini_options]
-markers = ["integration: requires the configured live Supabase database or API"]
+markers = [
+    "integration: requires the configured live Supabase database or API",
+    "live_titles: keeps the real title generator (tests stub its model calls)",
+]
 # Live tests call paid APIs or the shared database; run them only with -m integration.
 addopts = "-m 'not integration'"
 

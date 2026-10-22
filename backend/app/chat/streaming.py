@@ -12,10 +12,26 @@ from starlette.concurrency import run_in_threadpool
 from app.assistant.deps import BudgetExceeded
 from app.assistant.rendering import AcceptedReply
 from app.chat.orchestrator import AssistantFailure, GroundingRejected, generate_reply
+from app.chat.titles import summarize_title
 from app.config import settings
 from app.database import chats
 
 logger = structlog.get_logger()
+
+
+async def save_title(
+    connection: psycopg.Connection,
+    thread_id: UUID,
+    question: str,
+    title_task: asyncio.Task,
+) -> None:
+    """Short replies (small talk) may finish first; wait briefly, never fail."""
+    try:
+        title = await asyncio.wait_for(asyncio.shield(title_task), timeout=5)
+    except TimeoutError:
+        return
+    if title:
+        await chats.set_generated_title(connection, thread_id, question, title)
 
 
 def event(payload: dict[str, object]) -> str:
@@ -35,6 +51,7 @@ async def stream_turn(
 ) -> AsyncIterator[str]:
     committed = False
     task = None
+    title_task = None
     try:
         yield event({"type": "start", "messageId": str(assistant_message_id)})
         yield event({"type": "start-step"})
@@ -46,6 +63,9 @@ async def stream_turn(
                 pairs=settings.assistant_history_pairs,
                 characters=settings.assistant_history_chars,
             )
+            if not history:
+                # First turn: title it in parallel; saved with the answer.
+                title_task = asyncio.create_task(summarize_title(question))
             statuses = asyncio.Queue()
 
             async def progress(stage):
@@ -101,6 +121,8 @@ async def stream_turn(
                 question,
                 answer,
             )
+            if title_task is not None:
+                await save_title(connection, thread_id, question, title_task)
         if await request.is_disconnected():
             return
         # Finish acknowledges durability, including citation rows.
@@ -138,11 +160,12 @@ async def stream_turn(
         yield event({"type": "error", "errorText": messages[category]})
         yield "data: [DONE]\n\n"
     finally:
-        if task is not None:
-            if not task.done():
-                task.cancel()
-            with CancelScope(shield=True):
-                await asyncio.gather(task, return_exceptions=True)
+        for pending in (task, title_task):
+            if pending is not None:
+                if not pending.done():
+                    pending.cancel()
+                with CancelScope(shield=True):
+                    await asyncio.gather(pending, return_exceptions=True)
         if not committed:
             with CancelScope(shield=True):
                 await run_in_threadpool(connection.rollback)

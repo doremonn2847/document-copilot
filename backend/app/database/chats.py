@@ -38,6 +38,18 @@ async def create_thread(
     return existing
 
 
+async def set_generated_title(
+    connection: psycopg.Connection, thread_id: UUID, question: str, title: str
+) -> None:
+    """Replace only the default title (the first question or "New chat")."""
+    await run_in_threadpool(
+        connection.execute,
+        """UPDATE public.chat_threads SET title = %s
+        WHERE id = %s AND title IN (%s, 'New chat')""",
+        (title, thread_id, question.strip()[:255]),
+    )
+
+
 async def delete_thread(
     connection: psycopg.Connection, user_id: UUID, thread_id: UUID
 ) -> None:

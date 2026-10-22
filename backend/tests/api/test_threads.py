@@ -365,3 +365,65 @@ def test_delete_requires_token(thread_client):
     app.dependency_overrides.pop(get_current_user)
     assert client.delete(f"/chat/threads/{THREAD_ID}").status_code == 401
     assert database.calls == []
+
+
+def test_first_turn_saves_a_generated_title_with_the_answer(thread_client, monkeypatch):
+    from types import SimpleNamespace
+
+    from app.assistant.rendering import AcceptedReply
+    from app.chat import streaming
+
+    async def generate(*_args):
+        return SimpleNamespace(
+            reply=AcceptedReply(
+                text="Verified", parts=[{"type": "text", "text": "Verified"}]
+            )
+        )
+
+    async def title(question):
+        assert question == "Revenue?"
+        return "Revenue question"
+
+    monkeypatch.setattr(streaming, "generate_reply", generate)
+    monkeypatch.setattr(streaming, "summarize_title", title)
+    client, database = thread_client
+    database.results.extend([{"user_id": USER_ID}, [], [], {"next": 0}])
+    assert client.post("/chat/stream", json=stream_payload()).status_code == 200
+    updates = [
+        p
+        for q, p in database.calls
+        if q.lstrip().startswith("UPDATE public.chat_threads SET title")
+    ]
+    # Only the default title (the first question or "New chat") is replaced.
+    assert updates == [("Revenue question", THREAD_ID, "Revenue?")]
+
+
+def test_later_turns_keep_the_title(thread_client, monkeypatch):
+    from types import SimpleNamespace
+
+    from app.assistant.rendering import AcceptedReply
+    from app.chat import streaming
+
+    async def generate(*_args):
+        return SimpleNamespace(
+            reply=AcceptedReply(
+                text="Verified", parts=[{"type": "text", "text": "Verified"}]
+            )
+        )
+
+    async def title(_question):
+        raise AssertionError("a later turn must not be retitled")
+
+    monkeypatch.setattr(streaming, "generate_reply", generate)
+    monkeypatch.setattr(streaming, "summarize_title", title)
+    client, database = thread_client
+    earlier = [
+        {"role": "USER", "content": "Revenue?", "sequence": 0},
+        {"role": "ASSISTANT", "content": "Verified", "sequence": 1},
+    ]
+    database.results.extend(
+        [{"user_id": USER_ID}, [], list(reversed(earlier)), {"next": 2}]
+    )
+    response = client.post("/chat/stream", json=stream_payload())
+    assert response.status_code == 200 and '"type": "finish"' in response.text
+    assert not [q for q, _ in database.calls if "SET title" in q]
