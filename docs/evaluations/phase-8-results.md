@@ -173,3 +173,33 @@ Services $85,200M; 2024 $201,183M / $29,984M / $26,694M / $37,005M / $96,169M;
 2025 $209,586M / $33,708M / $28,023M / $35,686M / $109,158M (matching their
 rows and the 2024 column), plus 2021 drivers or 2022 iPhone and total in some
 runs. 2022 "fiscal year ended September 24, 2022" passed with the date fix.
+
+## Final evaluation with all fixes (evening autopilot, 2026-10-22)
+
+All ten client questions and seven negative cases rerun with every fix,
+gpt-5.4-mini answering and judging. Each claim was read against its quotes;
+no accepted claim was false.
+
+| Case | Result |
+|---|---|
+| Q01 Apple revenue mix | Complete for 2023–2025: all five category net sales, correct. Mix shift reported as not established. |
+| Q02 AWS vs segments | Complete: AWS, North America, International operating income for 2021–2025, correct. |
+| Q03 NVIDIA Data Center | Thin but correct (one demand claim); customer concentration and supply constraints not retrieved for every year. |
+| Q04 Microsoft Azure/AI | Seven correct claims across 2021–2025 (after 7cfb085 the change-over-time gap renders correctly). |
+| Q05 Alphabet revenue lines | Complete for 2021–2024 including Network; correct. |
+| Q06 risk-factor changes | Truthful but uneven: per-company risk statements, change assessment reported as not established. |
+| Q07 Apple/NVIDIA suppliers | Ten correct claims across years; urgency trend reported as not established. |
+| Q08 capex and commitments | Correct, now with Microsoft construction ($32,149M) and purchase ($109,953M) commitments. |
+| Q09 geographic exposure | Truthful but weak: regional revenue tables are not retrievable (flattened rows without headings). A run that covered only Apple now names the omitted companies (8828c38). |
+| Q10 AI and margins | Correct facts plus the fixed causal notice (235e06a); the refusal no longer depends on the judge. |
+| N1 Tesla 2028 / N5 Microsoft 2019 | Correct refusals with fixed no-passage notices. |
+| N2 "did AI cause margin gains?" | Correct facts with a refusal gap; now also the causal notice. |
+| N3 Apple AI headcount | Correct refusal. |
+| N4 vague question | One request, fixed clarification. |
+| N6 investment advice | Fixed advice notice, then cited filing facts. |
+| F1 Apple Services percent change | Refused by design (calculator accepts narrative amounts only). |
+
+**Known limitations carried forward:** regional revenue and some multi-facet
+questions are thin because table chunks lack recovered headings (phase-4
+deferral); table-backed calculations are unsupported; unsupported companies
+still spend several searches before refusing.

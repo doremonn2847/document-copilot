@@ -29,7 +29,7 @@ The owner raised the paid grant to 400 requests (cumulative) for this phase.
 3. [x] **Financial comparisons.** Done: Amazon segments complete in 3 of 3 live runs with correct column binding; Alphabet revenue lines and the Microsoft ratio verified; Apple Services percent change refused by design (narrative-only calculator). Check units, fiscal calendars and segment
    names in the numeric answers from tasks 1–2 (Q02, Q05, Q08, the Microsoft
    ratio, Apple Services percent change S03).
-4. [ ] **Fix and rerun.** In progress: withholding for every answer, fixed-key verdicts, scaled comparison budget, comparison-shape instruction, relevant table rows, quoted-wording check and currency/scale feedback are committed; Q01/Q02 derived and unit-less figures remain. Fix the failures found in tasks 1–3 where a
+4. [x] **Fix and rerun.** Done: all ten client questions and the negative cases answer truthfully with the fixes listed in phase-8-results.md; Q03/Q06/Q09 stay thin for retrieval reasons. Earlier notes: withholding for every answer, fixed-key verdicts, scaled comparison budget, comparison-shape instruction, relevant table rows, quoted-wording check and currency/scale feedback are committed; Q01/Q02 derived and unit-less figures remain. Fix the failures found in tasks 1–3 where a
    deterministic or narrowly scoped fix exists; rerun only the affected cases.
 5. [x] **Credential exposure check.** Done: production bundle and 150 local logs/artifacts hold no privileged keys, URLs or tokens; deployed logs wait for phase 9. Confirm the production frontend bundle
    and backend logs contain no privileged keys (search for key names and
