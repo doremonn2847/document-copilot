@@ -257,9 +257,9 @@ segment question sometimes fell back to "figures could not be verified"
 - [ ] Configure production secrets, exact CORS origins, and Supabase email confirmation/redirect URLs.
 - [ ] Apply reviewed migrations using the correct connection mode and ingest the agreed corpus into the production database.
 - [ ] Verify SPA route fallback and streamed responses through the deployed hosting stack.
-- [ ] Add practical per-user request/concurrency limits, upstream timeouts, and provider spending alerts for the expected roughly 40 analysts plus partners.
+- [ ] Add practical per-user request/concurrency limits, upstream timeouts, and provider spending alerts for the expected roughly 40 analysts plus partners. (2026-10-22: per-user limits (2 in progress, 60/hour) and the 120 s answer deadline are in code; Railway and OpenAI spending alerts are owner account settings, see runbook section 2.)
 - [ ] Measure concurrent usage on the chosen small/medium hosting footprint and agree acceptable answer latency before rollout.
-- [ ] Document logs, troubleshooting, corpus updates, backup/restore, and application rollback; verify conversation history survives a backend restart.
+- [x] Document logs, troubleshooting, corpus updates, backup/restore, and application rollback; verify conversation history survives a backend restart. ([runbook](operations/runbook.md); history verified across 2026-10-21/22 restarts.)
 - [ ] Run backend unit tests and relevant integration checks, frontend checks/build, and the full deployed login → question → citation → history flow.
 
 **Gate:** Approved analysts can use the hosted app reliably, and one developer can maintain it using the runbook.
