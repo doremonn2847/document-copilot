@@ -67,6 +67,7 @@ def render_answer(
     advice: bool = False,
     causal: bool = False,
     uncovered: list[str] | None = None,
+    interpreted: str | None = None,
 ) -> AcceptedReply:
     indices = {}
     citations = []
@@ -156,6 +157,9 @@ def render_answer(
         )
     if causal:
         blocks.insert(0, {"kind": "notice", "text": CAUSAL_NOTICE})
+    if interpreted:
+        # A follow-up was rewritten as a standalone question; show how it was read.
+        blocks.insert(0, {"kind": "notice", "text": f"Answered as: {interpreted}"})
     if advice:
         blocks.insert(0, {"kind": "notice", "text": ADVICE_NOTICE})
     text = "\n\n".join(block_text(block) for block in blocks)

@@ -29,6 +29,7 @@ from app.assistant.model_settings import ModelOutputLimitExceeded
 from app.assistant.outputs import AnswerClaim, EvidenceGap, GroundedAnswer
 from app.assistant.rendering import AcceptedReply, render_answer
 from app.assistant.selection import matches_target, with_coverage
+from app.chat.triage import Triage, build_triage_agent, triage_turn
 from app.config import settings
 from app.grounding.claim_context import COMPANIES, financial_context_only
 from app.grounding.judge import build_judge, judge_answer, support_errors
@@ -75,7 +76,8 @@ def diagnostics(deps: DocumentAgentDeps, started: float) -> dict:
 
 @dataclass
 class GroundedRun:
-    answer: GroundedAnswer
+    # None for a conversation reply, which skips the filings pipeline.
+    answer: GroundedAnswer | None
     reply: AcceptedReply
     diagnostics: dict
 
@@ -201,6 +203,7 @@ async def run_grounded(
     judge,
     *,
     comparison_writer=None,
+    interpreted: str | None = None,
 ) -> GroundedRun:
     deps.question = question
     if deps.fact_judge is None:
@@ -338,6 +341,7 @@ async def run_grounded(
                     advice=bool(INVESTMENT_ADVICE.search(question)),
                     causal=bool(CAUSAL_QUESTION.search(question)),
                     uncovered=uncovered_companies(question, answer, deps.registry),
+                    interpreted=interpreted,
                 ),
                 diagnostics(deps, started),
             )
@@ -389,10 +393,30 @@ async def run_grounded(
                 advice=bool(INVESTMENT_ADVICE.search(question)),
                 causal=bool(CAUSAL_QUESTION.search(question)),
                 uncovered=uncovered_companies(question, answer, deps.registry),
+                interpreted=interpreted,
             ),
             diagnostics(deps, started),
         )
     raise GroundingRejected("The answer could not be verified against its sources")
+
+
+async def safe_triage(question: str, history: list[dict], client) -> Triage:
+    """The front door must never fail a turn the pipeline could have answered."""
+    try:
+        return await triage_turn(
+            question, history, build_triage_agent(settings, client)
+        )
+    except Exception as error:  # noqa: BLE001 -- fall back to the pipeline
+        logger.warning("assistant_triage_failed", failure_type=type(error).__name__)
+        return Triage(route="filings", standalone_question=question)
+
+
+def conversation_run(reply: str) -> GroundedRun:
+    return GroundedRun(
+        None,
+        AcceptedReply(text=reply, parts=[{"type": "text", "text": reply}]),
+        {"route": "conversation"},
+    )
 
 
 async def generate_reply(
@@ -411,25 +435,38 @@ async def generate_reply(
                 max_retries=0,
                 timeout=60,
             ) as client,
-            DocumentRetriever(
-                settings, client=client.with_options(max_retries=1, timeout=30)
-            ) as retriever,
         ):
-            deps = DocumentAgentDeps(
-                user_id, thread_id, retriever, settings, progress=progress
+            triage = await safe_triage(question, history, client)
+            logger.info(
+                "assistant_turn_routed",
+                user_id=str(user_id),
+                thread_id=str(thread_id),
+                route=triage.route,
+                rewritten=triage.standalone_question not in (None, question),
             )
-            deps.fact_extractor = build_fact_extractor(settings, client)
-            deps.fact_judge = build_input_judge(settings, client)
-            result = await run_grounded(
-                question,
-                history,
-                deps,
-                build_agent(settings, client),
-                build_judge(settings, client),
-                comparison_writer=build_comparison_writer(settings, client),
-            )
-            category = "accepted"
-            return result
+            if triage.route == "conversation":
+                category = "conversation"
+                return conversation_run(triage.reply)
+            standalone = triage.standalone_question or question
+            async with DocumentRetriever(
+                settings, client=client.with_options(max_retries=1, timeout=30)
+            ) as retriever:
+                deps = DocumentAgentDeps(
+                    user_id, thread_id, retriever, settings, progress=progress
+                )
+                deps.fact_extractor = build_fact_extractor(settings, client)
+                deps.fact_judge = build_input_judge(settings, client)
+                result = await run_grounded(
+                    standalone,
+                    history,
+                    deps,
+                    build_agent(settings, client),
+                    build_judge(settings, client),
+                    comparison_writer=build_comparison_writer(settings, client),
+                    interpreted=standalone if standalone != question else None,
+                )
+                category = "accepted"
+                return result
     except Exception as error:  # noqa: BLE001 -- sanitize the provider boundary
         category = (
             "model_output_limit"
