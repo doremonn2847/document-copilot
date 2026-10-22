@@ -88,6 +88,12 @@ INVESTMENT_ADVICE = re.compile(
     r"|\b(?:price\s+target|stock\s+picks?|undervalued|overvalued|worth\s+buying)\b",
     re.IGNORECASE,
 )
+# Deterministic for the same reason: a judge twice dropped the model's own
+# "filings do not prove generative AI improved margins" refusal (client Q10).
+CAUSAL_QUESTION = re.compile(
+    r"\b(?:prove[sd]?|proof|caus(?:e[sd]?|ing|al(?:ly)?)|because\s+of|attribut\w*\s+to)\b",
+    re.IGNORECASE,
+)
 
 
 def covered_targets(registry: TurnRegistry, claims: list[AnswerClaim]) -> set[int]:
@@ -307,6 +313,7 @@ async def run_grounded(
                     deps.registry,
                     withheld=sum(len(report["claims"]) for report in deps.withheld),
                     advice=bool(INVESTMENT_ADVICE.search(question)),
+                    causal=bool(CAUSAL_QUESTION.search(question)),
                 ),
                 diagnostics(deps, started),
             )
@@ -356,6 +363,7 @@ async def run_grounded(
                 answer,
                 deps.registry,
                 advice=bool(INVESTMENT_ADVICE.search(question)),
+                causal=bool(CAUSAL_QUESTION.search(question)),
             ),
             diagnostics(deps, started),
         )

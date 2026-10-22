@@ -410,3 +410,27 @@ def test_final_attempt_drops_only_unwarranted_gaps_after_supported_claims():
                 Agent([report(False), report(False)]),
             )
         )
+
+
+@pytest.mark.parametrize(
+    "question,causal",
+    [
+        (
+            "If an analyst asks whether the filings prove that generative AI improved margins, what evidence exists?",
+            True,
+        ),
+        ("What caused NVIDIA's gross margin to rise?", True),
+        ("How does Amazon describe AWS?", False),
+        ("Describe the causeway project.", False),
+    ],
+)
+def test_causal_questions_get_the_fixed_notice_without_the_model(question, causal):
+    # Live Q10: judges twice dropped the model's own "filings do not prove it" gap.
+    from app.assistant.rendering import CAUSAL_NOTICE, render_answer
+    from app.chat.orchestrator import CAUSAL_QUESTION
+    from tests.assistant.test_grounding import answer_and_registry
+
+    assert bool(CAUSAL_QUESTION.search(question)) is causal
+    answer, registry = answer_and_registry()
+    reply = render_answer(answer, registry, causal=True)
+    assert reply.text.startswith(CAUSAL_NOTICE)

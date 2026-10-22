@@ -38,6 +38,7 @@ def calculation_text(record: CalculationRecord) -> str:
 
 WITHHELD_NOTICE = "Some drafted statements were omitted because they could not be verified against the cited filings."
 ADVICE_NOTICE = "I can't give investment recommendations. The following reports only what the cited filings say."
+CAUSAL_NOTICE = "The cited filings report facts and the companies' own explanations; they do not prove causes beyond what the filings themselves state."
 
 
 def target_label(f: SearchFilters) -> str:
@@ -64,6 +65,7 @@ def render_answer(
     *,
     withheld: int = 0,
     advice: bool = False,
+    causal: bool = False,
 ) -> AcceptedReply:
     indices = {}
     citations = []
@@ -144,6 +146,8 @@ def render_answer(
     if withheld:
         # An answer that lost claims must not read as complete.
         blocks.append({"kind": "notice", "text": WITHHELD_NOTICE})
+    if causal:
+        blocks.insert(0, {"kind": "notice", "text": CAUSAL_NOTICE})
     if advice:
         blocks.insert(0, {"kind": "notice", "text": ADVICE_NOTICE})
     text = "\n\n".join(block_text(block) for block in blocks)
