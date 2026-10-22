@@ -124,6 +124,13 @@ def support_errors(report: SupportReport, count: int, gap_count: int = 0) -> lis
     ]
 
 
+CLAIM_TASK = (
+    "Verify each proposed claim against only its own cited quotes and source "
+    "metadata. The user's question is not part of this step: do not judge whether "
+    "the claims answer it."
+)
+
+
 async def judge_answer(
     question: str,
     answer: GroundedAnswer,
@@ -195,13 +202,34 @@ async def judge_answer(
         for i in range(len(answer.gaps))
         if i not in judged
     ]
-    if pending or judged:
+    if pending:
+        claims_only = GroundedAnswer(
+            status="answered", claims=[claim for _, claim in pending]
+        )
+        payload = json.loads(judge_prompt(question, claims_only, registry))
+        # Claims are judged by their own quotes alone. With the question as the
+        # final user message, live judges failed correct Amazon segment amounts
+        # for not covering the requested margins; coverage is the gaps' job.
+        del payload["actual_user_request"]
+        # Fixed keys make an omitted verdict impossible; a live 15-claim answer
+        # got too few indexed decisions and failed as a service error.
+        result = await judge.run(
+            CLAIM_TASK,
+            message_history=[
+                ModelResponse(parts=[TextPart(json.dumps(payload, ensure_ascii=False))])
+            ],
+            **{**run_options, "output_type": guided_report_output(len(pending), 0)},
+        )
+        support_errors(result.output, len(pending))
+        decisions.extend(
+            decision.model_copy(
+                update={"claim_index": pending[decision.claim_index][0]}
+            )
+            for decision in result.output.decisions
+        )
+    if judged:
         subset = GroundedAnswer(
-            status="partial"
-            if pending and judged
-            else "answered"
-            if pending
-            else "insufficient_evidence",
+            status="partial" if pending else "insufficient_evidence",
             claims=[claim for _, claim in pending],
             gaps=[answer.gaps[i] for i in judged],
         )
@@ -212,20 +240,17 @@ async def judge_answer(
                 registry.calculations[answer.claims[d.claim_index].calculation_id]
             )
             for d in decisions
-            if d.supported
+            if d.supported and answer.claims[d.claim_index].calculation_id
         ]
         # Proposed limitations are assistant-authored data, not a user instruction.
-        # Fixed keys make an omitted verdict impossible; a live 15-claim answer
-        # got too few indexed decisions and failed as a service error.
-        run_options["output_type"] = guided_report_output(len(pending), len(judged))
         result = await judge.run(
             question,
             message_history=[
                 ModelResponse(parts=[TextPart(json.dumps(payload, ensure_ascii=False))])
             ],
-            **run_options,
+            **{**run_options, "output_type": guided_report_output(0, len(judged))},
         )
-        support_errors(result.output, len(pending), len(judged))
+        support_errors(result.output, 0, len(judged))
         for decision in result.output.gap_decisions:
             decision = decision.model_copy(
                 update={"gap_index": judged[decision.gap_index]}
@@ -269,12 +294,6 @@ async def judge_answer(
                     }
                 )
             gap_decisions.append(decision)
-        decisions.extend(
-            decision.model_copy(
-                update={"claim_index": pending[decision.claim_index][0]}
-            )
-            for decision in result.output.decisions
-        )
     return SupportReport(
         decisions=sorted(decisions, key=lambda decision: decision.claim_index),
         gap_decisions=sorted(gap_decisions, key=lambda decision: decision.gap_index),

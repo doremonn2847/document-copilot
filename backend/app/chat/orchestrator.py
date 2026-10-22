@@ -286,9 +286,9 @@ async def run_grounded(
                 deps.registry,
                 judge,
                 usage=judge_usage,
+                # Claims and gaps are judged in separate calls on each attempt.
                 usage_limits=UsageLimits(
-                    request_limit=deps.settings.assistant_grounding_repairs
-                    + 1
+                    request_limit=2 * (deps.settings.assistant_grounding_repairs + 1)
                     + deps.fact_checks
                 ),
             )

@@ -265,9 +265,9 @@ async def prepare_facts(
             task="numeric_inputs",
         ),
         usage=deps.judge_usage,
+        # Shares the judge usage, which allows two answer-judging calls per attempt.
         usage_limits=UsageLimits(
-            request_limit=deps.settings.assistant_grounding_repairs
-            + 1
+            request_limit=2 * (deps.settings.assistant_grounding_repairs + 1)
             + deps.fact_checks
         ),
     )

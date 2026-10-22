@@ -18,7 +18,7 @@ def test_judge_wire_separates_assistant_draft_from_actual_user_request():
         EvidenceRef,
         GroundedAnswer,
     )
-    from app.grounding.judge import judge_answer
+    from app.grounding.judge import CLAIM_TASK, judge_answer
     from tests.assistant.test_contracts import passage
 
     question = "What does Microsoft's 2025 filing say Azure provides?"
@@ -44,6 +44,19 @@ def test_judge_wire_separates_assistant_draft_from_actual_user_request():
         ],
     )
     requests = []
+    verdicts = {
+        "C0": {
+            "supported": True,
+            "reason": "supported",
+            "evidence_assessment": "Supported.",
+        },
+        "G0": {
+            "request_id": None,
+            "warranted": False,
+            "request_quote": None,
+            "evidence_assessment": "A fiscal heading was not requested.",
+        },
+    }
 
     def respond(request):
         requests.append(json.loads(request.content))
@@ -66,20 +79,14 @@ def test_judge_wire_separates_assistant_draft_from_actual_user_request():
                                     "type": "function",
                                     "function": {
                                         "name": "final_result",
+                                        # Answer each call with exactly the fixed
+                                        # verdict keys its schema requires.
                                         "arguments": json.dumps(
                                             {
-                                                # Fixed verdict keys: indices are the backend's.
-                                                "C0": {
-                                                    "supported": True,
-                                                    "reason": "supported",
-                                                    "evidence_assessment": "Supported.",
-                                                },
-                                                "G0": {
-                                                    "request_id": None,
-                                                    "warranted": False,
-                                                    "request_quote": None,
-                                                    "evidence_assessment": "A fiscal heading was not requested.",
-                                                },
+                                                key: verdicts[key]
+                                                for key in requests[-1]["tools"][0][
+                                                    "function"
+                                                ]["parameters"]["required"]
                                             }
                                         ),
                                     },
@@ -107,15 +114,24 @@ def test_judge_wire_separates_assistant_draft_from_actual_user_request():
             assert report.gap_decisions[0].warranted is False
 
     asyncio.run(check())
-    assert len(requests) == 1
-    schema = requests[0]["tools"][0]["function"]["parameters"]
-    assert schema["required"] == ["C0", "G0"]
-    messages = requests[0]["messages"]
-    assert messages[-1] == {"role": "user", "content": question}
-    draft = json.loads(next(m["content"] for m in messages if m["role"] == "assistant"))
-    assert draft["actual_user_request"]["text"] == question
+    # Claims are judged without the question; gaps are judged against it.
+    assert len(requests) == 2
+    claims_call, gaps_call = requests
+    assert claims_call["tools"][0]["function"]["parameters"]["required"] == ["C0"]
+    assert gaps_call["tools"][0]["function"]["parameters"]["required"] == ["G0"]
+    assert claims_call["messages"][-1] == {"role": "user", "content": CLAIM_TASK}
+    assert gaps_call["messages"][-1] == {"role": "user", "content": question}
+
+    def draft(call):
+        return json.loads(
+            next(m["content"] for m in call["messages"] if m["role"] == "assistant")
+        )
+
+    assert "actual_user_request" not in draft(claims_call)
+    assert question not in json.dumps(draft(claims_call))
+    assert draft(gaps_call)["actual_user_request"]["text"] == question
     assert (
-        draft["proposed_answer"]["gaps"][0]["missing_detail"]
+        draft(gaps_call)["proposed_answer"]["gaps"][0]["missing_detail"]
         == "An explicit fiscal-period heading"
     )
 

@@ -14,10 +14,25 @@ class Agent:
     def __init__(self, outputs):
         self.outputs = iter(outputs)
         self.calls = []
+        self.gap_half = None
 
-    async def run(self, _prompt, **kwargs):
+    async def run(self, prompt, **kwargs):
+        from app.grounding.judge import CLAIM_TASK
+
         self.calls.append(kwargs)
-        return SimpleNamespace(output=next(self.outputs), all_messages=list)
+        if self.gap_half is not None:
+            output, self.gap_half = self.gap_half, None
+        else:
+            output = next(self.outputs)
+        # Answers are judged in a claims call, then a gaps call; each scripted
+        # report is served half to each.
+        if isinstance(output, SupportReport) and prompt == CLAIM_TASK:
+            if output.gap_decisions:
+                self.gap_half = output.model_copy(update={"decisions": []})
+            output = output.model_copy(update={"gap_decisions": []})
+        elif isinstance(output, SupportReport) and "output_type" in kwargs:
+            output = output.model_copy(update={"decisions": []})
+        return SimpleNamespace(output=output, all_messages=list)
 
 
 def test_one_repair_retains_registry_and_cumulative_usage():
@@ -157,7 +172,9 @@ def test_contradictory_gap_is_repaired_before_judging_and_never_rendered():
         (True, "The requested Azure pricing"),
     ],
 )
-def test_gap_relevance_is_verified_in_same_call_as_claims(warranted, detail):
+def test_gap_relevance_is_judged_with_the_question_and_claims_without_it(
+    warranted, detail
+):
     from app.assistant.outputs import EvidenceGap
     from app.grounding.judge import GapDecision
     from app.retrieval.types import SearchFilters
@@ -215,7 +232,12 @@ def test_gap_relevance_is_verified_in_same_call_as_claims(warranted, detail):
     if warranted:
         question += " Also provide pricing."
     result = asyncio.run(run_grounded(question, [], d, agent, judge))
-    assert len(judge.calls) == len(agent.calls) == (1 if warranted else 2)
+    assert len(agent.calls) == (1 if warranted else 2)
+    # Attempt 1 judges claims, then the gap; the corrected answer has no gap.
+    assert len(judge.calls) == (2 if warranted else 3)
+    payloads = [call["message_history"][0].parts[0].content for call in judge.calls[:2]]
+    assert "actual_user_request" not in payloads[0]
+    assert "actual_user_request" in payloads[1]
     if warranted:
         assert result.answer.status == "partial"
         assert "The requested Azure pricing" in result.reply.text

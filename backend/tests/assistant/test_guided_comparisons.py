@@ -276,14 +276,15 @@ def test_guided_wire_path_is_tool_free_and_shares_one_repair(first_failure):
     if first_failure in ("both_bad", "submission_then_grounding"):
         with pytest.raises(GroundingRejected):
             asyncio.run(check())
+        # Each judged attempt makes a claims call and a gaps call.
         assert len(judge.calls) == (
-            1 if first_failure == "submission_then_grounding" else 0
+            2 if first_failure == "submission_then_grounding" else 0
         )
     else:
         result = asyncio.run(check())
         assert result.answer.gaps[0].request_quote == "Assess increased urgency."
         assert result.answer.gaps[1].target.ticker == "NVDA"
-        assert len(judge.calls) == (2 if first_failure == "grounding" else 1)
+        assert len(judge.calls) == (4 if first_failure == "grounding" else 2)
     assert len(retrievals) == 1
     assert len(writer_requests) == (1 if first_failure in (None, "invalid_plan") else 2)
     assert d.generator_usage.requests == len(requests)
@@ -619,12 +620,18 @@ def test_guided_judge_wire_requires_one_verdict_per_server_owned_key(omit_key):
         requests.append(body)
         schema = body["tools"][0]["function"]["parameters"]
         report_schema = schema
-        # The server-owned NVDA coverage gap gets no verdict key.
-        assert set(report_schema["properties"]) == {"C0", "G0"}
-        assert set(report_schema["required"]) == {"C0", "G0"}
+        # Claims and gaps are judged in separate calls; the server-owned NVDA
+        # coverage gap gets no verdict key.
+        keys = set(report_schema["required"])
+        assert keys == ({"C0"} if len(requests) == 1 else {"G0"})
+        assert set(report_schema["properties"]) == keys
         assert report_schema["additionalProperties"] is False
-        assert "claim_index" not in schema["$defs"]["ClaimVerdict"]["properties"]
-        assert "gap_index" not in schema["$defs"]["GapVerdict"]["properties"]
+        verdict_type, index = (
+            ("ClaimVerdict", "claim_index")
+            if keys == {"C0"}
+            else ("GapVerdict", "gap_index")
+        )
+        assert index not in schema["$defs"][verdict_type]["properties"]
         output = {
             "C0": {
                 "evidence_assessment": "Quoted supplier reliance.",
@@ -638,8 +645,9 @@ def test_guided_judge_wire_requires_one_verdict_per_server_owned_key(omit_key):
                 "evidence_assessment": "Trend remains unverified.",
             },
         }
+        output = {key: value for key, value in output.items() if key in keys}
         if omit_key:
-            del output["G0"]
+            output.pop("G0", None)
         return httpx.Response(
             200,
             json={
@@ -692,7 +700,7 @@ def test_guided_judge_wire_requires_one_verdict_per_server_owned_key(omit_key):
             asyncio.run(check())
     else:
         asyncio.run(check())
-    assert len(requests) == 1
+    assert len(requests) == 2
 
 
 def withholding_deps():
