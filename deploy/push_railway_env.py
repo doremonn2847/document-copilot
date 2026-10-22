@@ -49,14 +49,26 @@ def push(service: str, values: dict[str, str]) -> None:
         if not value:
             raise SystemExit(f"{key} is empty; fix the local .env first")
         result = subprocess.run(
-            ["railway", "variable", "set", key, "--stdin", "--service", service, "--skip-deploys"],
+            [
+                "railway",
+                "variable",
+                "set",
+                key,
+                "--stdin",
+                "--service",
+                service,
+                "--skip-deploys",
+            ],
             input=value,
             text=True,
             capture_output=True,
+            check=False,
         )
         if result.returncode != 0:
             # Railway's error text does not include the value sent on stdin.
-            raise SystemExit(f"Setting {key} on {service} failed: {result.stderr.strip()}")
+            raise SystemExit(
+                f"Setting {key} on {service} failed: {result.stderr.strip()}"
+            )
         print(f"{service}: set {key}")
 
 
