@@ -78,6 +78,7 @@ export function chatError(error: unknown): string {
     if (error.status === 403) return 'You do not have access to this conversation.'
     if (error.status === 404) return 'This conversation could not be found.'
     if (error.status === 409) return 'A reply is already in progress, or this message ID was reused. Wait a moment and retry.'
+    if (error.status === 429) return 'You have reached the question limit for now. Wait a few minutes, or let an earlier answer finish, and retry.'
     if (error.isNetworkError) return error.message
   }
   return 'The request could not be completed. Check your connection and try again.'

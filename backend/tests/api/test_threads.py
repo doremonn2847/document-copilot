@@ -289,3 +289,32 @@ def test_stream_requires_token(thread_client):
     app.dependency_overrides.pop(get_current_user)
     assert client.post("/chat/stream", json=stream_payload()).status_code == 401
     assert database.calls == []
+
+
+def test_new_answers_are_rate_limited_but_replays_are_not(thread_client, monkeypatch):
+    from types import SimpleNamespace
+
+    from app.api import chat
+    from app.assistant.rendering import AcceptedReply
+    from app.chat import streaming
+    from app.chat.limits import TurnLimiter
+
+    async def generate(*_args):
+        return SimpleNamespace(
+            reply=AcceptedReply(
+                text="Verified reply",
+                parts=[{"type": "text", "text": "Verified reply"}],
+            )
+        )
+
+    monkeypatch.setattr(streaming, "generate_reply", generate)
+    monkeypatch.setattr(chat, "limiter", TurnLimiter())
+    monkeypatch.setattr(chat.settings, "assistant_user_turns_per_hour", 1)
+    client, database = thread_client
+    database.results.extend([{"user_id": USER_ID}, [], [], {"next": 0}])
+    assert client.post("/chat/stream", json=stream_payload()).status_code == 200
+    # The finished answer released its concurrency slot.
+    assert chat.limiter.active == {}
+    database.results.extend([{"user_id": USER_ID}, []])
+    limited = client.post("/chat/stream", json=stream_payload())
+    assert limited.status_code == 429 and "Retry-After" in limited.headers

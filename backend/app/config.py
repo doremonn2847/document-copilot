@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     assistant_output_retries: int = Field(default=1, ge=0, le=1)
     assistant_grounding_repairs: int = Field(default=1, ge=0, le=1)
     assistant_tool_calls: int = Field(default=12, gt=0)
+    # Per-user limits on new answers for one backend process (about 40 analysts).
+    assistant_user_concurrent_turns: int = Field(default=2, gt=0)
+    assistant_user_turns_per_hour: int = Field(default=60, gt=0)
     assistant_search_calls: int = Field(default=4, gt=0)
     assistant_read_batch: int = Field(default=5, gt=0, le=5)
     assistant_max_chunks: int = Field(default=50, gt=0)
