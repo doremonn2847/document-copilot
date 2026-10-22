@@ -33,11 +33,15 @@ def test_greeting_is_answered_without_the_pipeline():
         "hi there!",
         [],
         Triage(
-            route="conversation", reply="Hello! Ask me about the filings in the corpus."
+            route="conversation",
+            topic="small_talk",
+            reply="Hello! Ask me about the filings in the corpus.",
         ),
     )
     assert result == Triage(
-        route="conversation", reply="Hello! Ask me about the filings in the corpus."
+        route="conversation",
+        topic="small_talk",
+        reply="Hello! Ask me about the filings in the corpus.",
     )
 
 
@@ -112,3 +116,17 @@ def test_rewritten_question_is_shown_with_the_answer():
     answer, registry = answer_and_registry()
     reply = render_answer(answer, registry, interpreted="What about Azure in 2023?")
     assert reply.text.startswith("Answered as: What about Azure in 2023?")
+
+
+def test_questions_about_the_app_get_the_fixed_help_text():
+    # Live: "what can you do?" named the companies and years, so the model reply
+    # was refused and the question failed in the pipeline.
+    from app.chat.triage import HELP_TEXT
+
+    result = route(
+        "what can you do?",
+        [],
+        Triage(route="conversation", topic="about_app", reply=None),
+    )
+    assert result == Triage(route="conversation", topic="about_app", reply=HELP_TEXT)
+    assert "[1]" in HELP_TEXT and "NVIDIA" in HELP_TEXT
