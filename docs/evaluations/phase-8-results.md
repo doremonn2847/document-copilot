@@ -147,3 +147,17 @@ judge called it unwarranted and withholding dropped it (open item).
   "margin") that no claim or claim quote states. On saved runs it keeps the
   Amazon margin gap and still drops premise rebuttals and the vague-question
   gap.
+
+## Confirmation runs (owner-approved, 31 of 36 requests)
+
+- **Amazon Q02** (2 runs): both complete, all five years of segment figures.
+  Run 2 kept the "margins are not given" note (gap override). Run 1 rendered
+  the margin limitation as "this request is outside that scope", a wording
+  bug from c619946 fixed in 61802a8 after that run.
+- **Apple Q01** (3 runs): the period-end date failure is gone. Two new causes
+  followed, each fixed offline: the Services row never fit the 1,500-character
+  per-target share (budget raised to 3,000; Services then citable for
+  2023–2025, 61802a8), and one claim per filing needs seven quotes against a
+  five-quote limit, so Services totals were stated uncited (writer told to
+  split figures across claims, 1ba2021). One run was accepted with correct
+  2022 figures only; the split instruction is not yet confirmed live.
