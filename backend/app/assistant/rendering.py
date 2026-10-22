@@ -120,12 +120,17 @@ def render_answer(
             {
                 "kind": "gap",
                 "label": target_label(gap.target) if gap.target else None,
-                # Clarification and scope replies are unjudged, and "not
-                # established" misreads a question asking which company.
+                # Clarification and whole-request scope replies are unjudged, and
+                # "not established" misreads a question asking which company. In
+                # a partial answer the specific limitation is kept: a live Apple
+                # answer otherwise read "this request is outside that scope".
                 "text": "Not established from the retrieved evidence: "
                 + gap.missing_detail
                 if gap.missing_detail
-                and gap.reason not in ("ambiguous_question", "outside_scope")
+                and not (
+                    gap.reason == "ambiguous_question"
+                    or (gap.reason == "outside_scope" and not answer.claims)
+                )
                 else GAPS[gap.reason],
             }
         )

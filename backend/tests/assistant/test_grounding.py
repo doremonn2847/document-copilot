@@ -853,3 +853,18 @@ def test_rejected_gap_naming_an_unanswered_requested_aspect_is_kept(detail, kept
     )
     report = asyncio.run(judge_answer(question, answer, registry, judge))
     assert report.gap_decisions[0].warranted is kept
+
+
+def test_partial_answer_keeps_a_specific_scope_limitation():
+    # Live Q01: a partial Apple answer read "this request is outside that scope".
+    from app.assistant.rendering import GAPS, render_answer
+
+    answer, registry = answer_and_registry()
+    gap = EvidenceGap(
+        reason="outside_scope",
+        missing_detail="Which category drove the mix shift is an inference.",
+    )
+    partial = answer.model_copy(update={"status": "partial", "gaps": [gap]})
+    assert GAPS["outside_scope"] not in render_answer(partial, registry).text
+    whole = GroundedAnswer(status="insufficient_evidence", gaps=[gap])
+    assert render_answer(whole, registry).text == GAPS["outside_scope"]

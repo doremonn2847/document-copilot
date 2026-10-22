@@ -54,8 +54,9 @@ class Settings(BaseSettings):
     assistant_max_chunks: int = Field(default=50, gt=0)
     assistant_evidence_chars: int = Field(default=48000, gt=0)
     assistant_tool_chars: int = Field(default=12000, ge=6000)
-    # A comparison's single tool response must give every target citable text.
-    assistant_comparison_target_chars: int = Field(default=1500, gt=0)
+    # A comparison's single tool response must give every target citable text;
+    # 1,500 left Apple's fifth padded table row (Services) uncitable.
+    assistant_comparison_target_chars: int = Field(default=3000, gt=0)
     assistant_max_claims: int = Field(default=20, gt=0, le=20)
     assistant_claim_refs: int = Field(default=5, gt=0, le=5)
     assistant_output_tokens: int = Field(default=3000, gt=0)
