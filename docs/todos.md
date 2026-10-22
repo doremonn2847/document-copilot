@@ -253,6 +253,12 @@ segment question sometimes fell back to "figures could not be verified"
 
 ## 9. Deploy and prepare operations
 
+Status 2026-10-22: deployment config (Dockerfiles, railway.json, Caddy SPA
+fallback), per-user limits, transaction-pooler support, the env push script
+and the [runbook](operations/runbook.md) are done. Railway project creation is
+blocked by Railway's platform outage (builds paused for Hobby/Free/Trial
+after a security incident); deploy when it is resolved (runbook section 2).
+
 - [ ] Create Railway frontend and backend services; configure production build/start commands, health checks, and HTTPS URLs.
 - [ ] Configure production secrets, exact CORS origins, and Supabase email confirmation/redirect URLs.
 - [ ] Apply reviewed migrations using the correct connection mode and ingest the agreed corpus into the production database.
@@ -265,6 +271,11 @@ segment question sometimes fell back to "figures could not be verified"
 **Gate:** Approved analysts can use the hosted app reliably, and one developer can maintain it using the runbook.
 
 ## 10. Pilot and definition of done
+
+Prepared 2026-10-22 (no pilot run yet): [usage guide](pilot/usage-guide.md),
+[pilot plan](pilot/pilot-plan.md) with per-task [time log](pilot/time-log.csv)
+and [answer-issue log](pilot/answer-issues.csv), and
+[corpus scope options](guides/corpus-scope-options.md) for the client decision.
 
 - [ ] Recruit five senior analysts and capture their baseline time spent on comparable document-intake tasks.
 - [ ] Run the pilot for one week; record usage, time saved, incorrect/unsupported answers, citation problems, and feedback.
