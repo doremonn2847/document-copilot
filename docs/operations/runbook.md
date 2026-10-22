@@ -10,7 +10,7 @@ commits or logs; `.env` files stay local.
 |---|---|---|
 | Frontend (React SPA) | Railway service `frontend` | `frontend/Dockerfile`: pnpm build, served by Caddy with SPA fallback. `VITE_*` values are public and baked in at build time. |
 | Backend (FastAPI) | Railway service `backend` | `backend/Dockerfile`, health check `GET /health`, **one replica** (per-user answer limits are in-process). |
-| Database and sign-in | Supabase (Postgres + Auth) | Chats, approvals, filings and chunks. The backend connects through the Supabase connection pooler (ports 5432/6543). |
+| Database and sign-in | Supabase (Postgres + Auth) | Chats, approvals, filings and chunks. The hosted backend uses the **transaction pooler (port 6543)**; migrations and ingestion use the session pooler (5432). |
 | Answers and embeddings | OpenAI | Models are set by `OPENAI_*` variables; see `backend/.env.example`. |
 
 ## 2. First deployment (Railway)
@@ -56,6 +56,23 @@ Limits worth knowing (defaults in `backend/app/config.py`):
 Frontend build variables: `VITE_API_BASE_URL` (backend URL),
 `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (public key only; the build
 rejects secret or legacy service keys).
+
+## 3a. Capacity (measured 2026-10-22)
+
+Local machine, production models, each answer holding a database transaction
+as the real endpoint does:
+
+| Simultaneous answers | Session pooler (5432) | Transaction pooler (6543) |
+|---:|---|---|
+| 6 | 6 of 6 accepted, 17–36 s | — |
+| 12 | **6 of 12 failed** ("max clients reached … pool_size: 15") | 12 of 12 accepted, 16–35 s |
+
+Each answer holds one transaction for its whole duration (up to 120 s), so the
+transaction pooler's 15 server connections cap simultaneous answers at about
+15 across all users; with at most 2 per user this covers the 40-analyst pilot.
+`deploy/push_railway_env.py` switches a Supabase pooler `DATABASE_URL` to port
+6543 for Railway. A larger Supabase compute size raises the pool; releasing
+the transaction during generation would remove the cap (future work).
 
 ## 4. Logs
 

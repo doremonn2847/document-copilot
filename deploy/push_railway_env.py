@@ -6,7 +6,8 @@ Run it yourself after `railway login` and `railway link` (from the repo root):
         --frontend-url https://<frontend domain>
 
 Backend: every key in backend/.env except SUPABASE_SERVICE_ROLE_KEY (only admin
-scripts need it) and ALLOWED_ORIGINS, which becomes the frontend URL.
+scripts need it) and ALLOWED_ORIGINS, which becomes the frontend URL; a
+Supabase pooler DATABASE_URL is switched to the transaction pooler (port 6543).
 Frontend: the public VITE_SUPABASE_* keys from frontend/.env, plus
 VITE_API_BASE_URL set to the backend URL. Values go to `railway variable set
 --stdin`, so they never appear on a command line or in this script's output.
@@ -42,6 +43,21 @@ def origin(url: str) -> str:
     if parts.scheme != "https" or not parts.netloc or parts.path not in ("", "/"):
         raise SystemExit(f"Expected an https origin without a path: {url}")
     return f"https://{parts.netloc}"
+
+
+def transaction_pooler(database_url: str) -> str:
+    """Use Supabase's transaction-mode pooler (port 6543) for the hosted backend.
+
+    The session pooler (5432) allows 15 clients; 6 of 12 simultaneous answers
+    failed there and 12 of 12 passed on 6543 (phase-9 probe, 2026-10-22).
+    Migrations and ingestion stay on the session URL in the local .env.
+    """
+    parts = urlsplit(database_url)
+    if not (parts.hostname or "").endswith("pooler.supabase.com") or parts.port == 6543:
+        return database_url
+    if parts.port is None:
+        raise SystemExit("DATABASE_URL has no port; cannot switch it to the pooler")
+    return database_url.replace(f":{parts.port}/", ":6543/", 1)
 
 
 def push(service: str, values: dict[str, str]) -> None:
@@ -87,6 +103,8 @@ def main() -> None:
         if key not in BACKEND_SKIP
     }
     backend["ALLOWED_ORIGINS"] = frontend_url
+    if "DATABASE_URL" in backend:
+        backend["DATABASE_URL"] = transaction_pooler(backend["DATABASE_URL"])
     frontend_env = read_env(ROOT / "frontend" / ".env")
     missing = [key for key in FRONTEND_KEYS if key not in frontend_env]
     if missing:
