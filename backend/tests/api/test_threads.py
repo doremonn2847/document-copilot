@@ -569,7 +569,7 @@ def test_invalid_rename_is_rejected(thread_client, payload):
 
 @pytest.mark.parametrize(
     "query,pattern",
-    [("", None), ("  ", None), (" AWS ", "%AWS%"), ("50%_x", "%50\%\_x%")],
+    [("", None), ("  ", None), (" AWS ", "%AWS%"), ("50%_x", r"%50\%\_x%")],
 )
 def test_search_matches_titles_literally(thread_client, query, pattern):
     client, database = thread_client

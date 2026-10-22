@@ -950,3 +950,45 @@ def test_citation_page_covers_chunk_text_but_not_borrowed_headings():
         if part["type"] == "data-citation"
     ]
     assert pages == ["26\u201327", None, "26\u201327"]
+
+
+@pytest.mark.parametrize(
+    "years,corpus_year,labelled",
+    [
+        ({2019}, 2021, True),
+        (set(range(2021, 2026)), 2023, False),
+        (set(), 2021, False),
+        ({2024}, 2024, False),
+    ],
+)
+def test_claims_from_unrequested_years_name_their_filing(years, corpus_year, labelled):
+    # Live: "Microsoft's 2019 10-K" was answered with 2021 statements whose
+    # text never said 2021.
+    from app.assistant.rendering import render_answer
+
+    p = passage("Azure is a trusted cloud.").model_copy(
+        update={"corpus_year": corpus_year}
+    )
+    registry = TurnRegistry()
+    registry.expose(p, p.text)
+    answer = GroundedAnswer(
+        status="answered",
+        claims=[
+            AnswerClaim(
+                text="Azure is a trusted cloud.",
+                evidence=[EvidenceRef(chunk_id=p.chunk_id, exact_quote=p.text)],
+            )
+        ],
+    )
+    reply = render_answer(answer, registry, years=years)
+    expected = f"AAPL / 10-K / corpus {corpus_year}: " if labelled else ""
+    assert reply.text.startswith(expected + "Azure is a trusted cloud.")
+
+
+def test_requested_years_read_two_years_as_a_span():
+    from app.chat.orchestrator import requested_years
+
+    assert requested_years("Microsoft's 2019 10-K") == {2019}
+    assert requested_years("between 2021 and 2025") == set(range(2021, 2026))
+    assert requested_years("Across Apple's 2021–2025 10-Ks") == set(range(2021, 2026))
+    assert requested_years("the latest 10-K") == set()

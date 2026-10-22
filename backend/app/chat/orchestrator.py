@@ -121,6 +121,13 @@ CAUSAL_QUESTION = re.compile(
 )
 
 
+def requested_years(question: str) -> set[int]:
+    """Years a question names; two or more read as a span ("2021–2025",
+    "between 2021 and 2025")."""
+    years = [int(y) for y in re.findall(r"\b(20\d{2})\b", question)]
+    return set(range(min(years), max(years) + 1)) if years else set()
+
+
 def covered_targets(registry: TurnRegistry, claims: list[AnswerClaim]) -> set[int]:
     cited = [registry.passages[ref.chunk_id] for c in claims for ref in c.evidence]
     return {
@@ -341,6 +348,7 @@ async def run_grounded(
                     advice=bool(INVESTMENT_ADVICE.search(question)),
                     causal=bool(CAUSAL_QUESTION.search(question)),
                     uncovered=uncovered_companies(question, answer, deps.registry),
+                    years=requested_years(question),
                     interpreted=interpreted,
                 ),
                 diagnostics(deps, started),
@@ -393,6 +401,7 @@ async def run_grounded(
                 advice=bool(INVESTMENT_ADVICE.search(question)),
                 causal=bool(CAUSAL_QUESTION.search(question)),
                 uncovered=uncovered_companies(question, answer, deps.registry),
+                years=requested_years(question),
                 interpreted=interpreted,
             ),
             diagnostics(deps, started),

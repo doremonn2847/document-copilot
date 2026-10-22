@@ -68,6 +68,7 @@ def render_answer(
     causal: bool = False,
     uncovered: list[str] | None = None,
     interpreted: str | None = None,
+    years: set[int] | None = None,
 ) -> AcceptedReply:
     indices = {}
     citations = []
@@ -115,8 +116,15 @@ def render_answer(
                 )
             numbers.append(indices[key])
         label = None
-        if claim.kind == "fact" and registry.comparison_targets:
-            p = registry.passages[claim.evidence[0].chunk_id]
+        cited = [registry.passages[ref.chunk_id] for ref in claim.evidence]
+        # A claim from a filing outside the years the question names is
+        # labelled with that filing: a live "Microsoft's 2019 10-K" answer
+        # showed 2021 statements whose text never said 2021.
+        off_year = bool(years) and not any(
+            p.corpus_year in years or p.fiscal_year in years for p in cited
+        )
+        if claim.kind == "fact" and (registry.comparison_targets or off_year):
+            p = cited[0]
             label = f"{p.ticker} / {p.form} / corpus {p.corpus_year if p.corpus_year is not None else 'unverified'}"
         blocks.append(
             {
