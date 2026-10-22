@@ -24,8 +24,9 @@ pnpm dev
 ## Check
 
 ```bash
-pnpm tsc --noEmit
+pnpm exec tsc -b   # project references; `tsc --noEmit` checks nothing here
 pnpm lint
+pnpm build
 ```
 
 ## Conversation navigation

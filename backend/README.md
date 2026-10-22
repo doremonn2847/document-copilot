@@ -15,7 +15,7 @@ The app validates configuration when it starts.
 - Stop: **Ctrl+C**. Development mode reloads after code changes.
 
 ```powershell
-uv run python -m pytest                # Tests
+uv run python -m pytest                # Offline tests (live ones need -m integration)
 uv run ruff check .                    # Lint
 uv add <package>                       # Add a runtime dependency
 uv add --dev <package>                 # Add a development dependency
@@ -57,7 +57,7 @@ and check resource ownership before using privileged clients. Health stays publi
 
 ```powershell
 uv run python -m pytest -m "not integration" -q
-uv run python -m pytest tests/database/test_rls.py -q
+uv run python -m pytest tests/database/test_rls.py -m integration -q
 uv run python scripts/check_sign_in.py
 ```
 
@@ -95,14 +95,14 @@ is sent. No schema migration or new dependency is required.
 
 ```powershell
 uv run python -m pytest tests/api/test_threads.py -q
-uv run python -m pytest tests/database/test_chat_endpoints.py -q
+uv run python -m pytest tests/database/test_chat_endpoints.py -m integration -q
 ```
 
 The live endpoint test overrides authentication with temporary identities,
 executes real SQL, and rolls back all fixtures. Real browser chat verification
 will follow when the chat UI and streaming endpoint are implemented.
 
-## Stubbed chat stream
+## Chat stream
 
 `POST /chat/stream` requires the same approved-user bearer token. Send:
 
@@ -114,7 +114,10 @@ will follow when the chat UI and streaming endpoint are implemented.
 ```
 
 It returns SSE using the installed AI SDK 7 UI-message protocol, with
-`x-vercel-ai-ui-message-stream: v1`. The reply is a fixed stub, without LLM calls.
+`x-vercel-ai-ui-message-stream: v1`. The reply comes from the grounded assistant
+(`app/chat/orchestrator.py`): progress parts while it works, then the verified
+answer text, structured `data-answer` blocks and `data-citation` parts. New
+answers are limited per user (2 in progress, 60 per hour; 429 with Retry-After).
 The final message must be a user question. Text and SDK step-start parts are
 supported; attachments, tool parts, and regeneration are not implemented yet.
 Earlier client messages do not determine database ownership or stored history.
@@ -133,7 +136,7 @@ before responding. Interrupted-stream cleanup releases the connection/lock.
 
 ```powershell
 uv run python -m pytest tests/chat tests/api -q --tb=no
-uv run python -m pytest tests/database/test_chat_endpoints.py -q --tb=no
+uv run python -m pytest tests/database/test_chat_endpoints.py -m integration -q --tb=no
 ```
 
 The live test keeps stream commits inside a rollback-only fixture transaction.

@@ -7,6 +7,8 @@ packages = ["app"]
 
 [tool.pytest.ini_options]
 markers = ["integration: requires the configured live Supabase database or API"]
+# Live tests call paid APIs or the shared database; run them only with -m integration.
+addopts = "-m 'not integration'"
 
 [project]
 name = "document-copilot-backend"

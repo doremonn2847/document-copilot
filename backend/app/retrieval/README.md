@@ -1,8 +1,7 @@
 # Hybrid retrieval
 
-This implements local checklist batch 5 / reference phase 5. It does not generate
-answers or change the existing stubbed chat flow. No migration, re-embedding, or
-additional dependency is required.
+This implements local checklist batch 5 / reference phase 5. The assistant's
+search and comparison tools (`app/assistant/tools.py`) call it for every answer.
 
 ## Flow
 
