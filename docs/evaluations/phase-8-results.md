@@ -161,3 +161,15 @@ judge called it unwarranted and withholding dropped it (open item).
   five-quote limit, so Services totals were stated uncited (writer told to
   split figures across claims, 1ba2021). One run was accepted with correct
   2022 figures only; the split instruction is not yet confirmed live.
+
+## Apple revenue mix fixed (evening autopilot)
+
+The split instruction (1ba2021) did not hold: two runs kept one claim per
+filing and failed on uncited Services totals. The per-claim limit is now eight
+quotes (9ad4fa9), enough for a table's scale title, year header and category
+rows. Three runs, 3 of 3 accepted with full cited category net sales:
+2023 iPhone $200,583M, Mac $29,357M, iPad $28,300M, Wearables $39,845M,
+Services $85,200M; 2024 $201,183M / $29,984M / $26,694M / $37,005M / $96,169M;
+2025 $209,586M / $33,708M / $28,023M / $35,686M / $109,158M (matching their
+rows and the 2024 column), plus 2021 drivers or 2022 iPhone and total in some
+runs. 2022 "fiscal year ended September 24, 2022" passed with the date fix.
