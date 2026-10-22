@@ -757,3 +757,38 @@ def test_flattened_table_text_takes_currency_from_its_source_table():
 
     assert errors(table) == []
     assert errors(table.replace("$ ", ""))
+
+
+def test_claim_may_name_its_filings_own_period_end_date():
+    # Live Q01: "fiscal year ended September 30, 2023" left "30" uncited.
+    from datetime import date
+
+    p = passage("Net sales were $383,285 million in 2023.").model_copy(
+        update={"report_date": date(2023, 9, 30)}
+    )
+    registry = TurnRegistry()
+    registry.expose(p, p.text)
+
+    def errors(text):
+        claim = AnswerClaim(
+            text=text, evidence=[EvidenceRef(chunk_id=p.chunk_id, exact_quote=p.text)]
+        )
+        return [
+            e
+            for e in structural_errors(
+                GroundedAnswer(status="answered", claims=[claim]), registry, searches=1
+            )
+            if "uncited numeric tokens" in e
+        ]
+
+    assert (
+        errors(
+            "Apple's net sales were $383,285 million in 2023, for the fiscal year ended September 30, 2023."
+        )
+        == []
+    )
+    # The day alone, or another date, still needs a quote.
+    assert errors("Apple's net sales were $383,285 million in 2023, up 30%.")
+    assert errors(
+        "Apple's net sales were $383,285 million in 2023, for the fiscal year ended September 24, 2023."
+    )

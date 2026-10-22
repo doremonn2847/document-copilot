@@ -103,6 +103,14 @@ def structural_errors(
                         f"{p.form} {p.corpus_year} {p.fiscal_year} {p.filing_date} {p.report_date} {p.page}"
                     )
                 )
+                # "2023-09-30" yields only its year, so a claim naming the
+                # filing's own period end ("September 30, 2023") failed
+                # (client question Q01). Allow the day only for that exact date.
+                for day in (p.report_date, p.filing_date):
+                    if day and re.search(
+                        rf"\b{day:%B}\s+0?{day.day}\b", claim.text, re.IGNORECASE
+                    ):
+                        quoted_numbers.add(Decimal(day.day))
         missing_numbers = numeric_tokens(claim.text) - quoted_numbers
         if claim.kind != "calculation" and missing_numbers:
             errors.append(
