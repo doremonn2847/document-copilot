@@ -992,3 +992,36 @@ def test_requested_years_read_two_years_as_a_span():
     assert requested_years("between 2021 and 2025") == set(range(2021, 2026))
     assert requested_years("Across Apple's 2021–2025 10-Ks") == set(range(2021, 2026))
     assert requested_years("the latest 10-K") == set()
+
+
+def test_coverage_gaps_are_merged_per_company():
+    # Live N2: a four-company, five-year answer listed 20 per-year lines.
+    from app.assistant.rendering import render_answer
+    from app.retrieval.types import SearchFilters
+
+    def coverage(ticker, year):
+        return EvidenceGap(
+            target=SearchFilters(ticker=ticker, form="10-K", corpus_years=[year]),
+            reason="missing_evidence",
+        )
+
+    specific = EvidenceGap(
+        target=SearchFilters(ticker="MSFT", form="10-K", corpus_years=[2024]),
+        reason="missing_evidence",
+        missing_detail="Azure capacity constraints",
+    )
+    answer = GroundedAnswer(
+        status="insufficient_evidence",
+        gaps=[
+            coverage("MSFT", 2022),
+            coverage("NVDA", 2021),
+            specific,
+            coverage("MSFT", 2021),
+            coverage("NVDA", 2023),
+        ],
+    )
+    lines = render_answer(answer, TurnRegistry()).text.split("\n\n")
+    assert lines[0].startswith("MSFT / 10-K / corpus years 2021, 2022: This answer")
+    assert lines[1].startswith("NVDA / 10-K / corpus years 2021, 2023: This answer")
+    assert "Azure capacity constraints" in lines[2]
+    assert len(lines) == 3

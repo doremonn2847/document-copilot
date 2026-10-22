@@ -2,7 +2,7 @@ from pydantic import Field
 
 from app.assistant.calculations import CalculationRecord
 from app.assistant.deps import TurnRegistry, normalized
-from app.assistant.outputs import Contract, GroundedAnswer
+from app.assistant.outputs import Contract, EvidenceGap, GroundedAnswer
 from app.retrieval.types import SearchFilters
 
 
@@ -57,6 +57,35 @@ def target_label(f: SearchFilters) -> str:
             ],
         )
     )
+
+
+def merged_coverage_gaps(gaps: list[EvidenceGap]) -> list[EvidenceGap]:
+    """One "no verified statement" line per company instead of per year.
+
+    A live four-company, five-year answer listed 20 such lines in a row.
+    """
+    merged: dict[tuple, EvidenceGap] = {}
+    result = []
+    for gap in gaps:
+        t = gap.target
+        if not (
+            gap.reason == "missing_evidence"
+            and gap.missing_detail is None
+            and t
+            and t.ticker
+            and t.corpus_years
+            and not t.fiscal_years
+        ):
+            result.append(gap)
+            continue
+        key = (t.ticker, t.form)
+        if key in merged:
+            years = sorted({*merged[key].target.corpus_years, *t.corpus_years})
+            merged[key].target.corpus_years = years
+        else:
+            merged[key] = gap.model_copy(deep=True)
+            result.append(merged[key])
+    return result
 
 
 def render_answer(
@@ -137,7 +166,7 @@ def render_answer(
                 "citations": list(dict.fromkeys(numbers)),
             }
         )
-    for gap in answer.gaps:
+    for gap in merged_coverage_gaps(answer.gaps):
         blocks.append(
             {
                 "kind": "gap",
