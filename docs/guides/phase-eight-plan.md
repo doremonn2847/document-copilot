@@ -38,3 +38,22 @@ The owner raised the paid grant to 400 requests (cumulative) for this phase.
    to S&P 500 10-K and 10-Q filings for 2020–2025 changes scope and embedding
    spend and needs client agreement; the two-analyst confidentiality check
    needs two real accounts. Record what is needed in the morning summary.
+
+## Evening autopilot summary (2026-10-22, 17:05–19:35)
+
+Owner grant: all paid costs until midnight; closed early when the
+autonomous work was done (ledger closed at the requests used; the temporary
+memory note deleted). Paid requests this evening: about 210 (433 to 643).
+
+Fixed and confirmed live: Apple revenue mix (eight quotes per claim, larger
+per-target comparison budget, period-end dates), Amazon segments (table rows
+picked by the question, flattened-table currency), dropped "not established"
+notes (gap override, containing anchors), fixed causal-question notice,
+companies-left-out notice, large-amount scale rule, clarify/scope wording
+only for claim-less replies. Final evaluation: all ten client questions and
+seven negative cases answer truthfully (phase-8-results.md).
+
+Left for the owner and client: corpus scope (S&P 500 10-K/10-Q 2020–2025 or a
+written agreement to pilot on the five companies) and the two-account
+confidentiality check. Known limitation: regional revenue and similar
+table-only facts are hard to retrieve because table chunks lack headings.
