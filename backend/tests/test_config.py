@@ -206,3 +206,14 @@ def test_auth_boundary(
         assert response.json() == {"id": user_id, "email": "analyst@example.test"}
     else:
         assert token is None or token not in response.text
+
+
+def test_hosted_backend_starts_without_the_service_role_key(
+    settings_class, monkeypatch
+):
+    # Only admin scripts need it; production should not hold an RLS-bypassing key.
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY")
+    assert settings_class(_env_file=None).supabase_service_role_key is None
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "  ")
+    with pytest.raises(ValidationError):
+        settings_class(_env_file=None)

@@ -23,7 +23,9 @@ class Settings(BaseSettings):
 
     supabase_url: HttpUrl
     supabase_anon_key: SecretStr
-    supabase_service_role_key: SecretStr
+    # Admin scripts only; the hosted backend runs without it, so production
+    # need not hold the key that bypasses row-level security.
+    supabase_service_role_key: SecretStr | None = None
     database_url: PostgresDsn = Field(repr=False)
     openai_api_key: SecretStr
     allowed_origins: str = Field(min_length=1)
@@ -114,8 +116,8 @@ class Settings(BaseSettings):
 
     @field_validator("supabase_anon_key", "supabase_service_role_key", "openai_api_key")
     @classmethod
-    def require_nonempty_secret(cls, value: SecretStr) -> SecretStr:
-        if not value.get_secret_value().strip():
+    def require_nonempty_secret(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is not None and not value.get_secret_value().strip():
             raise ValueError("Credential must not be empty")
         return value
 

@@ -1,0 +1,18 @@
+{
+	admin off
+}
+
+:{$PORT:8080} {
+	root * /srv
+	encode zstd gzip
+
+	# Hashed build assets never change; the app shell must always revalidate.
+	@assets path /assets/*
+	header @assets Cache-Control "public, max-age=31536000, immutable"
+	@shell not path /assets/*
+	header @shell Cache-Control "no-cache"
+
+	# SPA fallback: reloading /chats/<id> serves the app, not a 404.
+	try_files {path} /index.html
+	file_server
+}

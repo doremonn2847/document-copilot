@@ -13,6 +13,10 @@ def main() -> None:
     password = getpass("New app user password (hidden): ")
     if not password or password != getpass("Confirm password (hidden): "):
         raise SystemExit("Passwords are empty or do not match; nothing changed")
+    if settings.supabase_service_role_key is None:
+        raise SystemExit(
+            "Set SUPABASE_SERVICE_ROLE_KEY in backend/.env to run this script"
+        )
     key = settings.supabase_service_role_key.get_secret_value()
     try:
         response = httpx.put(

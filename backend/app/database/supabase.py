@@ -16,6 +16,8 @@ async def create_user_client(access_token: str) -> AsyncClient:
 
 
 async def create_admin_client() -> AsyncClient:
+    if settings.supabase_service_role_key is None:
+        raise RuntimeError("SUPABASE_SERVICE_ROLE_KEY is not configured")
     return await acreate_client(
         str(settings.supabase_url).rstrip("/"),
         settings.supabase_service_role_key.get_secret_value(),
