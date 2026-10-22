@@ -102,3 +102,12 @@ names, so the artifacts hold the 05:07 runs. Both sets are in the ledger.
   flipped. Both models judge claims against the whole question instead of
   each claim's own assertion, so the fix belongs in the judge instructions
   (coverage is the gaps' job), not in a model switch.
+- **Claim-scope instruction** (owner-approved, 3 requests): a judge rule that
+  claims need not answer the whole question, replayed three times on the same
+  Q02 input with gpt-5.4-mini (now the configured judge). Two runs still
+  rejected every claim for missing margins (one said the claim "says margin";
+  none does); one accepted 2022–2025. Reverted as ineffective. The judge call
+  sends the user's question as the final user message and the draft as the
+  assistant's reply, so the model grades responsiveness to the question.
+  Likely fix: judge claims against their own quotes without the question, and
+  judge gaps against the question separately.
