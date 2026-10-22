@@ -4,6 +4,24 @@ Definition of done (client brief): five senior analysts use Document Copilot
 for one week and report that it saves **at least 3 hours per analyst per
 week**; if so, Driftwood rolls it out firm-wide.
 
+## Stand-in pilot (owner decision, 2026-10-22)
+
+This is a tutorial project with no real Driftwood analysts, so the owner runs
+the pilot as a **single stand-in analyst** (an agent prepares the detailed
+scheme). The method below still applies, scaled to one person:
+
+- Corpus: the current five-company 10-K corpus (owner decision; see
+  [corpus scope options](../guides/corpus-scope-options.md)).
+- Baseline: time a few representative filing tasks by hand first, then do
+  comparable tasks with Document Copilot and log both in the time log.
+- Target: the brief's 3 hours saved per analyst per week, judged from the
+  stand-in's own logs; record the result as a stand-in estimate, not as
+  client acceptance.
+- Trust log and stop rule unchanged.
+
+Sections that assume five analysts (recruitment, approvals, interviews,
+client rollout decision) do not apply to the stand-in run.
+
 ## Before the pilot (owner)
 
 - [ ] Hosted app live and the phase-9 smoke test passed (runbook section 2).

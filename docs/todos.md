@@ -277,6 +277,10 @@ Prepared 2026-10-22 (no pilot run yet): [usage guide](pilot/usage-guide.md),
 and [answer-issue log](pilot/answer-issues.csv), and
 [corpus scope options](guides/corpus-scope-options.md) for the client decision.
 
+Owner decision 2026-10-22: run phase 10 as a **stand-in pilot** with the owner
+as the single analyst (an agent prepares the scheme); see the pilot plan's
+stand-in section. Results count as a stand-in estimate, not client acceptance.
+
 - [ ] Recruit five senior analysts and capture their baseline time spent on comparable document-intake tasks.
 - [ ] Run the pilot for one week; record usage, time saved, incorrect/unsupported answers, citation problems, and feedback.
 - [ ] Confirm the pilot reports at least three hours saved per analyst per week, as required by the brief.
