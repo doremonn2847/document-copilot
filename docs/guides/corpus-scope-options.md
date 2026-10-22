@@ -1,5 +1,10 @@
 # Corpus scope options for the pilot
 
+**Decision (owner, 2026-10-22): keep the current corpus** (25 10-Ks for
+Apple, Amazon, Alphabet, Microsoft and NVIDIA, 2021–2025). The full S&P 500
+scope does not fit Supabase's free plan; this reduced scope is the agreed
+pilot scope. The sizing below stays for a future rollout decision.
+
 The brief's corpus is SEC 10-K and 10-Q filings for S&P 500 companies,
 2020–2025. Today's corpus is 25 10-Ks: Apple, Amazon, Alphabet, Microsoft
 and NVIDIA, corpus years 2021–2025. Phase 8 requires either the full scope
