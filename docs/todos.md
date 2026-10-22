@@ -247,9 +247,14 @@ segment question sometimes fell back to "figures could not be verified"
 - [x] Review failed cases and rerun the affected evaluations after fixes. Citation presence alone is not proof of correctness. (Every accepted claim was read against its quotes.)
 - [x] Extend ingestion to the brief's curated 10-K and 10-Q scope for S&P 500 companies across 2020–2025; define the company universe, inventory required filings, and report missing coverage. (Owner decision 2026-10-22: pilot on the current five-company 10-K corpus; the full scope exceeds Supabase's free plan. Sizing in [corpus scope options](guides/corpus-scope-options.md).)
 - [x] Process the broader corpus in resumable batches and verify retrieval/index performance and ingestion cost at that size. Any reduced pilot scope needs explicit client agreement. (Owner decision 2026-10-22: pilot on the current five-company 10-K corpus; the full scope exceeds Supabase's free plan. Sizing in [corpus scope options](guides/corpus-scope-options.md).)
-- [ ] Recheck confidentiality with two analyst accounts and ensure the deployed bundle/logs do not expose privileged credentials.
+- [x] Recheck confidentiality with two analyst accounts and ensure the deployed bundle/logs do not expose privileged credentials. (Owner browser check 2026-10-23 with two approved accounts and one unapproved: no shared sidebars, direct chat URL refused, unapproved user held at pending. Production bundle and local logs clean (phase-8 results); deployed Railway logs to recheck after phase 9.)
 
 **Gate:** The evaluation results demonstrate supported behavior and known gaps; the sample corpus is not mistaken for full client coverage.
+
+**Phase 8 closed (2026-10-23):** client questions and negative cases verified,
+financial comparisons checked, corpus scope decided (current five companies),
+two-account confidentiality check passed. Details in
+[phase-8 results](evaluations/phase-8-results.md).
 
 ## 9. Deploy and prepare operations
 
