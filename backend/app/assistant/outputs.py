@@ -12,6 +12,9 @@ class Contract(BaseModel):
 
 
 MAX_QUOTE_CHARS = 4000
+# A table figure set needs its scale title, year header and several rows; five
+# quotes left Apple's fifth category (Services) uncitable in one claim.
+MAX_CLAIM_REFS = 8
 
 
 class EvidenceRef(Contract):
@@ -30,7 +33,7 @@ class EvidenceRef(Contract):
 class AnswerClaim(Contract):
     text: str = Field(min_length=1, max_length=2000)
     kind: Literal["fact", "calculation", "interpretation"] = "fact"
-    evidence: list[EvidenceRef] = Field(min_length=1, max_length=5)
+    evidence: list[EvidenceRef] = Field(min_length=1, max_length=MAX_CLAIM_REFS)
     calculation_id: UUID | None = None
 
     @field_validator("text")

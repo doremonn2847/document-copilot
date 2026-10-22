@@ -52,7 +52,7 @@ def structural_errors(
     *,
     searches: int,
     max_claims: int = 20,
-    max_refs: int = 5,
+    max_refs: int = 8,
 ) -> list[str]:
     errors = []
     bypass = not answer.claims and all(

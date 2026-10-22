@@ -9,7 +9,13 @@ from pydantic import Field, ValidationError, field_validator
 from pydantic_ai import ModelRetry, RunContext
 
 from app.assistant.deps import DocumentAgentDeps, TurnRegistry, normalized
-from app.assistant.outputs import AnswerClaim, Contract, EvidenceGap, GroundedAnswer
+from app.assistant.outputs import (
+    MAX_CLAIM_REFS,
+    AnswerClaim,
+    Contract,
+    EvidenceGap,
+    GroundedAnswer,
+)
 from app.grounding.claim_context import missing_company_evidence
 from app.retrieval.types import RetrievedPassage, SearchFilters
 
@@ -21,7 +27,7 @@ class SelectedClaim(Contract):
         description="One small factual statement from one filing; cross-filing inferences must be labeled interpretation and directly supported.",
     )
     kind: Literal["fact", "calculation", "interpretation"] = "fact"
-    evidence_ids: list[str] = Field(default_factory=list, max_length=5)
+    evidence_ids: list[str] = Field(default_factory=list, max_length=MAX_CLAIM_REFS)
     calculation_id: UUID | None = None
 
     @field_validator("evidence_ids")

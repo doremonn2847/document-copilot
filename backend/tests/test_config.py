@@ -58,7 +58,7 @@ def test_retrieval_settings_limits(settings_class):
         {"assistant_tool_calls": 0},
         {"assistant_tool_chars": 50000},
         {"assistant_grounding_repairs": 2},
-        {"assistant_claim_refs": 6},
+        {"assistant_claim_refs": 9},
         {"assistant_deadline_seconds": 0},
         {"assistant_reasoning_effort": "invalid"},
     ],

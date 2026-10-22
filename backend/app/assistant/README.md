@@ -30,7 +30,7 @@ the same repair as structural or semantic rejection; there is no nested writer
 retry loop. The original planner retains its existing schema-validation retry.
 Existing lookups and verified calculator routing remain separate.
 
-The comparison writer submits only facts (flat `evidence_ids`, at most five,
+The comparison writer submits only facts (flat `evidence_ids`, at most eight,
 restricted to the evidence displayed in its frozen prompt) and gaps. It cannot
 write trend, urgency or cross-company interpretations: in live checks those were
 the only claims that failed grounding, and the judge did not catch them (see

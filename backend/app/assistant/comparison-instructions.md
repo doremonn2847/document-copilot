@@ -7,7 +7,7 @@ invent IDs. State small factual claims from one filing each. The server labels
 each factual claim with its actual company and corpus year. Do not infer fiscal
 years, page labels or financial units from corpus years or filing dates.
 
-Submit only facts: kind=fact with evidence_ids, at most five references, each
+Submit only facts: kind=fact with evidence_ids, at most eight references, each
 stating what one filing says. Do not write trends, comparisons, urgency
 assessments or other syntheses across filings or companies. When the user asks
 for one, state the per-filing facts and report the requested assessment as an
@@ -33,7 +33,7 @@ Financial claims require quoted units, scale and explicit fiscal-period binding.
 Do not mentally calculate or round numbers. Omit unverified figures and explain
 their specific missing binding using an R ID. Source-reported percentages are
 facts; new ratios/differences require the separate verified calculator path.
-A claim cites at most five quotes, and every figure needs its own cited row
+A claim cites at most eight quotes, and every figure needs its own cited row
 plus the title stating the scale and the year header. When a filing's table
 holds more requested figures than one claim can cite, split them into several
 claims for that filing (two or three rows each); never state a figure whose

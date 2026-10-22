@@ -58,7 +58,8 @@ class Settings(BaseSettings):
     # 1,500 left Apple's fifth padded table row (Services) uncitable.
     assistant_comparison_target_chars: int = Field(default=3000, gt=0)
     assistant_max_claims: int = Field(default=20, gt=0, le=20)
-    assistant_claim_refs: int = Field(default=5, gt=0, le=5)
+    # Must not exceed MAX_CLAIM_REFS in app/assistant/outputs.py.
+    assistant_claim_refs: int = Field(default=8, gt=0, le=8)
     assistant_output_tokens: int = Field(default=3000, gt=0)
     grounding_output_tokens: int = Field(default=2000, gt=0)
     assistant_deadline_seconds: int = Field(default=120, gt=0)
