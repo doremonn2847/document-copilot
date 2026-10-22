@@ -37,8 +37,10 @@ and shows the passage behind every statement, so you can check it in one click.
   Comparisons group them by company with year chips.
 - **Click a citation** to open the source: company, form, corpus year, filing
   date, section or table, the exact quoted passage and a link to the original
-  SEC filing. Page numbers are not available yet; use the section and the SEC
-  link.
+  SEC filing. The page (or a range such as "pages 25–26" when the passage
+  crosses a page) is the number printed in the 10-K itself. "Page unverified"
+  means the passage could not be placed, for example a heading taken from the
+  cover page; use the section and the SEC link.
 - **"Not established"** lists what the filings shown do not establish, for
   example a trend nobody states or a figure that was not found. Treat these as
   real gaps, not errors.

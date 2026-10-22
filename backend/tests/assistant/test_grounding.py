@@ -916,3 +916,37 @@ def test_large_amount_needs_the_scale_its_own_passage_states():
     assert not [
         e for e in structural_errors(answer, registry, searches=1) if "scale" in e
     ]
+
+
+def test_citation_page_covers_chunk_text_but_not_borrowed_headings():
+    from app.assistant.rendering import render_answer
+
+    heading = "For the fiscal year ended December 31, 2025"  # from the cover page
+    row = "| AWS | 39,834 | 45,606 |"
+    p = passage("AWS sales increased 20% in 2025.").model_copy(
+        update={
+            "page": "26\u201327",
+            "source_context": [heading, f"| | 2024 | 2025 |\n{row}"],
+        }
+    )
+    registry = TurnRegistry()
+    for span in (p.text, heading, row):
+        registry.expose(p, span)
+    answer = GroundedAnswer(
+        status="answered",
+        claims=[
+            AnswerClaim(
+                text="AWS sales increased 20% in 2025.",
+                evidence=[
+                    EvidenceRef(chunk_id=p.chunk_id, exact_quote=q)
+                    for q in (p.text, heading, row)
+                ],
+            )
+        ],
+    )
+    pages = [
+        part["data"]["page"]
+        for part in render_answer(answer, registry).parts
+        if part["type"] == "data-citation"
+    ]
+    assert pages == ["26\u201327", None, "26\u201327"]

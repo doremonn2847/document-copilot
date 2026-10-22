@@ -96,6 +96,16 @@ def render_answer(
                                 },
                             ),
                             "index": index,
+                            # The chunk's page range covers its own text and
+                            # table rows; a heading borrowed from elsewhere in
+                            # the filing (cover-page fiscal year) shows none.
+                            "page": p.page
+                            if ref.exact_quote in p.text
+                            or any(
+                                span.startswith("|") and ref.exact_quote in span
+                                for span in p.source_context
+                            )
+                            else None,
                             "excerpt": ref.exact_quote,
                             "source_kind": "original_table_context"
                             if any(ref.exact_quote in span for span in p.source_context)

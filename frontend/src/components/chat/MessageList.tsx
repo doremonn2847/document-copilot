@@ -69,7 +69,7 @@ function Source({ messageId, citation: c }: { messageId: string; citation: Citat
     <summary className="cursor-pointer rounded focus-visible:outline focus-visible:outline-2">[{c.index}] {c.ticker} {c.form} · corpus {c.corpus_year ?? 'unknown'} · {c.fiscal_year ? `FY ${c.fiscal_year}` : 'fiscal year unverified'}</summary>
     <blockquote className="my-2 whitespace-pre-wrap break-words border-l-2 pl-3">{c.excerpt}</blockquote>
     <p className="text-xs text-muted-foreground">
-      Filed {c.filing_date} · {c.page ? `page ${c.page}` : 'page unverified'}{c.section ? ` · ${c.section}` : ''} · {c.source_kind === 'original_table_context' ? 'original table context via ' : ''}chunk {c.chunk_index}
+      Filed {c.filing_date} · {c.page ? `${c.page.includes('–') ? 'pages' : 'page'} ${c.page}` : 'page unverified'}{c.section ? ` · ${c.section}` : ''} · {c.source_kind === 'original_table_context' ? 'original table context via ' : ''}chunk {c.chunk_index}
     </p>
     {link && <a href={link} target="_blank" rel="noopener noreferrer" className="underline">Original SEC filing</a>}
   </details>

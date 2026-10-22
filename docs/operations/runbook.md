@@ -115,6 +115,10 @@ hosted backend.
    `uv run python -m ingest.filing --all --preview-only`.
 3. Ingest (embedding cost; writes to the database):
    `uv run python -m ingest.filing --all` or `--file <markdown path>`.
+4. Page numbers (free; from the original SEC HTML in `data/downloads/`):
+   `uv run python -m ingest.pages` reports coverage per filing (about 97% of
+   chunks), and `--write` updates `document_chunks.page`. Run it after every
+   ingest; a chunk without a page shows "page unverified".
 
 Cited chunks cannot be deleted: `message_citations.chunk_id` is
 `ON DELETE RESTRICT`, so replacing a filing that analysts have cited needs a
