@@ -128,6 +128,15 @@ def validate_inputs(
         raise ValueError("Ratio periods must agree")
     if operation != "ratio_percent" and a.measure != b.measure:
         raise ValueError("Measures must agree")
+    # Same entity, segment and measure for the same period is one quantity read
+    # twice. Live: two segments' "Revenue increased" amounts, both labelled
+    # consolidated, were subtracted and accepted as Microsoft's revenue change.
+    if operation != "ratio_percent" and a.period == b.period:
+        raise ValueError(
+            "A change or difference needs the same measure for two different periods. "
+            "If the filing states the requested change itself (for example "
+            "'Revenue increased $X'), search for and cite that statement instead."
+        )
     if operation in ("ratio_percent", "percent_change") and b.value <= 0:
         raise ValueError("Denominator must be positive")
 

@@ -95,6 +95,12 @@ def guided_tool_choice(deps: DocumentAgentDeps | None) -> ToolChoice:
         return "none"
     if deps.registry.calculation_pairs:
         return "none"
+    if not explicit:
+        # The model chose arithmetic for a question that did not ask for it,
+        # often a change the filing states itself ("Revenue increased $33.2
+        # billion"). Live, forcing preparation-or-answer after a rejected pair
+        # left only a refusal; let it search for the statement instead.
+        return None
     if (
         deps.fact_preparations >= deps.settings.assistant_grounding_repairs + 1
         or deps.searches >= deps.settings.assistant_search_calls

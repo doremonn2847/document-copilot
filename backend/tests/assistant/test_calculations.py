@@ -171,3 +171,13 @@ def test_numeric_tokens_without_period_and_unit_evidence_are_not_enough(quote):
     ]
     with pytest.raises(ValueError):
         calculate("percent_change", values, registry)
+
+
+@pytest.mark.parametrize("operation", ["difference", "percent_change"])
+def test_same_measure_and_period_is_not_a_change(operation):
+    # Live: two segments' "Revenue increased" amounts for the same fiscal-year
+    # comparison, both labelled consolidated, were subtracted and accepted.
+    registry, values = operands()
+    values[1] = values[1].model_copy(update={"period": values[0].period})
+    with pytest.raises(ValueError, match="two different periods"):
+        calculate(operation, values, registry)

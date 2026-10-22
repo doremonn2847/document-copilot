@@ -41,3 +41,16 @@ def test_lookups_are_not_forced_into_arithmetic():
     ):
         d.question = question
         assert guided_tool_choice(d) is None
+
+
+def test_a_rejected_unrequested_calculation_can_fall_back_to_search():
+    # Live: "how much did revenue increase" went to preparation, the pair was
+    # rejected, and the only choices left were preparing again or refusing.
+    d = deps()
+    d.question = (
+        "What was Microsoft's revenue in fiscal 2024 and how much did it increase?"
+    )
+    d.fact_preparations = 1
+    assert guided_tool_choice(d) is None
+    d.registry.calculation_pairs[("first", "second")] = "difference"
+    assert guided_tool_choice(d) == "none"
