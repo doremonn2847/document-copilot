@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue
 from app.auth.dependencies import CurrentUser, get_current_user
 from app.database import chats
 from app.database.connection import get_connection
+from app.database.models.message_feedback import FeedbackReason
 
 router = APIRouter(prefix="/chat/threads", tags=["chat threads"])
 User = Annotated[CurrentUser, Depends(get_current_user)]
@@ -30,6 +31,12 @@ class ThreadResponse(BaseModel):
     updated_at: datetime
 
 
+class FeedbackResponse(BaseModel):
+    rating: Literal["up", "down"]
+    reason: FeedbackReason | None
+    comment: str | None
+
+
 class MessageResponse(BaseModel):
     id: UUID
     thread_id: UUID
@@ -38,6 +45,7 @@ class MessageResponse(BaseModel):
     parts: list[dict[str, JsonValue]] | None
     sequence: int
     created_at: datetime
+    feedback: FeedbackResponse | None = None
 
 
 @router.post("", response_model=ThreadResponse, status_code=201)

@@ -22,7 +22,8 @@ def test_two_database_identities_and_unapproved_user():
         chunk,
         message,
         citation,
-    ) = [uuid4() for _ in range(9)]
+        feedback,
+    ) = [uuid4() for _ in range(10)]
     connection = psycopg.connect(str(settings.database_url), connect_timeout=10)
     try:
         for user_id in (alice, bob, outsider):
@@ -60,6 +61,10 @@ def test_two_database_identities_and_unapproved_user():
             VALUES (%s,%s,%s,1,'Test evidence','TEST','10-K','2025-01-01')""",
             (citation, message, chunk),
         )
+        connection.execute(
+            "INSERT INTO public.message_feedback (id,message_id,user_id,rating) VALUES (%s,%s,%s,'up')",
+            (feedback, message, alice),
+        )
         connection.execute("SET LOCAL ROLE authenticated")
         for user_id, thread_id in (
             (alice, alice_thread),
@@ -87,6 +92,7 @@ def test_two_database_identities_and_unapproved_user():
             for table, row_id in (
                 ("chat_messages", message),
                 ("message_citations", citation),
+                ("message_feedback", feedback),
             ):
                 assert len(
                     connection.execute(
@@ -115,6 +121,15 @@ def test_two_database_identities_and_unapproved_user():
                         "INSERT INTO public.chat_threads (id,user_id,title) VALUES (%s,%s,'Forbidden')",
                         (uuid4(), alice),
                     )
+            # Feedback is written only by the backend, never directly by users.
+            with (
+                pytest.raises(psycopg.errors.InsufficientPrivilege),
+                connection.transaction(),
+            ):
+                connection.execute(
+                    "INSERT INTO public.message_feedback (id,message_id,user_id,rating) VALUES (%s,%s,%s,'down')",
+                    (uuid4(), message, user_id),
+                )
         connection.execute("SET LOCAL ROLE anon")
         with (
             pytest.raises(psycopg.errors.InsufficientPrivilege),

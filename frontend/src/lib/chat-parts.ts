@@ -12,7 +12,21 @@ export type AnswerBlock =
   | { kind: 'gap'; label: string | null; text: string }
   | { kind: 'notice'; text: string }
 export type Answer = { blocks: AnswerBlock[] }
-export type ChatMessage = UIMessage<unknown, { citation: Citation; status: { stage: string }; answer: Answer }>
+export const FEEDBACK_REASONS = {
+  wrong_fact: 'Wrong fact', wrong_citation: 'Wrong citation or page', missing_information: 'Missing information',
+  should_have_answered: 'Should have answered', too_slow: 'Too slow', other: 'Other',
+} as const
+export type FeedbackReason = keyof typeof FEEDBACK_REASONS
+export type Feedback = { rating: 'up' | 'down'; reason: FeedbackReason | null; comment: string | null }
+export type ChatMessage = UIMessage<{ feedback?: Feedback | null }, { citation: Citation; status: { stage: string }; answer: Answer }>
+
+export function parseFeedback(value: unknown): Feedback | null {
+  if (typeof value !== 'object' || value === null) return null
+  const f = value as Record<string, unknown>
+  if (f.rating !== 'up' && f.rating !== 'down') return null
+  const reason = typeof f.reason === 'string' && f.reason in FEEDBACK_REASONS ? f.reason as FeedbackReason : null
+  return { rating: f.rating, reason, comment: typeof f.comment === 'string' ? f.comment : null }
+}
 
 function parseBlock(value: unknown): AnswerBlock {
   if (typeof value !== 'object' || value === null) throw new Error('Invalid answer block.')

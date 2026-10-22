@@ -90,6 +90,21 @@ JSON lines (structlog). Useful events:
   `rewritten` (a follow-up was turned into a standalone question).
 - `assistant_triage_failed`: the front door errored and the turn fell back to
   the filings pipeline (answers still work; check the `failure_type`).
+- `answer_feedback_saved`: an analyst rated a reply: `message_id`, `rating`,
+  `reason`, `has_comment` (the comment itself is only in the database).
+
+Pilot feedback review (Supabase SQL editor, read-only):
+
+```sql
+SELECT f.updated_at, u.email, f.rating, f.reason, f.comment,
+       m.thread_id, m.content
+FROM public.message_feedback f
+JOIN public.users u ON u.id = f.user_id
+JOIN public.chat_messages m ON m.id = f.message_id
+ORDER BY f.updated_at DESC;
+```
+
+The conversation link is `https://<frontend domain>/chats/<thread_id>`.
 
 ## 5. Troubleshooting
 

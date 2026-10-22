@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
 from app.api.chat import router as chat_router
+from app.api.feedback import router as feedback_router
 from app.api.threads import router as threads_router
 from app.config import settings  # Validate configuration before creating the app.
 
@@ -33,6 +34,7 @@ app.state.settings = settings
 app.include_router(auth_router)
 app.include_router(chat_router)
 app.include_router(threads_router)
+app.include_router(feedback_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,

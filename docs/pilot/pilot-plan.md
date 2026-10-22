@@ -57,9 +57,13 @@ can be revisited with numbers.
 
 ## Measuring trust
 
-Every wrong or doubtful answer goes into [answer-issues.csv](answer-issues.csv)
-with `issue_type` one of `wrong_fact`, `wrong_citation`, `missing_information`,
-`wrong_refusal` or `slow_or_failed`, and `severity` `blocking` or `minor`.
+Analysts rate answers in the app: thumbs up, or thumbs down with a reason
+(`wrong_fact`, `wrong_citation`, `missing_information`, `should_have_answered`,
+`too_slow`, `other`) and an optional note. Ratings are stored per reply in
+`message_feedback` (see the runbook for the review query). The developer
+copies each thumbs-down into [answer-issues.csv](answer-issues.csv) with a
+`severity` (`blocking` or `minor`), `status` and fix note; the CSV stays the
+place where issues are triaged and closed.
 Do not delete a conversation you have logged: deletion is permanent and its
 link stops working. The conversation link lets the
 developer trace it (backend logs: `assistant_turn_finished`).

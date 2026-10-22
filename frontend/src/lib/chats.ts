@@ -1,4 +1,4 @@
-import { parseAnswer, parseCitation, type ChatMessage } from '@/lib/chat-parts'
+import { parseAnswer, parseCitation, parseFeedback, type ChatMessage, type Feedback } from '@/lib/chat-parts'
 import { api } from '@/lib/api'
 import { ApiError } from '@/lib/http'
 
@@ -20,6 +20,17 @@ export function parseThread(value: unknown): Thread {
 // Permanent: the server deletes the thread with its messages and citations.
 export async function deleteThread(threadId: string): Promise<void> {
   await api.delete<void>(`/chat/threads/${threadId}`)
+}
+
+// One rating per reply; saving again replaces it.
+export async function saveFeedback(messageId: string, feedback: Feedback): Promise<Feedback> {
+  const saved = parseFeedback(await api.put<unknown>(`/chat/messages/${encodeURIComponent(messageId)}/feedback`, feedback))
+  if (!saved) throw new Error('The server returned invalid feedback.')
+  return saved
+}
+
+export async function clearFeedback(messageId: string): Promise<void> {
+  await api.delete<void>(`/chat/messages/${encodeURIComponent(messageId)}/feedback`)
 }
 
 export async function threadPage(offset: number, signal?: AbortSignal): Promise<Thread[]> {
@@ -56,7 +67,7 @@ export async function messageHistory(threadId: string, signal: AbortSignal): Pro
           }
         }
       }
-      messages.push({ id: value.id, role: value.role === 'USER' ? 'user' : value.role === 'ASSISTANT' ? 'assistant' : 'system', parts })
+      messages.push({ id: value.id, role: value.role === 'USER' ? 'user' : value.role === 'ASSISTANT' ? 'assistant' : 'system', parts, metadata: { feedback: parseFeedback(value.feedback) } })
     }
     if (page.length < 200) return messages
   }

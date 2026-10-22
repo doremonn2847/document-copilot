@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Check, Copy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import AnswerFeedback from '@/components/chat/AnswerFeedback'
 import { answerText, pageLabel, secLink, type AnswerBlock, type ChatMessage, type Citation } from '@/lib/chat-parts'
 
 type ClaimBlock = Extract<AnswerBlock, { kind: 'claim' }>
@@ -90,7 +91,7 @@ function CopyAnswer({ text }: { text: string }) {
     }
     setTimeout(() => setState('idle'), 2000)
   }
-  return <Button type="button" variant="ghost" size="sm" className="mt-2 text-muted-foreground" onClick={() => void copy()}>
+  return <Button type="button" variant="ghost" size="sm" className="text-muted-foreground" onClick={() => void copy()}>
     {state === 'copied' ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
     <span aria-live="polite">{state === 'copied' ? 'Copied' : state === 'failed' ? 'Copy failed' : 'Copy answer'}</span>
   </Button>
@@ -114,7 +115,10 @@ export default function MessageList({ messages, provisional }: { messages: ChatM
         {citations.map((citation) => <Source key={citation.index} messageId={message.id} citation={citation} />)}
         {missing.map((n) => <p key={n} className="rounded border border-dashed p-2 text-sm text-muted-foreground">[{n}] Source unavailable: its stored details could not be read.</p>)}
       </div>}
-      {message.role === 'assistant' && !pending && (answer || text) && <CopyAnswer text={answer ? answerText(answer.data.blocks, citations) : text} />}
+      {message.role === 'assistant' && !pending && (answer || text) && <div className="mt-2 flex flex-wrap items-center gap-1">
+        <CopyAnswer text={answer ? answerText(answer.data.blocks, citations) : text} />
+        <AnswerFeedback messageId={message.id} initial={message.metadata?.feedback ?? null} />
+      </div>}
       {pending && <p className="mt-2 text-xs text-muted-foreground">Provisional reply: not yet saved</p>}
     </article>
   })}</div>

@@ -427,3 +427,112 @@ def test_later_turns_keep_the_title(thread_client, monkeypatch):
     response = client.post("/chat/stream", json=stream_payload())
     assert response.status_code == 200 and '"type": "finish"' in response.text
     assert not [q for q, _ in database.calls if "SET title" in q]
+
+
+MESSAGE_ID = UUID("00000000-0000-0000-0000-000000000020")
+REPLY = {"user_id": USER_ID, "role": "ASSISTANT"}
+
+
+def test_feedback_is_saved_for_own_reply(thread_client):
+    client, database = thread_client
+    saved = {"rating": "down", "reason": "wrong_citation", "comment": "Page 26"}
+    database.results.extend([REPLY, saved])
+    response = client.put(
+        f"/chat/messages/{MESSAGE_ID}/feedback",
+        json={"rating": "down", "reason": "wrong_citation", "comment": " Page 26 "},
+    )
+    assert response.status_code == 200
+    assert response.json() == saved
+    assert database.calls[0][1] == (MESSAGE_ID,)
+    assert "ON CONFLICT (message_id, user_id)" in database.calls[1][0]
+    assert database.calls[1][1][1:] == (
+        MESSAGE_ID,
+        USER_ID,
+        "down",
+        "wrong_citation",
+        "Page 26",
+    )
+
+
+@pytest.mark.parametrize(
+    "found,status",
+    [
+        (None, 404),
+        ({"user_id": UUID(int=2), "role": "ASSISTANT"}, 403),
+        ({"user_id": USER_ID, "role": "USER"}, 422),
+    ],
+)
+def test_feedback_only_on_own_assistant_replies(thread_client, found, status):
+    client, database = thread_client
+    database.results.append(found)
+    response = client.put(
+        f"/chat/messages/{MESSAGE_ID}/feedback", json={"rating": "up"}
+    )
+    assert response.status_code == status
+    assert len(database.calls) == 1
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"rating": "meh"},
+        {"rating": "up", "reason": "wrong_fact"},
+        {"rating": "down", "reason": "rude"},
+        {"rating": "down", "comment": "x" * 501},
+        {"rating": "up", "user_id": str(USER_ID)},
+    ],
+)
+def test_invalid_feedback_is_rejected_before_the_database(thread_client, payload):
+    client, database = thread_client
+    response = client.put(f"/chat/messages/{MESSAGE_ID}/feedback", json=payload)
+    assert response.status_code == 422
+    assert database.calls == []
+
+
+def test_blank_comment_is_stored_as_none(thread_client):
+    client, database = thread_client
+    database.results.extend([REPLY, {"rating": "up", "reason": None, "comment": None}])
+    response = client.put(
+        f"/chat/messages/{MESSAGE_ID}/feedback", json={"rating": "up", "comment": "  "}
+    )
+    assert response.status_code == 200
+    assert database.calls[1][1][-1] is None
+
+
+def test_feedback_can_be_cleared(thread_client):
+    client, database = thread_client
+    database.results.append(REPLY)
+    response = client.delete(f"/chat/messages/{MESSAGE_ID}/feedback")
+    assert response.status_code == 204
+    assert database.calls[1][1] == (MESSAGE_ID, USER_ID)
+
+
+def test_feedback_requires_token(thread_client):
+    client, database = thread_client
+    from app.auth.dependencies import get_current_user
+    from app.main import app
+
+    del app.dependency_overrides[get_current_user]
+    response = client.put(
+        f"/chat/messages/{MESSAGE_ID}/feedback", json={"rating": "up"}
+    )
+    assert response.status_code == 401
+    assert database.calls == []
+
+
+def test_history_returns_the_users_feedback(thread_client):
+    client, database = thread_client
+    message = {
+        "id": MESSAGE_ID,
+        "thread_id": THREAD_ID,
+        "role": "ASSISTANT",
+        "content": "Answer",
+        "parts": None,
+        "sequence": 2,
+        "created_at": NOW,
+        "feedback": {"rating": "up", "reason": None, "comment": None},
+    }
+    database.results.extend([{"user_id": USER_ID}, [message]])
+    response = client.get(f"/chat/threads/{THREAD_ID}/messages")
+    assert response.json()[0]["feedback"] == message["feedback"]
+    assert "f.user_id = t.user_id" in database.calls[1][0]

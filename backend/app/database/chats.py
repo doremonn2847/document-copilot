@@ -90,9 +90,14 @@ async def list_messages(
     cursor = await run_in_threadpool(
         connection.execute,
         """SELECT m.id, m.thread_id, m.role, m.content, m.parts,
-            m.sequence, m.created_at
+            m.sequence, m.created_at,
+            CASE WHEN f.id IS NOT NULL THEN json_build_object(
+                'rating', f.rating, 'reason', f.reason, 'comment', f.comment
+            ) END AS feedback
         FROM public.chat_messages m
         JOIN public.chat_threads t ON t.id = m.thread_id
+        LEFT JOIN public.message_feedback f
+            ON f.message_id = m.id AND f.user_id = t.user_id
         WHERE m.thread_id = %s AND t.user_id = %s
         ORDER BY m.sequence ASC LIMIT %s OFFSET %s""",
         (thread_id, user_id, limit, offset),
@@ -122,6 +127,59 @@ async def require_thread_owner(
         raise HTTPException(404, "Chat thread not found")
     if thread["user_id"] != user_id:
         raise HTTPException(403, "You do not own this chat thread")
+
+
+async def require_reply_owner(
+    connection: psycopg.Connection, user_id: UUID, message_id: UUID
+) -> None:
+    # The privileged connection bypasses RLS: check the reply's thread owner.
+    cursor = await run_in_threadpool(
+        connection.execute,
+        """SELECT t.user_id, m.role FROM public.chat_messages m
+        JOIN public.chat_threads t ON t.id = m.thread_id WHERE m.id = %s""",
+        (message_id,),
+    )
+    message = cursor.fetchone()
+    if message is None:
+        raise HTTPException(404, "Message not found")
+    if message["user_id"] != user_id:
+        raise HTTPException(403, "You do not own this message")
+    if message["role"] != "ASSISTANT":
+        raise HTTPException(422, "Feedback applies to assistant replies only")
+
+
+async def save_feedback(
+    connection: psycopg.Connection,
+    user_id: UUID,
+    message_id: UUID,
+    rating: str,
+    reason: str | None,
+    comment: str | None,
+) -> dict[str, object]:
+    """One rating per user and reply; rating again replaces it."""
+    await require_reply_owner(connection, user_id, message_id)
+    cursor = await run_in_threadpool(
+        connection.execute,
+        """INSERT INTO public.message_feedback
+            (id, message_id, user_id, rating, reason, comment)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        ON CONFLICT (message_id, user_id) DO UPDATE SET rating = EXCLUDED.rating,
+            reason = EXCLUDED.reason, comment = EXCLUDED.comment, updated_at = now()
+        RETURNING rating, reason, comment""",
+        (uuid4(), message_id, user_id, rating, reason, comment),
+    )
+    return cursor.fetchone()
+
+
+async def clear_feedback(
+    connection: psycopg.Connection, user_id: UUID, message_id: UUID
+) -> None:
+    await require_reply_owner(connection, user_id, message_id)
+    await run_in_threadpool(
+        connection.execute,
+        "DELETE FROM public.message_feedback WHERE message_id = %s AND user_id = %s",
+        (message_id, user_id),
+    )
 
 
 async def completed_turn(

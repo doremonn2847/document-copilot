@@ -195,13 +195,39 @@ async def check_endpoints(monkeypatch):
                 VALUES (%s, %s, %s, 1, 'Fixture excerpt', 'AAPL', '10-K', '2025-10-31')""",
                 (uuid4(), answer_id, chunk),
             )
+            # Feedback: only the owner rates a reply; rating again replaces it
+            # and the history returns it.
+            url = f"/chat/messages/{answer_id}/feedback"
+            assert (await client.put(url, json={"rating": "up"})).status_code == 403
             current_id = alice
+            assert (await client.put(url, json={"rating": "up"})).status_code == 200
+            down = {"rating": "down", "reason": "wrong_citation", "comment": "Page"}
+            response = await client.put(url, json=down)
+            assert response.json() == down
+            history = (
+                await client.get(f"/chat/threads/{alice_thread}/messages")
+            ).json()
+            assert history[-1]["feedback"] == down
+            assert history[-2]["feedback"] is None
+            question_url = f"/chat/messages/{history[-2]['id']}/feedback"
+            assert (
+                await client.put(question_url, json={"rating": "up"})
+            ).status_code == 422
+            with (
+                pytest.raises(psycopg.errors.CheckViolation),
+                connection.transaction(),
+            ):
+                connection.execute(
+                    "UPDATE public.message_feedback SET rating = 'up' WHERE message_id = %s",
+                    (answer_id,),
+                )
             response = await client.delete(f"/chat/threads/{alice_thread}")
             assert response.status_code == 204
             for table, column, value in (
                 ("chat_threads", "id", alice_thread),
                 ("chat_messages", "thread_id", alice_thread),
                 ("message_citations", "message_id", answer_id),
+                ("message_feedback", "message_id", answer_id),
             ):
                 assert (
                     connection.execute(

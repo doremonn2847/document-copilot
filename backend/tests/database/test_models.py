@@ -15,6 +15,7 @@ def test_models_map_and_compile_for_postgres():
         "source_documents",
         "document_chunks",
         "message_citations",
+        "message_feedback",
     }
     for table in Base.metadata.sorted_tables:
         ddl = str(CreateTable(table).compile(dialect=postgresql.dialect()))

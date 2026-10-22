@@ -65,7 +65,10 @@ and shows the passage behind every statement, so you can check it in one click.
 ## If something looks wrong
 
 1. Open the citation and compare it with the claim.
-2. Record it in the pilot feedback log (see the pilot plan) with the time, the
-   question and what was wrong. Wrong facts and wrong citations matter most.
+2. Click the **thumbs down** under the answer, pick what went wrong (wrong
+   fact, wrong citation or page, missing information, should have answered,
+   too slow, other) and add a short note, for example the correct figure or
+   page. Wrong facts and wrong citations matter most. A **thumbs up** on good
+   answers helps too. Click the same thumb again to remove your rating.
 3. If you see "You have reached the question limit", wait a few minutes: each
    person can run 2 answers at once and 60 questions per hour.
