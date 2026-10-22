@@ -868,3 +868,7 @@ def test_partial_answer_keeps_a_specific_scope_limitation():
     assert GAPS["outside_scope"] not in render_answer(partial, registry).text
     whole = GroundedAnswer(status="insufficient_evidence", gaps=[gap])
     assert render_answer(whole, registry).text == GAPS["outside_scope"]
+    # Live Q04: an ambiguous_question gap read "Please clarify..." under facts.
+    unclear = gap.model_copy(update={"reason": "ambiguous_question"})
+    partial = answer.model_copy(update={"status": "partial", "gaps": [unclear]})
+    assert GAPS["ambiguous_question"] not in render_answer(partial, registry).text
