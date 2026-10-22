@@ -60,3 +60,30 @@ export function secLink(source: string): string | undefined {
     return url.protocol === 'https:' && (url.hostname === 'www.sec.gov' || url.hostname === 'sec.gov') && !url.username && !url.password ? url.href : undefined
   } catch { return undefined }
 }
+
+export function pageLabel(page: string | null): string {
+  return page ? `${page.includes('–') ? 'pages' : 'page'} ${page}` : 'page unverified'
+}
+
+const CLAIM_PREFIX = { fact: '', calculation: 'Calculation: ', interpretation: 'Interpretation: ' }
+
+// Plain text for pasting into notes and memos: the answer in the order shown,
+// then each source with its quoted passage and SEC link.
+export function answerText(blocks: AnswerBlock[], citations: Citation[]): string {
+  const ordered = [...blocks.filter((b) => b.kind === 'notice'), ...blocks.filter((b) => b.kind === 'claim'), ...blocks.filter((b) => b.kind === 'gap')]
+  const lines = ordered.map((b) => {
+    if (b.kind === 'notice') return `Note: ${b.text}`
+    const label = b.label ? `${b.label}: ` : ''
+    if (b.kind === 'gap') return label + b.text
+    return `${CLAIM_PREFIX[b.claim_kind]}${label}${b.text} ${b.citations.map((n) => `[${n}]`).join(' ')}`
+  })
+  const sources = [...citations].sort((a, b) => a.index - b.index).map((c) => {
+    const link = secLink(c.source_url)
+    return [
+      `[${c.index}] ${c.ticker} ${c.form}, corpus ${c.corpus_year ?? 'unknown'}, ${c.fiscal_year ? `FY ${c.fiscal_year}` : 'fiscal year unverified'}, filed ${c.filing_date}, ${pageLabel(c.page)}${c.section ? `, ${c.section}` : ''}`,
+      `    "${c.excerpt.replace(/\n/g, '\n     ')}"`,
+      ...(link ? [`    ${link}`] : []),
+    ].join('\n')
+  })
+  return [...lines, ...(sources.length ? ['Sources', ...sources] : [])].join('\n\n')
+}

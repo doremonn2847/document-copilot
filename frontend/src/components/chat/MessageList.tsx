@@ -1,4 +1,7 @@
-import { secLink, type AnswerBlock, type ChatMessage, type Citation } from '@/lib/chat-parts'
+import { useState } from 'react'
+import { Check, Copy } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { answerText, pageLabel, secLink, type AnswerBlock, type ChatMessage, type Citation } from '@/lib/chat-parts'
 
 type ClaimBlock = Extract<AnswerBlock, { kind: 'claim' }>
 
@@ -69,10 +72,28 @@ function Source({ messageId, citation: c }: { messageId: string; citation: Citat
     <summary className="cursor-pointer rounded focus-visible:outline focus-visible:outline-2">[{c.index}] {c.ticker} {c.form} · corpus {c.corpus_year ?? 'unknown'} · {c.fiscal_year ? `FY ${c.fiscal_year}` : 'fiscal year unverified'}</summary>
     <blockquote className="my-2 whitespace-pre-wrap break-words border-l-2 pl-3">{c.excerpt}</blockquote>
     <p className="text-xs text-muted-foreground">
-      Filed {c.filing_date} · {c.page ? `${c.page.includes('–') ? 'pages' : 'page'} ${c.page}` : 'page unverified'}{c.section ? ` · ${c.section}` : ''} · {c.source_kind === 'original_table_context' ? 'original table context via ' : ''}chunk {c.chunk_index}
+      Filed {c.filing_date} · {pageLabel(c.page)}{c.section ? ` · ${c.section}` : ''} · {c.source_kind === 'original_table_context' ? 'original table context via ' : ''}chunk {c.chunk_index}
     </p>
     {link && <a href={link} target="_blank" rel="noopener noreferrer" className="underline">Original SEC filing</a>}
   </details>
+}
+
+function CopyAnswer({ text }: { text: string }) {
+  const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle')
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(text)
+      setState('copied')
+    } catch {
+      // Clipboard access needs a secure context and can be refused by the browser.
+      setState('failed')
+    }
+    setTimeout(() => setState('idle'), 2000)
+  }
+  return <Button type="button" variant="ghost" size="sm" className="mt-2 text-muted-foreground" onClick={() => void copy()}>
+    {state === 'copied' ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+    <span aria-live="polite">{state === 'copied' ? 'Copied' : state === 'failed' ? 'Copy failed' : 'Copy answer'}</span>
+  </Button>
 }
 
 export default function MessageList({ messages, provisional }: { messages: ChatMessage[]; provisional: boolean }) {
@@ -93,6 +114,7 @@ export default function MessageList({ messages, provisional }: { messages: ChatM
         {citations.map((citation) => <Source key={citation.index} messageId={message.id} citation={citation} />)}
         {missing.map((n) => <p key={n} className="rounded border border-dashed p-2 text-sm text-muted-foreground">[{n}] Source unavailable: its stored details could not be read.</p>)}
       </div>}
+      {message.role === 'assistant' && !pending && (answer || text) && <CopyAnswer text={answer ? answerText(answer.data.blocks, citations) : text} />}
       {pending && <p className="mt-2 text-xs text-muted-foreground">Provisional reply: not yet saved</p>}
     </article>
   })}</div>
