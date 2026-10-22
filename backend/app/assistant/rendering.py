@@ -66,6 +66,7 @@ def render_answer(
     withheld: int = 0,
     advice: bool = False,
     causal: bool = False,
+    uncovered: list[str] | None = None,
 ) -> AcceptedReply:
     indices = {}
     citations = []
@@ -146,6 +147,13 @@ def render_answer(
     if withheld:
         # An answer that lost claims must not read as complete.
         blocks.append({"kind": "notice", "text": WITHHELD_NOTICE})
+    if uncovered:
+        blocks.append(
+            {
+                "kind": "notice",
+                "text": f"No statement in this answer covers {', '.join(uncovered)}; ask about them separately.",
+            }
+        )
     if causal:
         blocks.insert(0, {"kind": "notice", "text": CAUSAL_NOTICE})
     if advice:

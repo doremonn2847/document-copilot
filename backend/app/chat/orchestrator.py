@@ -30,7 +30,7 @@ from app.assistant.outputs import AnswerClaim, EvidenceGap, GroundedAnswer
 from app.assistant.rendering import AcceptedReply, render_answer
 from app.assistant.selection import matches_target, with_coverage
 from app.config import settings
-from app.grounding.claim_context import financial_context_only
+from app.grounding.claim_context import COMPANIES, financial_context_only
 from app.grounding.judge import build_judge, judge_answer, support_errors
 from app.grounding.validator import structural_errors
 from app.retrieval.retriever import DocumentRetriever
@@ -88,6 +88,29 @@ INVESTMENT_ADVICE = re.compile(
     r"|\b(?:price\s+target|stock\s+picks?|undervalued|overvalued|worth\s+buying)\b",
     re.IGNORECASE,
 )
+# "For each company ..." answered only Apple in a live run (client Q09) and
+# never said the other four were missing.
+EVERY_COMPANY = re.compile(
+    r"\b(?:each|every|all(?:\s+five)?|the\s+five|these)\s+(?:of\s+the\s+)?compan(?:y|ies)\b",
+    re.IGNORECASE,
+)
+
+
+def uncovered_companies(
+    question: str, answer: GroundedAnswer, registry: TurnRegistry
+) -> list[str]:
+    """Corpus companies a whole-corpus question got no claim or gap for."""
+    if not EVERY_COMPANY.search(question):
+        return []
+    covered = {
+        registry.passages[ref.chunk_id].ticker
+        for claim in answer.claims
+        for ref in claim.evidence
+        if ref.chunk_id in registry.passages
+    } | {gap.target.ticker for gap in answer.gaps if gap.target and gap.target.ticker}
+    return sorted(set(COMPANIES) - covered)
+
+
 # Deterministic for the same reason: a judge twice dropped the model's own
 # "filings do not prove generative AI improved margins" refusal (client Q10).
 CAUSAL_QUESTION = re.compile(
@@ -314,6 +337,7 @@ async def run_grounded(
                     withheld=sum(len(report["claims"]) for report in deps.withheld),
                     advice=bool(INVESTMENT_ADVICE.search(question)),
                     causal=bool(CAUSAL_QUESTION.search(question)),
+                    uncovered=uncovered_companies(question, answer, deps.registry),
                 ),
                 diagnostics(deps, started),
             )
@@ -364,6 +388,7 @@ async def run_grounded(
                 deps.registry,
                 advice=bool(INVESTMENT_ADVICE.search(question)),
                 causal=bool(CAUSAL_QUESTION.search(question)),
+                uncovered=uncovered_companies(question, answer, deps.registry),
             ),
             diagnostics(deps, started),
         )

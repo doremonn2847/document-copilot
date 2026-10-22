@@ -434,3 +434,19 @@ def test_causal_questions_get_the_fixed_notice_without_the_model(question, causa
     answer, registry = answer_and_registry()
     reply = render_answer(answer, registry, causal=True)
     assert reply.text.startswith(CAUSAL_NOTICE)
+
+
+def test_every_company_question_names_the_companies_it_left_out():
+    # Live Q09: "for each company" answered only Apple and said nothing else.
+    from app.chat.orchestrator import uncovered_companies
+    from tests.assistant.test_grounding import answer_and_registry
+
+    answer, registry = answer_and_registry()
+    ticker = next(iter(registry.passages.values())).ticker
+    missing = uncovered_companies(
+        "For each company, summarize geographic revenue exposure.", answer, registry
+    )
+    assert ticker not in missing and len(missing) == 4
+    assert (
+        uncovered_companies("How does Apple describe iPhone?", answer, registry) == []
+    )
