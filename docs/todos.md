@@ -230,10 +230,14 @@ manual navigation/Stop/logout confirmation remains pending.
 - [x] Restore citations and source passages correctly when reopening old conversations. (Malformed stored parts are skipped instead of hiding the thread.)
 - [x] Add useful empty states and example questions drawn from the supported corpus. (Five examples, each answered live and checked against its quotes.)
 - [x] Show clear messages for no evidence, unavailable sources, authentication expiry, network failures, and interrupted answers; avoid duplicate turns on retry. (Transient re-check failures keep approved users in the workspace.)
-- [ ] Manually verify keyboard use, long answers/tables, scrolling, and common browser sizes.
+- [x] Manually verify keyboard use, long answers/tables, scrolling, and common browser sizes. (Owner browser check 2026-10-22: new-chat page, one-click citations, seven test questions, history after reload, keyboard, narrow window and stream interruptions passed.)
 - [x] Run frontend TypeScript checks, lint, and production build; use manual browser verification per frontend agent instructions. (Checks pass; the manual check is the item above.)
 
 **Gate:** An analyst can ask, verify, and revisit answers without developer assistance.
+
+**Gate passed (owner, 2026-10-22).** One finding moved to phase 8: the Amazon
+segment question sometimes fell back to "figures could not be verified"
+(fixed in bcdbe6f; live confirmation pending).
 
 ## 8. Close the client-brief gaps and validate quality
 
