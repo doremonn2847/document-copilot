@@ -151,11 +151,9 @@ class DocumentRetriever:
                         anchor.neighbors.append(neighbor)
                         seen.add(neighbor.chunk_id)
         warnings = [keywords.warning] if keywords.warning else []
-        if (
-            filters
-            and filters.fiscal_years
-            or any(p.fiscal_year is None for p in passages)
-        ):
+        # Fiscal years come from each filing's own XBRL tag (ingest.fiscal_years);
+        # warn only when a returned filing lacks one.
+        if any(p.fiscal_year is None for p in passages):
             warnings.append(
                 "Fiscal-year coverage is unverified for some corpus rows. Corpus year and filing date are not fiscal years; fiscal-year filters exclude unverified rows."
             )

@@ -134,6 +134,10 @@ hosted backend.
    `uv run python -m ingest.pages` reports coverage per filing (about 97% of
    chunks), and `--write` updates `document_chunks.page`. Run it after every
    ingest; a chunk without a page shows "page unverified".
+5. Fiscal years (free; from each filing's own XBRL tag):
+   `uv run python -m ingest.fiscal_years`, then `--write`. A filing whose
+   tagged year differs from the year its period ended stays NULL and shows
+   "fiscal year unverified".
 
 Cited chunks cannot be deleted: `message_citations.chunk_id` is
 `ON DELETE RESTRICT`, so replacing a filing that analysts have cited needs a
