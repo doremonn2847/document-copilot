@@ -1,0 +1,4 @@
+# Deployment files are read by Linux builders; keep LF on Windows checkouts.
+Dockerfile text eol=lf
+Caddyfile text eol=lf
+*.sh text eol=lf
