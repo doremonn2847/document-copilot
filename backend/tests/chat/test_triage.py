@@ -130,3 +130,14 @@ def test_questions_about_the_app_get_the_fixed_help_text():
     )
     assert result == Triage(route="conversation", topic="about_app", reply=HELP_TEXT)
     assert "[1]" in HELP_TEXT and "NVIDIA" in HELP_TEXT
+
+
+def test_unrelated_requests_get_the_fixed_decline():
+    # Live: model declines named companies or answered "2+2", so the safety
+    # check sent them through the whole pipeline.
+    from app.chat.triage import DECLINE_TEXT
+
+    result = route(
+        "what is 2+2?", [], Triage(route="conversation", topic="unrelated", reply="4")
+    )
+    assert result == Triage(route="conversation", topic="unrelated", reply=DECLINE_TEXT)

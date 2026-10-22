@@ -12,7 +12,7 @@ from typing import Literal
 
 from openai import AsyncOpenAI
 from pydantic import Field
-from pydantic_ai import Agent, ToolOutput
+from pydantic_ai import Agent, NativeOutput
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.usage import UsageLimits
@@ -26,11 +26,11 @@ INSTRUCTIONS = """You are the first step of Document Copilot, an assistant that 
 route=filings for any request about companies, filings, business, finance, products, risks, strategy, figures or anything a filing could answer, including vague and follow-up questions. When unsure, choose filings.
 route=conversation only for greetings, thanks, small talk, questions about what you can do or how to use you, and requests clearly unrelated to companies, business or finance. Set topic: about_app for questions about what you can do, what you cover or how to use you (the server answers those with a fixed help text, so leave reply null); small_talk for greetings, thanks and chat; unrelated for requests outside companies, business and finance.
 
-For small_talk and unrelated, write reply: at most three short, friendly sentences. Never state facts, figures, dates or claims about any company, market or filing, and do not name companies. For an unrelated request (weather, coding, general knowledge) say politely that you only answer questions about the filings in the corpus. Leave standalone_question null.
+For small_talk, write reply: at most three short, friendly sentences. Never state facts, figures, dates or claims about any company, market or filing, and do not name companies. For unrelated requests the server sends a fixed decline, so leave reply null. Leave standalone_question null.
 
 For filings, leave topic null.
 
-For filings, write standalone_question: the latest message rewritten as one self-contained question, resolving references to the conversation (pronouns, "that", "the same", "what about 2023", "and Microsoft?"). Keep the user's wording, companies, years and requested measures; add only what the conversation makes explicit; never answer it. If the message is already self-contained, copy it unchanged. Leave reply null."""
+For filings, write standalone_question: the latest message rewritten as one self-contained question, resolving references to the conversation (pronouns, "that", "the same", "what about 2023", "and Microsoft?"). Keep the user's wording, companies, years and requested measures, and carry over the previous question's topic and measure unless the new message replaces them; add only what the conversation makes explicit; never answer it. A message that points back to the conversation is not self-contained and must be rewritten: "And what about Amazon?" after a question about what Microsoft says Azure provides in 2025 becomes "What does Amazon say about AWS in its 2025 corpus filing?"; "Which of those years had the highest AWS operating income?" after a 2021-2025 comparison becomes "Which year from 2021 to 2025 had the highest AWS operating income in Amazon's 10-K filings?". Copy the message unchanged only when it names everything it asks about. Leave reply null."""
 
 # Server-owned answer to "what can you do?" and how-to questions: accurate
 # scope and usage, which a model reply could not state safely (it named
@@ -43,6 +43,15 @@ HELP_TEXT = (
     "the filings shown do not support. You can compare companies or years, ask "
     'for a ratio or percentage change, and ask follow-ups such as "What about '
     '2023?". I do not give investment advice or use outside data.'
+)
+
+# Server-owned decline for unrelated requests: model declines named
+# companies or answered with numbers ("2+2"), so the safety check sent
+# them through the whole pipeline.
+DECLINE_TEXT = (
+    "I only answer questions about the SEC filings in my corpus, so I can't "
+    "help with that. Try asking about a company's 10-K, for example how "
+    "Microsoft describes Azure."
 )
 
 # Server-side limits on a reply that bypasses grounding.
@@ -67,12 +76,14 @@ def build_triage_agent(settings, client: AsyncOpenAI) -> Agent[None, Triage]:
         OpenAIChatModel(
             settings.openai_chat_model, provider=OpenAIProvider(openai_client=client)
         ),
-        output_type=ToolOutput(Triage, strict=True),
+        # JSON-schema output, not a tool call: gpt-5.4-mini rejects function tools
+        # with a reasoning effort on Chat Completions.
+        output_type=NativeOutput(Triage, strict=True),
         capabilities=[StopAtOutputLimit("triage")],
         retries={"output": 1, "tools": 0},
-        model_settings=bounded_settings(
-            settings.openai_chat_model, 600, settings.assistant_reasoning_effort
-        ),
+        # Low reasoning: with none, live rewrites dropped the topic of the
+        # previous question ("What does Amazon say in its 2025 corpus filing?").
+        model_settings=bounded_settings(settings.openai_chat_model, 1500, "low"),
         instructions=INSTRUCTIONS,
     )
 
@@ -107,6 +118,8 @@ async def triage_turn(question: str, history: list[dict], agent) -> Triage:
     triage = result.output
     if triage.route == "conversation" and triage.topic == "about_app":
         return Triage(route="conversation", topic="about_app", reply=HELP_TEXT)
+    if triage.route == "conversation" and triage.topic == "unrelated":
+        return Triage(route="conversation", topic="unrelated", reply=DECLINE_TEXT)
     if triage.route == "conversation" and safe_reply(triage.reply):
         return Triage(
             route="conversation", topic=triage.topic, reply=triage.reply.strip()
