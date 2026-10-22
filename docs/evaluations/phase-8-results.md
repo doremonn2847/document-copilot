@@ -94,3 +94,11 @@ names, so the artifacts hold the 05:07 runs. Both sets are in the ledger.
   "funding" aspects instead of each claim, and called claims 2–4 "not
   present". No claim survived, so the turn was refused. This is a judge
   reliability limit on large multi-quote table claims, not a check failure.
+- **Judge model check** (owner-approved, 2 requests): the identical Q02 judge
+  input replayed twice with gpt-5.4-mini. Run 1 rejected all five claims; each
+  assessment confirmed the amounts and then failed the claim for lacking
+  margins. Run 2 accepted 2022–2024 but still rejected 2021 for margins and
+  2025 for a North America figure the claim never states; both gap verdicts
+  flipped. Both models judge claims against the whole question instead of
+  each claim's own assertion, so the fix belongs in the judge instructions
+  (coverage is the gaps' job), not in a model switch.
