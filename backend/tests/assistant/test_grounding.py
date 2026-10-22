@@ -874,3 +874,45 @@ def test_partial_answer_keeps_a_specific_scope_limitation():
     unclear = gap.model_copy(update={"reason": "ambiguous_question"})
     partial = answer.model_copy(update={"status": "partial", "gaps": [unclear]})
     assert GAPS["ambiguous_question"] not in render_answer(partial, registry).text
+
+
+def test_large_amount_needs_the_scale_its_own_passage_states():
+    # Live Q09: "revenue of $130,497" came from a table in millions.
+    row = "| Revenue | $ 130,497 | $ 60,922 |"
+    text = f"($ in millions, except per share data) Fiscal Year 2025 Summary. {row}"
+    p = passage(text)
+    registry = TurnRegistry()
+    registry.expose(p, row)
+    registry.expose(p, "Fiscal Year 2025 Summary.")
+
+    def scale_errors(claim_text):
+        claim = AnswerClaim(
+            text=claim_text,
+            evidence=[
+                EvidenceRef(chunk_id=p.chunk_id, exact_quote=q)
+                for q in ("Fiscal Year 2025 Summary.", row)
+            ],
+        )
+        answer = GroundedAnswer(status="answered", claims=[claim])
+        return [
+            e for e in structural_errors(answer, registry, searches=1) if "scale" in e
+        ]
+
+    assert scale_errors("NVIDIA reported revenue of $130,497 for fiscal year 2025.")
+    # A per-share amount is not a table total.
+    p2 = passage(
+        "($ in millions, except per share data) Fiscal Year 2025 EPS was $2.94."
+    )
+    registry.expose(p2, "Fiscal Year 2025 EPS was $2.94.")
+    claim = AnswerClaim(
+        text="NVIDIA reported diluted EPS of $2.94 for fiscal year 2025.",
+        evidence=[
+            EvidenceRef(
+                chunk_id=p2.chunk_id, exact_quote="Fiscal Year 2025 EPS was $2.94."
+            )
+        ],
+    )
+    answer = GroundedAnswer(status="answered", claims=[claim])
+    assert not [
+        e for e in structural_errors(answer, registry, searches=1) if "scale" in e
+    ]

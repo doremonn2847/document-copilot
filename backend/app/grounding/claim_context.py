@@ -309,7 +309,21 @@ def claim_context_errors(
             )
         claim_scales = {s.lower().rstrip("s") for s in SCALE.findall(claim.text)}
         quote_scales = {s.lower().rstrip("s") for s in SCALE.findall(quotes)}
-        if claim_scales != quote_scales:
+        # Live Q09: "revenue of $130,497" from a table in millions passed,
+        # because neither the claim nor its quotes named a scale.
+        unscaled_table_amount = (
+            not claim_scales
+            and any(
+                len(re.sub(r"\D", "", match.group().split(".")[0])) >= 4
+                for match in amounts
+            )
+            and any(
+                SCALE.search(text)
+                for p in passages
+                for text in [p.text, *p.source_context]
+            )
+        )
+        if claim_scales != quote_scales or unscaled_table_amount:
             errors.append(
                 "financial amounts require matching quoted scale (e.g. USD millions); do not omit or infer table units. Cite the table title or heading that states the scale, such as '(in millions)'."
             )
