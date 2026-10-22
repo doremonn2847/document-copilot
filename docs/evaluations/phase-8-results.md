@@ -56,7 +56,7 @@ Reruns 01:52–02:03 with UTF-8 questions. Accuracy was checked claim by claim.
 
 | Case | Result | Accuracy against quotes | Coverage |
 |---|---|---|---|
-| Q01 | **refused** (financial fallback) | Every drafted claim stated mix percentages the writer computed itself; derived numbers need the calculator, which the comparison writer cannot call. | None. Correct outcome, unhelpful answer. |
+| Q01 | **refused** (financial fallback) | Each claim named its filing's period end ("fiscal year ended September 30, 2023"; 28, 2024; 27, 2025) from report-date metadata; the day was flagged as an uncited number. (First recorded here as self-computed mix shares; corrected after reading the flagged numbers, fixed in 5d0f0a9.) | None until the fix. |
 | Q02 | accepted, gaps only | No claim kept: AWS/North America/International amounts were now drafted from table rows but failed currency checks (Amazon prints $ only on some rows) and one claim derived "924". | "Figures could not be verified" per year: safe, unhelpful. |
 | Q03 | accepted | Correct: three Data Center demand claims match their quotes; one claim withheld. | Partial: customer concentration and supply constraints reported as not established. |
 | Q05 | accepted | Correct: Search & other, YouTube ads and Cloud revenue for 2021–2024 match Alphabet's reported figures and the current-year column. | Good: Network and subscriptions lines reported as not established. |
@@ -135,3 +135,15 @@ operating income (2021: $18,532M / $7,271M / $(924)M; 2025: $45,606M /
 $29,619M / $4,750M), each matching its quoted row and current-year column.
 The "margins are not given" gap survived in 1 of 3 runs; in the others the gap
 judge called it unwarranted and withholding dropped it (open item).
+
+## Remaining engineering items (offline fixes, live confirmation pending)
+
+- **Q01 Apple revenue mix** (5d0f0a9): the refusal came from period-end dates,
+  not computed shares. A claim may now name its filing's own period end when
+  it spells out that exact metadata date; a bare "30" or another date still
+  needs a quote.
+- **Dropped "not established" notes** (085564b): a judge-rejected gap is kept
+  when it quotes the question and names a requested aspect (for example
+  "margin") that no claim or claim quote states. On saved runs it keeps the
+  Amazon margin gap and still drops premise rebuttals and the vague-question
+  gap.

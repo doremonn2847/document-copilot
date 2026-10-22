@@ -76,7 +76,8 @@ and seven grounding/retrieval fixes landed (see
 `82bde5b`, none pushed. Offline suite: 377 passed, 15 integration deselected.
 
 **Not done.** Q01 (revenue mix) and Q02 (AWS vs segments) end as safe
-refusals: the writer computes mix shares itself, and Amazon's table rows lack a
+refusals: each claim named its filing's period-end date, which the number check
+mistook for an uncited figure (fixed later in 5d0f0a9), and Amazon's table rows lack a
 currency the checks accept. Negative case N4 ("How did revenue change last
 year?") picks Alphabet instead of asking which company (its earlier service
 failure, caused by tonight's whole-table change, is fixed). The Apple Services
