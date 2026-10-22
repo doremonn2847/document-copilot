@@ -1,0 +1,3 @@
+analyst,date,phase,task,companies,filings_or_years,actual_minutes,estimated_manual_minutes,used_copilot,out_of_scope,notes
+example-analyst,2026-11-02,baseline,"Apple revenue mix by category, 2023-2025",AAPL,2023-2025 10-K,55,,no,no,read three 10-K category tables by hand
+example-analyst,2026-11-09,pilot,"AWS vs North America operating income, 2021-2025",AMZN,2021-2025 10-K,12,60,yes,no,checked five citations

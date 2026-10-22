@@ -1,0 +1,2 @@
+analyst,date_time,conversation_link,question,issue_type,what_was_wrong,citation_number,severity,status,fix_note
+example-analyst,2026-11-09 10:15,https://<frontend domain>/chats/<id>,"How does Amazon describe AWS?",wrong_citation,"[2] quote is about retail, not AWS",2,minor,open,
