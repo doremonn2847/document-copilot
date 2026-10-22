@@ -241,10 +241,10 @@ segment question sometimes fell back to "figures could not be verified"
 
 ## 8. Close the client-brief gaps and validate quality
 
-- [ ] Run all ten client example questions and record evidence coverage, factual accuracy, claim-level citations, location accuracy, latency, and cost.
-- [ ] Include negative cases: unsupported companies/periods, missing figures, ambiguous questions, and claims that the filings cannot establish (especially AI causing margin improvements).
-- [ ] Verify financial comparisons respect units, fiscal calendars, segment changes, and restated figures; surface limitations rather than silently comparing incompatible values.
-- [ ] Review failed cases and rerun the affected evaluations after fixes. Citation presence alone is not proof of correctness.
+- [x] Run all ten client example questions and record evidence coverage, factual accuracy, claim-level citations, location accuracy, latency, and cost. (2026-10-22: [phase-8 results](evaluations/phase-8-results.md); all ten answer truthfully, Q03/Q06/Q09 thin for retrieval reasons; locations are section/table, pages still unverified.)
+- [x] Include negative cases: unsupported companies/periods, missing figures, ambiguous questions, and claims that the filings cannot establish (especially AI causing margin improvements). (Seven cases pass; causal and advice questions get fixed server notices.)
+- [x] Verify financial comparisons respect units, fiscal calendars, segment changes, and restated figures; surface limitations rather than silently comparing incompatible values. (Amazon segments, Apple categories, Alphabet revenue lines and the Microsoft ratio verified against quoted rows and columns; scale, currency and period checks tightened. Table-backed calculations remain unsupported.)
+- [x] Review failed cases and rerun the affected evaluations after fixes. Citation presence alone is not proof of correctness. (Every accepted claim was read against its quotes.)
 - [ ] Extend ingestion to the brief's curated 10-K and 10-Q scope for S&P 500 companies across 2020–2025; define the company universe, inventory required filings, and report missing coverage.
 - [ ] Process the broader corpus in resumable batches and verify retrieval/index performance and ingestion cost at that size. Any reduced pilot scope needs explicit client agreement.
 - [ ] Recheck confidentiality with two analyst accounts and ensure the deployed bundle/logs do not expose privileged credentials.
