@@ -923,14 +923,15 @@ def test_citation_page_covers_chunk_text_but_not_borrowed_headings():
 
     heading = "For the fiscal year ended December 31, 2025"  # from the cover page
     row = "| AWS | 39,834 | 45,606 |"
+    caption = "Operating income by segment is as follows (in millions):"
     p = passage("AWS sales increased 20% in 2025.").model_copy(
         update={
             "page": "26\u201327",
-            "source_context": [heading, f"| | 2024 | 2025 |\n{row}"],
+            "source_context": [caption, heading, f"| | 2024 | 2025 |\n{row}"],
         }
     )
     registry = TurnRegistry()
-    for span in (p.text, heading, row):
+    for span in (p.text, caption, heading, row):
         registry.expose(p, span)
     answer = GroundedAnswer(
         status="answered",
@@ -939,7 +940,7 @@ def test_citation_page_covers_chunk_text_but_not_borrowed_headings():
                 text="AWS sales increased 20% in 2025.",
                 evidence=[
                     EvidenceRef(chunk_id=p.chunk_id, exact_quote=q)
-                    for q in (p.text, heading, row)
+                    for q in (p.text, caption, heading, row)
                 ],
             )
         ],
@@ -949,7 +950,8 @@ def test_citation_page_covers_chunk_text_but_not_borrowed_headings():
         for part in render_answer(answer, registry).parts
         if part["type"] == "data-citation"
     ]
-    assert pages == ["26\u201327", None, "26\u201327"]
+    # The caption sits directly above its table, on the chunk's pages.
+    assert pages == ["26\u201327", "26\u201327", None, "26\u201327"]
 
 
 @pytest.mark.parametrize(

@@ -1,3 +1,5 @@
+import re
+
 from pydantic import Field
 
 from app.assistant.calculations import CalculationRecord
@@ -36,6 +38,9 @@ def calculation_text(record: CalculationRecord) -> str:
     )
 
 
+BORROWED_HEADING = re.compile(
+    r"\s*(?:For the Fiscal Year Ended|Fiscal Year \d{4} Compared)", re.IGNORECASE
+)
 WITHHELD_NOTICE = "Some drafted statements were omitted because they could not be verified against the cited filings."
 ADVICE_NOTICE = "I can't give investment recommendations. The following reports only what the cited filings say."
 CAUSAL_NOTICE = "The cited filings report facts and the companies' own explanations; they do not prove causes beyond what the filings themselves state."
@@ -126,16 +131,14 @@ def render_answer(
                                 },
                             ),
                             "index": index,
-                            # The chunk's page range covers its own text and
-                            # table rows; a heading borrowed from elsewhere in
-                            # the filing (cover-page fiscal year) shows none.
-                            "page": p.page
-                            if ref.exact_quote in p.text
-                            or any(
-                                span.startswith("|") and ref.exact_quote in span
-                                for span in p.source_context
-                            )
-                            else None,
+                            # The chunk's page range covers its text, table
+                            # rows and the caption above the table; a fiscal
+                            # heading found elsewhere in the filing (cover page,
+                            # a later "Compared with" heading) shows none.
+                            "page": None
+                            if ref.exact_quote not in p.text
+                            and BORROWED_HEADING.match(ref.exact_quote)
+                            else p.page,
                             "excerpt": ref.exact_quote,
                             "source_kind": "original_table_context"
                             if any(ref.exact_quote in span for span in p.source_context)
