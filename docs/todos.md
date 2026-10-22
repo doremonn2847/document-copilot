@@ -70,8 +70,8 @@ References: [client brief](client-brief.md), [architecture](architecture.md),
 ## 4. Prepare documents for retrieval
 
 Owner scope decision: keep existing converted text for the tutorial. Heading/table
-cleanup, original-page mapping, and verified fiscal-year labels are deferred;
-they do not block pipeline ingestion. Do not present them as verified.
+cleanup is deferred; it does not block pipeline ingestion. Original-page mapping
+and verified fiscal years were added on 2026-10-23 (see below).
 
 - [ ] Review the SEC downloader's identifying user-agent, request pacing, and error handling before additional downloads.
 - [x] Convert all 25 existing filings into Markdown and retain source URL/accession metadata; use the extracted text as-is for the tutorial.
@@ -79,7 +79,9 @@ they do not block pipeline ingestion. Do not present them as verified.
 - [x] Store documents and metadata in Supabase; use a stable identifier so rerunning ingestion does not create duplicates.
 - [x] Implement token-aware chunking with contextualized inputs and an exact token limit; preserve available Docling context without inventing missing headings.
   - Local preview verified on Apple 2025: 164 chunks, max 1,017 tokens. Owner approved `data/chunks/selected-chunk.md` and later accepted extraction limitations for the tutorial.
-- [x] Store chunk text, ordering, source URL/hashes, company/corpus-year/filing-type metadata, and available sections; leave unverified pages/fiscal years empty. Original offsets/page mapping are deferred.
+- [x] Store chunk text, ordering, source URL/hashes, company/corpus-year/filing-type metadata, and available sections; leave unverified pages/fiscal years empty.
+- [x] Printed page ranges from the original SEC HTML (`ingest.pages`, 2026-10-23): 5,260 of 5,396 chunks (97.5%); 99.89% of 32,656 uniquely located sentences fall within their chunk's range; chunks that cannot be placed within three pages stay "page unverified".
+- [x] Verified fiscal years (`ingest.fiscal_years`, 2026-10-23): each filing's own `dei:DocumentFiscalYearFocus` tag, kept only when it equals the year its reporting period ended; all 25 filings verified.
 - [x] Generate embeddings with the configured model and dimensions; batch requests, handle transient failures, and record enough progress to resume.
   - [x] Single-chunk trial passed, then Apple 2025 completed with 164 chunks. Full-filing rerun reused all chunks with zero API tokens. Three real-question vector searches found relevant passages.
 - [x] Make refresh/re-chunk behavior explicit so outdated chunks cannot remain mixed with new ones: reject changed source/config/content; require an explicit future refresh workflow instead of silently replacing cited chunks.
@@ -96,7 +98,7 @@ and extraction fidelity remain explicitly deferred by the owner.
 - [x] Embed questions using the indexed `text-embedding-3-small` model and 1536 dimensions; validate responses and question limits.
 - [x] Implement bounded pgvector cosine search and English Postgres full-text search with identical completed-filing/model/company/year/form restrictions.
 - [x] Fuse ranked IDs with RRF (k=60, 50 candidates per branch, top 10), deterministic ties, and deduplicated same-document neighbors.
-- [x] Support company, corpus-year, verified fiscal-year, and filing-type constraints. Never infer fiscal year from filing date or corpus year; current fiscal years remain unverified.
+- [x] Support company, corpus-year, verified fiscal-year, and filing-type constraints. Never infer fiscal year from filing date or corpus year; fiscal years come from each filing's own XBRL tag (all 25 verified on 2026-10-23).
 - [x] Retrieve three primary passages per explicit comparison target (up to 25), prepare the question once, preserve empty targets, and limit target concurrency to two.
 - [x] Add `scripts.smoke_retrieval` with formatted/JSON output, explicit targets, branch rankings, usage, timings, and warnings; no answering model call.
 - [x] Test ranking, SQL parameters/filters, metadata labels, keyword schema/retries, degradation, output limits, and comparison behavior offline; add marked live checks. Offline backend suite: 89 passed.
