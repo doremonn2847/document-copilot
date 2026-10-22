@@ -792,3 +792,64 @@ def test_claim_may_name_its_filings_own_period_end_date():
     assert errors(
         "Apple's net sales were $383,285 million in 2023, for the fiscal year ended September 24, 2023."
     )
+
+
+@pytest.mark.parametrize(
+    "detail, kept",
+    [
+        # Live Q02: judges dropped this although no claim gives a margin.
+        ("AWS operating margin is not provided.", True),
+        # The claims state operating income, so this gap is unwarranted.
+        ("AWS operating income is not provided.", False),
+    ],
+)
+def test_rejected_gap_naming_an_unanswered_requested_aspect_is_kept(detail, kept):
+    import asyncio
+
+    from app.grounding.judge import GapDecision, judge_answer
+    from tests.assistant.test_orchestrator import Agent
+
+    question = "Compare AWS operating income and margin for 2024."
+    quote = "AWS operating income was $39,834 million in 2024."
+    p = passage(quote)
+    registry = TurnRegistry()
+    registry.expose(p, p.text)
+    answer = GroundedAnswer(
+        status="partial",
+        claims=[
+            AnswerClaim(
+                text=quote,
+                evidence=[EvidenceRef(chunk_id=p.chunk_id, exact_quote=quote)],
+            )
+        ],
+        gaps=[
+            EvidenceGap(
+                reason="missing_evidence",
+                request_quote="Compare AWS operating income and margin for 2024.",
+                missing_detail=detail,
+            )
+        ],
+    )
+    judge = Agent(
+        [
+            SupportReport(
+                decisions=[
+                    SupportDecision(
+                        claim_index=0,
+                        supported=True,
+                        reason="supported",
+                        evidence_assessment="Supported.",
+                    )
+                ],
+                gap_decisions=[
+                    GapDecision(
+                        gap_index=0,
+                        warranted=False,
+                        evidence_assessment="Not a missing-evidence issue.",
+                    )
+                ],
+            )
+        ]
+    )
+    report = asyncio.run(judge_answer(question, answer, registry, judge))
+    assert report.gap_decisions[0].warranted is kept

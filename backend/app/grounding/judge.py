@@ -14,7 +14,7 @@ from app.assistant.model_settings import StopAtOutputLimit, bounded_settings
 from app.assistant.outputs import MAX_EVIDENCE_GAPS, Contract, GroundedAnswer
 from app.assistant.rendering import calculation_text
 from app.assistant.selection import matches_target
-from app.grounding.claim_context import unsupported_absence_claim
+from app.grounding.claim_context import FILLER, stems, unsupported_absence_claim
 from app.retrieval.types import SearchFilters
 
 # Bounds judge input when a broad comparison reports many target gaps.
@@ -122,6 +122,72 @@ def support_errors(report: SupportReport, count: int, gap_count: int = 0) -> lis
         for d in report.gap_decisions
         if not d.warranted
     ]
+
+
+# Words that describe the gap rather than name what the question asked for.
+GAP_FORM = {
+    "change",
+    "differ",
+    "trend",
+    "descri",
+    "summar",
+    "explai",
+    "establ",
+    "provid",
+    "figure",
+    "cited",
+    "passag",
+    "appear",
+    "excerp",
+    "retrie",
+    "suppor",
+    "detail",
+    "state",
+    "whethe",
+    "direct",
+    "beyond",
+    "only",
+    "not",
+    "does",
+}
+
+
+def keep_unaddressed(
+    decision: GapDecision, gap, answer: GroundedAnswer, question: str
+) -> GapDecision:
+    """Keep a rejected gap that names a requested aspect no claim states.
+
+    Live judges dropped "AWS operating margin is not provided" when the
+    answer gave only operating income. Keeping a limitation adds no claim; the
+    rule fires only when the gap quotes the question and shares a word with it
+    that appears in no claim or its quotes.
+    """
+    if decision.warranted or not gap.request_quote or not gap.missing_detail:
+        return decision
+    if normalized(gap.request_quote) not in normalized(question):
+        return decision
+    covered = stems(
+        " ".join(
+            claim.text + " " + " ".join(ref.exact_quote for ref in claim.evidence)
+            for claim in answer.claims
+        )
+    )
+    aspects = (
+        (stems(gap.request_quote) & stems(gap.missing_detail))
+        - FILLER
+        - GAP_FORM
+        - covered
+    )
+    if not aspects:
+        return decision
+    return decision.model_copy(
+        update={
+            "warranted": True,
+            "evidence_assessment": "Server check: the question asks about "
+            + ", ".join(sorted(aspects))
+            + ", which no claim in this answer states.",
+        }
+    )
 
 
 CLAIM_TASK = (
@@ -255,6 +321,9 @@ async def judge_answer(
             decision = decision.model_copy(
                 update={"gap_index": judged[decision.gap_index]}
             )
+            # Only the judge's own rejections are rechecked; anchoring failures
+            # the server finds below stay rejected.
+            judge_rejected = not decision.warranted
             anchor = answer.gaps[decision.gap_index].request_quote
             if anchor is not None and registry.request_spans:
                 expected = next(
@@ -276,7 +345,13 @@ async def judge_answer(
                             "evidence_assessment": "The gap verdict did not select its server-owned request ID from the actual question.",
                         }
                     )
-                gap_decisions.append(decision)
+                gap_decisions.append(
+                    keep_unaddressed(
+                        decision, answer.gaps[decision.gap_index], answer, question
+                    )
+                    if judge_rejected
+                    else decision
+                )
                 continue
             if (
                 decision.warranted
@@ -293,7 +368,13 @@ async def judge_answer(
                         "evidence_assessment": "The gap verdict did not anchor the claimed requirement to the actual user request. Remove the unrequested gap or identify the actual unresolved request.",
                     }
                 )
-            gap_decisions.append(decision)
+            gap_decisions.append(
+                keep_unaddressed(
+                    decision, answer.gaps[decision.gap_index], answer, question
+                )
+                if judge_rejected
+                else decision
+            )
     return SupportReport(
         decisions=sorted(decisions, key=lambda decision: decision.claim_index),
         gap_decisions=sorted(gap_decisions, key=lambda decision: decision.gap_index),

@@ -941,7 +941,8 @@ def test_final_attempt_withholds_an_unwarranted_model_gap_without_a_notice():
     gap = EvidenceGap(
         request_quote=d.question,
         reason="missing_evidence",
-        missing_detail="Supplier risk wording is not established.",
+        # Names nothing the question asked for, so no server check keeps it.
+        missing_detail="Supplier wording is not established.",
     )
     nvidia = AnswerClaim(
         text="NVIDIA depends on suppliers.", evidence=[d.registry.evidence_refs["E6"]]
