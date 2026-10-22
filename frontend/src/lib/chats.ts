@@ -33,8 +33,14 @@ export async function clearFeedback(messageId: string): Promise<void> {
   await api.delete<void>(`/chat/messages/${encodeURIComponent(messageId)}/feedback`)
 }
 
-export async function threadPage(offset: number, signal?: AbortSignal): Promise<Thread[]> {
-  const data = await api.get<unknown>(`/chat/threads?limit=50&offset=${offset}`, signal)
+// A renamed title is kept; automatic titles replace only the default one.
+export async function renameThread(threadId: string, title: string): Promise<Thread> {
+  return parseThread(await api.patch<unknown>(`/chat/threads/${encodeURIComponent(threadId)}`, { title }))
+}
+
+export async function threadPage(offset: number, signal?: AbortSignal, search = ''): Promise<Thread[]> {
+  const query = search.trim() ? `&q=${encodeURIComponent(search.trim())}` : ''
+  const data = await api.get<unknown>(`/chat/threads?limit=50&offset=${offset}${query}`, signal)
   if (!Array.isArray(data)) throw new Error('The server returned an invalid conversation list.')
   return data.map(parseThread)
 }

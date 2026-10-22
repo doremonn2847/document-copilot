@@ -24,6 +24,11 @@ class ThreadCreate(BaseModel):
     title: str = Field(default="New chat", min_length=1, max_length=255)
 
 
+class ThreadRename(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+    title: str = Field(min_length=1, max_length=255)
+
+
 class ThreadResponse(BaseModel):
     id: UUID
     title: str
@@ -57,9 +62,22 @@ async def create_thread(
 
 @router.get("", response_model=list[ThreadResponse])
 async def list_threads(
-    user: User, connection: Connection, limit: PageSize = 50, offset: PageOffset = 0
+    user: User,
+    connection: Connection,
+    limit: PageSize = 50,
+    offset: PageOffset = 0,
+    q: Annotated[str | None, Query(max_length=100)] = None,
 ) -> list[dict[str, object]]:
-    return await chats.list_threads(connection, user.id, limit, offset)
+    return await chats.list_threads(
+        connection, user.id, limit, offset, (q or "").strip() or None
+    )
+
+
+@router.patch("/{thread_id}", response_model=ThreadResponse)
+async def rename_thread(
+    thread_id: UUID, payload: ThreadRename, user: User, connection: Connection
+) -> dict[str, object]:
+    return await chats.rename_thread(connection, user.id, thread_id, payload.title)
 
 
 @router.get("/{thread_id}/messages", response_model=list[MessageResponse])

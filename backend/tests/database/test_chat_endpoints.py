@@ -178,8 +178,29 @@ async def check_endpoints(monkeypatch):
                 "First question": "Generated title",
                 "Renamed by analyst": "Renamed by analyst",
             }
+            # Search matches title text literally; rename keeps the new title.
+            await client.post("/chat/threads", json={"title": "Margin 50% up"})
+            search = {}
+            for text in ("50%", "_", "alice"):
+                response = await client.get("/chat/threads", params={"q": text})
+                search[text] = [t["title"] for t in response.json()]
+            assert search == {
+                "50%": ["Margin 50% up"],
+                "_": [],
+                "alice": ["Alice chat"],
+            }
+            response = await client.patch(
+                f"/chat/threads/{alice_thread}", json={"title": "Alice renamed"}
+            )
+            assert response.json()["title"] == "Alice renamed"
             current_id = bob
             assert (await client.post("/chat/stream", json=payload)).status_code == 403
+            assert (
+                await client.patch(f"/chat/threads/{alice_thread}", json={"title": "x"})
+            ).status_code == 403
+            assert (
+                await client.get("/chat/threads", params={"q": "Alice"})
+            ).json() == []
             # Deletion: owner only, and the cascade removes messages and their
             # citations while the cited filing chunk stays.
             assert (

@@ -10,6 +10,9 @@ and shows the passage behind every statement, so you can check it in one click.
   indexed yet; the answer says so instead of guessing.
 - **Sign in** with your Driftwood email. New accounts are approved by the
   administrator before first use. Only you can see your conversations.
+- **Titles:** a new conversation gets a short title from its first question.
+  Rename it with the pencil icon (Enter saves, Esc cancels); a title you set is
+  never replaced. **Search titles** with the box above the list.
 - **Delete a conversation** with the bin icon next to it in the sidebar. This is
   permanent; a conversation that is still answering cannot be deleted until it
   finishes.

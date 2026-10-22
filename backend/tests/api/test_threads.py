@@ -113,7 +113,7 @@ def test_list_applies_owner_and_pagination(thread_client):
     database.results.append([THREAD])
     response = client.get("/chat/threads?limit=10&offset=20")
     assert response.status_code == 200
-    assert database.calls[0][1] == (USER_ID, 10, 20)
+    assert database.calls[0][1] == (USER_ID, None, None, 10, 20)
     assert len(response.json()) == 1
 
 
@@ -536,3 +536,50 @@ def test_history_returns_the_users_feedback(thread_client):
     response = client.get(f"/chat/threads/{THREAD_ID}/messages")
     assert response.json()[0]["feedback"] == message["feedback"]
     assert "f.user_id = t.user_id" in database.calls[1][0]
+
+
+def test_rename_checks_owner_then_updates_title(thread_client):
+    client, database = thread_client
+    database.results.extend([{"user_id": USER_ID}, {**THREAD, "title": "AWS margins"}])
+    response = client.patch(
+        f"/chat/threads/{THREAD_ID}", json={"title": " AWS margins "}
+    )
+    assert response.status_code == 200
+    assert response.json()["title"] == "AWS margins"
+    assert database.calls[1][1] == ("AWS margins", THREAD_ID, USER_ID)
+
+
+@pytest.mark.parametrize("owner,status", [(None, 404), (UUID(int=2), 403)])
+def test_rename_refuses_other_users_and_missing_threads(thread_client, owner, status):
+    client, database = thread_client
+    database.results.append(None if owner is None else {"user_id": owner})
+    response = client.patch(f"/chat/threads/{THREAD_ID}", json={"title": "Mine"})
+    assert response.status_code == status
+    assert len(database.calls) == 1
+
+
+@pytest.mark.parametrize(
+    "payload", [{"title": "  "}, {"title": "a" * 256}, {"title": "x", "user_id": "y"}]
+)
+def test_invalid_rename_is_rejected(thread_client, payload):
+    client, database = thread_client
+    assert client.patch(f"/chat/threads/{THREAD_ID}", json=payload).status_code == 422
+    assert database.calls == []
+
+
+@pytest.mark.parametrize(
+    "query,pattern",
+    [("", None), ("  ", None), (" AWS ", "%AWS%"), ("50%_x", "%50\%\_x%")],
+)
+def test_search_matches_titles_literally(thread_client, query, pattern):
+    client, database = thread_client
+    database.results.append([THREAD])
+    response = client.get("/chat/threads", params={"q": query})
+    assert response.status_code == 200
+    assert database.calls[0][1] == (USER_ID, pattern, pattern, 50, 0)
+
+
+def test_search_text_is_bounded(thread_client):
+    client, database = thread_client
+    assert client.get("/chat/threads", params={"q": "a" * 101}).status_code == 422
+    assert database.calls == []

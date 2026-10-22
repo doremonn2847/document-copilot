@@ -1,3 +1,4 @@
+import re
 from uuid import UUID, uuid4
 
 import psycopg
@@ -66,15 +67,39 @@ async def delete_thread(
     )
 
 
+async def rename_thread(
+    connection: psycopg.Connection, user_id: UUID, thread_id: UUID, title: str
+) -> dict[str, object]:
+    """A renamed title is kept: title generation replaces only the default."""
+    await require_thread_owner(connection, user_id, thread_id)
+    cursor = await run_in_threadpool(
+        connection.execute,
+        """UPDATE public.chat_threads SET title = %s
+        WHERE id = %s AND user_id = %s
+        RETURNING id, title, created_at, updated_at""",
+        (title, thread_id, user_id),
+    )
+    return cursor.fetchone()
+
+
 async def list_threads(
-    connection: psycopg.Connection, user_id: UUID, limit: int, offset: int
+    connection: psycopg.Connection,
+    user_id: UUID,
+    limit: int,
+    offset: int,
+    query: str | None = None,
 ) -> list[dict[str, object]]:
+    # The search text is matched literally: escape LIKE wildcards.
+    pattern = None
+    if query:
+        pattern = "%" + re.sub(r"([\\%_])", r"\\\1", query) + "%"
     cursor = await run_in_threadpool(
         connection.execute,
         """SELECT id, title, created_at, updated_at FROM public.chat_threads
-        WHERE user_id = %s ORDER BY updated_at DESC, id DESC
+        WHERE user_id = %s AND (%s::text IS NULL OR title ILIKE %s)
+        ORDER BY updated_at DESC, id DESC
         LIMIT %s OFFSET %s""",
-        (user_id, limit, offset),
+        (user_id, pattern, pattern, limit, offset),
     )
     return cursor.fetchall()
 
