@@ -359,7 +359,13 @@ async def judge_answer(
                 and (
                     not decision.request_quote
                     or normalized(decision.request_quote) not in normalized(question)
-                    or normalized(decision.request_quote) != normalized(anchor)
+                    # Live Q10: the judge quoted the whole question around the
+                    # gap's own sentence; either quote containing the other
+                    # locates the same request.
+                    or (
+                        normalized(anchor) not in normalized(decision.request_quote)
+                        and normalized(decision.request_quote) not in normalized(anchor)
+                    )
                 )
             ):
                 decision = decision.model_copy(

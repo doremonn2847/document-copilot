@@ -315,6 +315,8 @@ def test_judge_gap_coverage_must_be_exact_before_acceptance(indices):
         ("explicit fiscal-period heading", False),
         ("Describe Azure", False),
         ("provide pricing", True),
+        # Live Q10: the whole question contains the gap's own quote.
+        ("Describe Azure and provide pricing", True),
     ],
 )
 def test_warranted_gap_requires_same_real_request_anchor(judge_quote, accepted):
