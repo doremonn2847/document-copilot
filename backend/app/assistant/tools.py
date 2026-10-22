@@ -8,7 +8,14 @@ from uuid import UUID
 from pydantic_ai import ModelRetry, RunContext
 
 from app.assistant.deps import MAX_EVIDENCE_SPANS, BudgetExceeded, DocumentAgentDeps
-from app.assistant.excerpts import focus_terms, focused_excerpt, relevance, table_rows
+from app.assistant.excerpts import (
+    flattened_table,
+    focus_terms,
+    focused_excerpt,
+    relevance,
+    squeezed,
+    table_rows,
+)
 from app.assistant.facts import calculate_from_facts, prepare_facts
 from app.assistant.outputs import MAX_QUOTE_CHARS, GroundedAnswer
 from app.assistant.rendering import calculation_text
@@ -107,7 +114,10 @@ def expose_groups(
                         if len(deps.registry.evidence_refs) >= MAX_EVIDENCE_SPANS:
                             break
                         key = deps.registry.evidence_id(p, span)
-                        context_output += f"[{key}] {span}\n"
+                        # Docling pads table cells with spaces (about 40% of a
+                        # live search's table text). Claims cite IDs and the
+                        # server keeps the exact span, so only the view shrinks.
+                        context_output += f"[{key}] {squeezed(span)}\n"
             if context_output:
                 prefix += "[Verbatim original-source table context]\n" + context_output
             room = min(
@@ -115,16 +125,24 @@ def expose_groups(
                 deps.settings.assistant_evidence_chars
                 - deps.registry.exposed_characters,
             )
+            text = p.text
+            if selectable and context_output:
+                # The original table is shown above; its flattened copy in the
+                # chunk ("Other,  = .") filled a live search's budget after 5 of
+                # 10 passages. Prose lines stay, each still a source substring.
+                text = "\n".join(
+                    line for line in p.text.split("\n") if not flattened_table(line)
+                )
             excerpt = focused_excerpt(
-                p.text,
-                max(0, min(room, len(p.text) if full else 800)),
+                text,
+                max(0, min(room, len(text) if full else 800)),
                 terms if selectable else set(),
             )
             if not excerpt and not context_output:
                 omitted += 1
                 continue
             displayed = excerpt
-            truncated = excerpt != p.text
+            truncated = excerpt != text
             if selectable:
                 pieces = []
                 budget = remaining - len(prefix) - 30

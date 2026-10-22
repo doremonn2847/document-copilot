@@ -337,3 +337,25 @@ def test_question_words_pick_table_rows_the_search_keywords_missed():
     ]
     assert {"North America", "International", "AWS"} <= set(rows)
     assert "Other" not in rows
+
+
+def test_flattened_table_text_is_not_shown_when_the_original_table_is():
+    # Live: "Other,  = ." fragments filled a search's budget after 5 of 10
+    # passages; the prose after the table must stay citable.
+    flattened = "Total revenue,  = $. Total revenue,  = 130,497. Total revenue,  = ."
+    prose = "Revenue for fiscal year 2025 was $130.5 billion, up 114% from a year ago."
+    table = "| | 2025 | 2024 |\n| Total revenue | 130,497 | 60,922 |"
+    p = passage(f"{flattened}\n{prose}").model_copy(update={"source_context": [table]})
+    d = deps()
+    output = expose_groups(d, [("Search", [p])], focus="total revenue")
+    assert "Total revenue,  =" not in output
+    quotes = [r.exact_quote for r in d.registry.evidence_refs.values()]
+    assert prose in quotes
+    assert any("130,497" in q and q.startswith("|") for q in quotes)
+
+
+def test_flattened_table_text_stays_when_no_original_table_is_found():
+    flattened = "Total revenue,  = $. Total revenue,  = 130,497. Total revenue,  = ."
+    d = deps()
+    output = expose_groups(d, [("Search", [passage(flattened)])], focus="total revenue")
+    assert "130,497" in output

@@ -5,6 +5,8 @@ from bisect import bisect_right
 
 SENTENCE_BREAK = re.compile(r"(?<=[.!?])\s+|\n+")
 YEAR = re.compile(r"\b(?:19|20)\d{2}\b")
+SCALE = re.compile(r"\bin (?:millions|thousands|billions)\b", re.IGNORECASE)
+FLATTENED_CELL = re.compile(r",\s+[^=\n]*=\s")
 
 STOP_WORDS = {
     "the",
@@ -63,6 +65,16 @@ def relevance(text: str, terms: set[str]) -> int:
     return len(terms & {word[:6] for word in re.findall(r"[a-z]{3,}", text.lower())})
 
 
+def squeezed(text: str) -> str:
+    """Display form of a padded Markdown table span; citations keep the original."""
+    return re.sub(r" {2,}", " ", text)
+
+
+def flattened_table(line: str) -> bool:
+    """Docling's flattened table text: "Revenue,  = $. Revenue,  = 130,497. ..."."""
+    return len(FLATTENED_CELL.findall(line)) >= 3
+
+
 def focused_excerpt(text: str, limit: int, terms: set[str]) -> str:
     if limit <= 0:
         return ""
@@ -91,7 +103,11 @@ def table_rows(table: str, limit: int, terms: set[str]) -> list[str]:
     amounts. Each returned line is an exact source substring, in table order.
     """
     lines = [line for line in table.split("\n") if re.search(r"\w", line)]
-    headers = [i for i, line in enumerate(lines[:6]) if YEAR.search(line)]
+    # The units row ("(In millions)") has no year or amount and was ranked out,
+    # so a correct NVIDIA total revenue failed the quoted-scale check.
+    headers = [
+        i for i, line in enumerate(lines[:8]) if YEAR.search(line) or SCALE.search(line)
+    ]
     # Label-only rows ("Operating Income (Loss)") carry no amounts.
     ranked = sorted(
         (i for i in range(len(lines)) if i not in headers),
@@ -102,8 +118,8 @@ def table_rows(table: str, limit: int, terms: set[str]) -> list[str]:
         if i not in headers and terms and not relevance(lines[i], terms):
             break
         # Leave room for the "[E12] " ID and newline the caller adds per row.
-        if size + len(lines[i]) + 10 > limit:
+        if size + len(squeezed(lines[i])) + 10 > limit:
             continue
         chosen.append(i)
-        size += len(lines[i]) + 10
+        size += len(squeezed(lines[i])) + 10
     return [lines[i] for i in sorted(chosen)]
