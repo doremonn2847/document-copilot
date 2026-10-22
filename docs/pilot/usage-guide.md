@@ -33,6 +33,9 @@ and shows the passage behind every statement, so you can check it in one click.
 - Greetings, thanks and "what can you do?" get a short direct reply without
   searching the filings; unrelated requests (weather, coding) are declined.
 - **Ctrl+Enter** sends. Use the example questions on the new-chat page to start.
+- Answers usually take 15–40 seconds; the line above the input shows the
+  current step and the seconds elapsed. After 45 seconds a note says the
+  question is taking longer than usual; replies stop at two minutes.
 
 ## Reading an answer
 

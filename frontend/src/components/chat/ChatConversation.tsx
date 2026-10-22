@@ -12,6 +12,22 @@ import { streamFetch } from '@/lib/http'
 import { useAuth } from '@/lib/auth'
 import { clearPending, savePending } from '@/lib/pending-chat'
 
+// Answers usually take 15–40 s; a static line can look stuck. Mounted per
+// answer, so the count restarts with each question.
+function BusyStatus({ progress }: { progress: string }) {
+  const [seconds, setSeconds] = useState(0)
+  useEffect(() => {
+    const start = Date.now()
+    const timer = setInterval(() => setSeconds(Math.floor((Date.now() - start) / 1000)), 1000)
+    return () => clearInterval(timer)
+  }, [])
+  return <>
+    {/* The ticking count is hidden from screen readers; the stage and the slow note are announced. */}
+    <p className="text-muted-foreground">{progress} <span aria-hidden="true" className="tabular-nums">· {seconds} s</span></p>
+    {seconds >= 45 && <p className="text-muted-foreground">This question is taking longer than usual. Answers can take up to two minutes; keep waiting or stop the reply.</p>}
+  </>
+}
+
 export default function ChatConversation({ threadId, history, initial, recovered, active, onSaved, onPendingChange }: {
   threadId: string; history: ChatMessage[]; initial: FirstMessage | null; recovered: FirstMessage | null
   active: boolean; onSaved: () => void; onPendingChange: (threadId: string, pending: boolean) => void
@@ -94,7 +110,7 @@ export default function ChatConversation({ threadId, history, initial, recovered
       <div ref={bottom} />
     </div>
     <div aria-live="polite" className="mb-3 text-sm">
-      {busy && <p className="text-muted-foreground">{progress}</p>}
+      {busy && <BusyStatus progress={progress} />}
       {failure && <div className="space-y-2"><p role="alert" className="text-destructive">{failure}</p><Button variant="outline" disabled={busy} onClick={() => void retry()}>Retry question</Button></div>}
     </div>
     <MessageComposer onSend={send} busy={busy} blocked={failure !== null} onStop={() => {
