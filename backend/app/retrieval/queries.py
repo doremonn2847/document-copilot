@@ -46,7 +46,10 @@ def hydrate_passages(rows: list[dict]) -> list[RetrievedPassage]:
 
 def fetch_rows(settings: Settings, sql: str, params: dict) -> list[dict]:
     with psycopg.connect(
-        str(settings.database_url), connect_timeout=10, row_factory=dict_row
+        str(settings.database_url),
+        connect_timeout=10,
+        row_factory=dict_row,
+        prepare_threshold=None,  # transaction-mode pooler compatible
     ) as connection:
         connection.execute("SET TRANSACTION READ ONLY")
         connection.execute("SET LOCAL statement_timeout = '10s'")

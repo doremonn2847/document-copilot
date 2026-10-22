@@ -12,7 +12,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("user_id", type=UUID)
     args = parser.parse_args()
-    with psycopg.connect(str(settings.database_url), connect_timeout=10) as connection:
+    with psycopg.connect(
+        str(settings.database_url), connect_timeout=10, prepare_threshold=None
+    ) as connection:
         result = connection.execute(
             """INSERT INTO public.users (id, email)
             SELECT id, email FROM auth.users

@@ -18,6 +18,9 @@ async def get_connection() -> AsyncIterator[psycopg.Connection]:
             str(settings.database_url),
             connect_timeout=10,
             row_factory=dict_row,
+            # Supabase's transaction-mode pooler (port 6543) cannot keep
+            # server-side prepared statements; harmless in session mode.
+            prepare_threshold=None,
         )
         await run_in_threadpool(
             connection.execute, "SET LOCAL statement_timeout = '10s'"
