@@ -119,3 +119,19 @@ names, so the artifacts hold the 05:07 runs. Both sets are in the ledger.
   then drop it, so the answer shows the verified amounts without saying
   margins are missing. No false claim results, but gap judging stays the
   weak point to address next.
+
+## Amazon segment fix confirmed (owner-approved, 23 of 30 requests)
+
+The owner's browser check showed the Amazon segment question passing at 08:18
+and falling back to "figures could not be verified" at 09:04. Cause: table
+rows were picked by search keywords that named only AWS, so North America and
+International were citable only from Docling's flattened text, which never
+shows $. Fixed in bcdbe6f (rows also picked by the question's words; flattened
+quotes take currency from their own source table).
+
+Three live runs with gpt-5.4-mini answering and judging: **3 of 3 complete
+answers**. Every year 2021–2025 has AWS, North America and International
+operating income (2021: $18,532M / $7,271M / $(924)M; 2025: $45,606M /
+$29,619M / $4,750M), each matching its quoted row and current-year column.
+The "margins are not given" gap survived in 1 of 3 runs; in the others the gap
+judge called it unwarranted and withholding dropped it (open item).

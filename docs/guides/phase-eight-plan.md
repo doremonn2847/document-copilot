@@ -26,7 +26,7 @@ The owner raised the paid grant to 400 requests (cumulative) for this phase.
    ambiguous question and "AI caused margin improvement" causal claims
    (smoke cases S04, S05 plus new ones). The right result is a refusal or a
    truthful gap, never an invented fact.
-3. [ ] **Financial comparisons.** Check units, fiscal calendars and segment
+3. [x] **Financial comparisons.** Done: Amazon segments complete in 3 of 3 live runs with correct column binding; Alphabet revenue lines and the Microsoft ratio verified; Apple Services percent change refused by design (narrative-only calculator). Check units, fiscal calendars and segment
    names in the numeric answers from tasks 1–2 (Q02, Q05, Q08, the Microsoft
    ratio, Apple Services percent change S03).
 4. [ ] **Fix and rerun.** In progress: withholding for every answer, fixed-key verdicts, scaled comparison budget, comparison-shape instruction, relevant table rows, quoted-wording check and currency/scale feedback are committed; Q01/Q02 derived and unit-less figures remain. Fix the failures found in tasks 1–3 where a
