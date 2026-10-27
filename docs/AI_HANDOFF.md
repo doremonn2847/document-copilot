@@ -266,14 +266,15 @@ Historical rationale: [guided comparisons](guides/guided-comparisons.md),
 Later dated decisions supersede the original phase-6 failures. Ignored diagnostics
 under `data/chunks/assistant/` are local evidence, not a portable runtime dependency.
 
-## Public demo extension — deployed disabled, 2026-10-27
+## Public demo extension — live, 2026-10-27
 
 The owner approved isolated Supabase anonymous identities, up to three generated
 attempts per identity, one active attempt, 100 admissions/day and a shared $1/day
 anonymous OpenAI pool. Code is committed/pushed and both Railway services deployed
-successfully; migration `d90e7c5a2101` is applied. `DEMO_ENABLED=false` remains
-explicit on the backend. Real guest and monetary-concurrency checks remain pending.
-See [release evidence](operations/release-2026-10-27.md).
+successfully; migration `d90e7c5a2101` is applied. Supabase anonymous sign-in and
+hosted `DEMO_ENABLED=true` are enabled. Guest isolation, disposable-schema ledger
+concurrency and two capped hosted questions passed. See
+[launch evidence](operations/public-demo-launch-2026-10-27.md).
 
 See [approved design](superpowers/specs/2026-10-27-public-demo-design.md),
 [implementation plan](superpowers/plans/2026-10-27-public-demo.md), and
@@ -290,8 +291,8 @@ accounts remain outside it. Normal registration still requires approval.
 
 The owner explicitly authorized deployment; a private affected-profile/policy
 snapshot preceded the additive migration. This is not a full database/Auth backup
-or restore test. Remaining gates: disposable/live concurrency and RLS behavior,
-Supabase anonymous Auth settings,
-two-guest isolation/manual browser checks, separately approved paid smoke checks,
-and rollout with demo disabled before public enablement. No real-user pilot or
-accuracy/time-saving claim follows from the local feature tests.
+or restore test. Remaining limitations include no CAPTCHA/automatic guest cleanup,
+deferred full restore and hosted answer-capacity tests, existing answer-quality
+limitations and per-identity rather than per-person quotas. The two launch checks
+charged $0.019643 with no outstanding reservations. No real-user pilot or general
+accuracy/time-saving claim follows from them.

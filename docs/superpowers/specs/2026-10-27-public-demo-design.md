@@ -1,11 +1,13 @@
 # Public Try demo: proposed design
 
-Date: 2026-10-27 (Asia/Bangkok). Status: **owner approved; migrated and deployed disabled; public enablement checks pending**.
+Date: 2026-10-27 (Asia/Bangkok). Status: **owner approved; public demo enabled after recorded guest, ledger and paid checks**.
 The owner requested anonymous full-function demo access and selected a **$1/day
 shared OpenAI ceiling**. Three generated attempts per visitor is the proposed
 starting allowance, now approved. The later owner-authorized release applied the
 additive migration and deployed both services with demo disabled; see
-[release evidence](../../operations/release-2026-10-27.md).
+[release evidence](../../operations/release-2026-10-27.md). The subsequent
+[public launch](../../operations/public-demo-launch-2026-10-27.md) enabled the
+approved guest flow after the verification and fresh spending approval.
 
 ## Purpose and scope
 

@@ -303,7 +303,7 @@ check because the password was not supplied to the agent. Verify in a separate
 private browser session that sign-in succeeds and existing owner conversations
 are absent. Account provisioning made no paid model calls.
 
-## Public Try demo — deployed disabled, 2026-10-27
+## Public Try demo — live, 2026-10-27
 
 The owner approved isolated Supabase anonymous visitors, three generated attempts
 per identity and a shared $1/day demo OpenAI pool on 2026-10-27. Implementation,
@@ -313,11 +313,13 @@ configuration, retained-cost policy and the exact rollout checklist are in
 This is a new schema/auth change, separate from phase 9's provisional acceptance.
 Migration `d90e7c5a2101` was applied before the owner-authorized release; both
 services report SUCCESS. [Release evidence](release-2026-10-27.md) records the
-commit, deployment IDs and hosted checks. Supabase anonymous sign-in,
-two-guest/direct-REST isolation,
-real concurrent ledger checks and paid smoke checks remain pending. Keep
-`DEMO_ENABLED=false` until those checks pass. Apply the additive migration before
-releasing the new backend: `/auth/me` now reads `users.is_demo` for all users.
+commit, deployment IDs and initial hosted checks. Later
+[launch evidence](public-demo-launch-2026-10-27.md) records enabled Supabase
+anonymous sign-in, hosted `DEMO_ENABLED=true`, two-guest/direct-REST isolation,
+disposable-schema concurrent ledger checks and two successful capped paid questions.
+The source remains unchanged; the configuration-only backend deployment is
+`297dc311-6b3d-4024-abf9-bb5529c0c860`. Set `DEMO_ENABLED=false` and redeploy the
+backend to halt new public generation while preserving history and normal users.
 
 The existing shared reviewer account remains a regular account outside the demo
 pool. No credentials are exposed by the new button. A private affected-profile
