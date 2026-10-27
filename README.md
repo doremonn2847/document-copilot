@@ -2,7 +2,7 @@
 
 An internal AI chatbot that lets analysts query a corpus of documents in plain English and get sourced, citable answers.
 
-Built live on YouTube as part of the [**Build a Complete**](https://youtube.com/@daveebbelaar) series — episode 1.
+Referenced, implemented, and extended an existing tutorial of the [**Build a Complete**](https://youtube.com/@daveebbelaar) series — episode 1.
 
 ## The client
 
