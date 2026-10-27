@@ -41,4 +41,5 @@ Thumbs.db
 # Logs
 *.log
 logs/
+/.superpowers/
 /data/downloads.partial/

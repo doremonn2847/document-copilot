@@ -11,6 +11,7 @@ from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.usage import RunUsage, UsageLimits
 
+from app.demo.errors import demo_failure
 from app.retrieval.types import KeywordResult, RetrievalUsage, SearchFilters
 
 if TYPE_CHECKING:
@@ -167,6 +168,8 @@ async def extract_keywords(
             ),
         )
     except (AgentRunError, OpenAIError, TimeoutError, ValueError) as error:
+        if failure := demo_failure(error):
+            raise failure
         return KeywordResult(
             warning=f"Lexical search unavailable: keyword extraction failed ({type(error).__name__}).",
             usage=RetrievalUsage(

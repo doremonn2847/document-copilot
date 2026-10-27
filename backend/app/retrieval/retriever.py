@@ -9,6 +9,7 @@ from uuid import UUID
 
 from openai import AsyncOpenAI
 
+from app.demo.client import demo_client_options
 from app.retrieval import queries
 from app.retrieval.embeddings import embed_query, validate_question
 from app.retrieval.fusion import reciprocal_rank_fusion
@@ -44,6 +45,7 @@ class DocumentRetriever:
             client
             if client is not None
             else AsyncOpenAI(
+                **demo_client_options(),
                 api_key=settings.openai_api_key.get_secret_value(),
                 timeout=30,
                 max_retries=1,

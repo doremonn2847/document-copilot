@@ -67,8 +67,9 @@ Uvicorn server is needed. Run for each approved account; an unapproved account
 can be checked with `--expected-status 403`. The account must already have a password.
 
 The RLS test uses temporary database identities and rolls back every fixture.
-Token rejection cases use mocked Auth responses; real invited-user sign-in still
-needs testing with actual sessions. No tokens or passwords belong in committed files.
+Token rejection cases use mocked Auth responses. The owner verified two approved
+browser accounts and one unapproved account locally on 2026-10-23; hosted-session
+checks remain part of phase 9. No tokens or passwords belong in committed files.
 
 ## Chat thread endpoints
 
@@ -99,8 +100,9 @@ uv run python -m pytest tests/database/test_chat_endpoints.py -m integration -q
 ```
 
 The live endpoint test overrides authentication with temporary identities,
-executes real SQL, and rolls back all fixtures. Real browser chat verification
-will follow when the chat UI and streaming endpoint are implemented.
+executes real SQL, and rolls back all fixtures. The chat UI and grounded stream
+are implemented; phases 6–8 have recorded owner acceptance. See the
+[delivery status](../docs/operations/delivery-status.md) for remaining hosted checks.
 
 ## Chat stream
 
@@ -125,7 +127,7 @@ Earlier client messages do not determine database ownership or stored history.
 The question and reply are inserted together in one transaction. `finish` is
 sent only after commit. Cancellation observed before commit rolls back the
 turn; persistence failures emit a safe `error` event without `finish`.
-The upcoming UI must mark missing completion as interrupted, even if all text
+The UI marks missing completion as interrupted, even if all text
 arrived. A disconnect just after commit may leave a saved turn; reload history
 to recover it. Retrying the same question ID replays that saved answer rather
 than inserting another pair. Reusing an ID for different text returns 409.
@@ -141,3 +143,9 @@ uv run python -m pytest tests/database/test_chat_endpoints.py -m integration -q 
 
 The live test keeps stream commits inside a rollback-only fixture transaction.
 Durability ordering and commit failure behavior are covered by unit tests.
+
+## Public demo implementation
+
+Anonymous Try demo access is implemented locally and disabled by default. Read
+[the demo setup and rollout notes](app/demo/README.md) before enabling it or
+applying migration `d90e7c5a2101`. Registered-account approval remains required.

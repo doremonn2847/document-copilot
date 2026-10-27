@@ -267,6 +267,65 @@ def test_completed_stream_retry_does_not_duplicate(thread_client):
     assert not any("INSERT" in query for query, _ in database.calls)
 
 
+def demo_user_override():
+    from app.auth.dependencies import CurrentUser
+
+    return CurrentUser(id=USER_ID, email=None, is_demo=True)
+
+
+def test_demo_denial_is_before_sse_and_after_ownership(thread_client, monkeypatch):
+    from app.auth.dependencies import get_current_user
+    from app.demo.errors import DemoUnavailable
+    from app.demo.store import DemoStore
+    from app.main import app
+
+    async def deny(*args):
+        raise DemoUnavailable("visitor_limit")
+
+    app.dependency_overrides[get_current_user] = demo_user_override
+    monkeypatch.setattr(DemoStore, "begin", deny)
+    client, database = thread_client
+    database.results.extend([{"user_id": USER_ID}, []])
+    response = client.post("/chat/stream", json=stream_payload())
+    assert response.status_code == 429
+    assert response.json()["detail"] == {
+        "code": "demo_limit",
+        "reason": "visitor_limit",
+    }
+    assert "text-delta" not in response.text
+
+
+def test_demo_completed_replay_bypasses_disabled_admission(thread_client, monkeypatch):
+    from uuid import uuid5
+
+    from app.auth.dependencies import get_current_user
+    from app.demo.store import DemoStore
+    from app.main import app
+
+    async def must_not_begin(*args):
+        raise AssertionError("Replaying is free")
+
+    app.dependency_overrides[get_current_user] = demo_user_override
+    monkeypatch.setattr(DemoStore, "begin", must_not_begin)
+    client, database = thread_client
+    database.results.extend(
+        [
+            {"user_id": USER_ID},
+            [
+                {"id": uuid5(THREAD_ID, "user:question-1"), "content": "Revenue?"},
+                {
+                    "id": uuid5(THREAD_ID, "assistant:question-1"),
+                    "content": "Saved reply",
+                    "parts": [],
+                },
+            ],
+        ]
+    )
+    response = client.post("/chat/stream", json=stream_payload())
+    assert response.status_code == 200 and "Saved reply" in response.text
+    assert not any("INSERT" in sql for sql, _ in database.calls)
+
+
 def test_stream_lock_conflict(thread_client, monkeypatch):
     import psycopg
 

@@ -7,6 +7,7 @@ export type AuthContextValue = {
   session: Session | null
   status: AccessStatus
   error: string | null
+  isDemo: boolean
   checkApproval: () => void
 }
 

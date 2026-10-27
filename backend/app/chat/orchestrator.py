@@ -31,6 +31,8 @@ from app.assistant.rendering import AcceptedReply, render_answer
 from app.assistant.selection import matches_target, with_coverage
 from app.chat.triage import Triage, build_triage_agent, triage_turn
 from app.config import settings
+from app.demo.client import demo_client_options
+from app.demo.errors import demo_failure
 from app.grounding.claim_context import COMPANIES, financial_context_only
 from app.grounding.judge import build_judge, judge_answer, support_errors
 from app.grounding.validator import structural_errors
@@ -410,6 +412,8 @@ async def safe_triage(question: str, history: list[dict], client) -> Triage:
             question, history, build_triage_agent(settings, client)
         )
     except Exception as error:  # noqa: BLE001 -- fall back to the pipeline
+        if failure := demo_failure(error):
+            raise failure
         logger.warning("assistant_triage_failed", failure_type=type(error).__name__)
         return Triage(route="filings", standalone_question=question)
 
@@ -434,6 +438,7 @@ async def generate_reply(
         async with (
             asyncio.timeout(settings.assistant_deadline_seconds),
             AsyncOpenAI(
+                **demo_client_options(),
                 api_key=settings.openai_api_key.get_secret_value(),
                 max_retries=0,
                 timeout=60,
@@ -471,6 +476,11 @@ async def generate_reply(
                 category = "accepted"
                 return result
     except Exception as error:  # noqa: BLE001 -- sanitize the provider boundary
+        if failure := demo_failure(error):
+            category = (
+                "demo_unavailable" if failure.reason == "unavailable" else "demo_limit"
+            )
+            raise AssistantFailure(category, {"reason": failure.reason}) from None
         category = (
             "model_output_limit"
             if isinstance(error, ModelOutputLimitExceeded)

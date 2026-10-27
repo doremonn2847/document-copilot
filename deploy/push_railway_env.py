@@ -6,7 +6,8 @@ Run it yourself after `railway login` and `railway link` (from the repo root):
         --frontend-url https://<frontend domain>
 
 Backend: every key in backend/.env except SUPABASE_SERVICE_ROLE_KEY (only admin
-scripts need it) and ALLOWED_ORIGINS, which becomes the frontend URL; a
+scripts need it), standalone DATABASE_PASSWORD (already carried by DATABASE_URL),
+and ALLOWED_ORIGINS, which becomes the frontend URL; a
 Supabase pooler DATABASE_URL is switched to the transaction pooler (port 6543).
 Frontend: the public VITE_SUPABASE_* keys from frontend/.env, plus
 VITE_API_BASE_URL set to the backend URL. Values go to `railway variable set
@@ -14,13 +15,14 @@ VITE_API_BASE_URL set to the backend URL. Values go to `railway variable set
 """
 
 import argparse
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
-BACKEND_SKIP = {"SUPABASE_SERVICE_ROLE_KEY", "ALLOWED_ORIGINS"}
+BACKEND_SKIP = {"SUPABASE_SERVICE_ROLE_KEY", "DATABASE_PASSWORD", "ALLOWED_ORIGINS"}
 FRONTEND_KEYS = ("VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY")
 
 
@@ -61,12 +63,17 @@ def transaction_pooler(database_url: str) -> str:
 
 
 def push(service: str, values: dict[str, str]) -> None:
+    railway = shutil.which("railway")
+    if railway is None:
+        raise SystemExit(
+            "Railway CLI was not found on PATH; install it before pushing configuration"
+        )
     for key, value in values.items():
         if not value:
             raise SystemExit(f"{key} is empty; fix the local .env first")
         result = subprocess.run(
             [
-                "railway",
+                railway,
                 "variable",
                 "set",
                 key,
@@ -81,9 +88,8 @@ def push(service: str, values: dict[str, str]) -> None:
             check=False,
         )
         if result.returncode != 0:
-            # Railway's error text does not include the value sent on stdin.
             raise SystemExit(
-                f"Setting {key} on {service} failed: {result.stderr.strip()}"
+                f"Setting {key} on {service} failed (Railway exit {result.returncode}); service output withheld"
             )
         print(f"{service}: set {key}")
 

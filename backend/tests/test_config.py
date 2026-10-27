@@ -184,7 +184,7 @@ def test_auth_boundary(
             )
         assert request.url.path == "/rest/v1/users"
         assert request.url.params["id"] == f"eq.{user_id}"
-        return httpx.Response(200, json=[{"id": user_id}] if approved else [])
+        return httpx.Response(200, json=[{"id": user_id, "is_demo": False}] if approved else [])
 
     client_class = httpx.AsyncClient
     monkeypatch.setattr(
@@ -203,7 +203,7 @@ def test_auth_boundary(
     if token is None:
         assert requests == []
     if expected == 200:
-        assert response.json() == {"id": user_id, "email": "analyst@example.test"}
+        assert response.json() == {"id": user_id, "email": "analyst@example.test", "is_demo": False}
     else:
         assert token is None or token not in response.text
 

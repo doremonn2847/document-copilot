@@ -10,6 +10,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const [restored, setRestored] = useState(false)
   const [status, setStatus] = useState<AccessStatus>('loading')
   const [error, setError] = useState<string | null>(null)
+  const [isDemo, setIsDemo] = useState(false)
   const [revision, setRevision] = useState(0)
   const identity = useRef<string | null>(null)
   const approvedUser = useRef<string | null>(null)
@@ -22,7 +23,10 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       // Keep callbacks synchronous: Supabase holds its auth lock here.
       setSession(next)
       setRestored(true)
-      if (!next || next.user.id !== identity.current) setStatus(next ? 'loading' : 'signed-out')
+      if (!next || next.user.id !== identity.current) {
+        setStatus(next ? 'loading' : 'signed-out')
+        setIsDemo(false)
+      }
       identity.current = next?.user.id ?? null
       setError(null)
       if (next) setRevision((value) => value + 1)
@@ -44,19 +48,31 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!restored || !session) return
     const controller = new AbortController()
-    void api.get<unknown>('/auth/me', controller.signal).then((user) => {
+    async function approvedProfile() {
+      try { return await api.get<unknown>('/auth/me', controller.signal) }
+      catch (cause) {
+        if (!(cause instanceof ApiError) || cause.status !== 403 || !session!.user.is_anonymous) throw cause
+        await api.post('/auth/demo', undefined, controller.signal)
+        return api.get<unknown>('/auth/me', controller.signal)
+      }
+    }
+    void approvedProfile().then((user) => {
       if (controller.signal.aborted) return
       if (typeof user !== 'object' || user === null || !('id' in user) || !('email' in user)
-        || user.id !== session.user.id || typeof user.email !== 'string') {
+        || !('is_demo' in user) || typeof user.is_demo !== 'boolean'
+        || user.id !== session.user.id || user.is_demo !== Boolean(session.user.is_anonymous)
+        || (user.is_demo ? user.email !== null : typeof user.email !== 'string')) {
         throw new Error('Invalid authentication response')
       }
       approvedUser.current = session.user.id
+      setIsDemo(user.is_demo)
       setStatus('approved')
     }).catch((cause: unknown) => {
       if (controller.signal.aborted) return
       if (cause instanceof ApiError && cause.status === 403) {
         approvedUser.current = null
-        setStatus('pending')
+        setStatus(session.user.is_anonymous ? 'error' : 'pending')
+        if (session.user.is_anonymous) setError('The demo is unavailable. Try again later or sign in with an approved account.')
       } else if (cause instanceof ApiError && cause.status === 401) {
         approvedUser.current = null
         setSession(null)
@@ -76,7 +92,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   }, [session, restored, revision])
 
   return (
-    <AuthContext.Provider value={{ session, status, error, checkApproval: () => {
+    <AuthContext.Provider value={{ session, status, error, isDemo, checkApproval: () => {
       setStatus('loading')
       setError(null)
       setRevision((value) => value + 1)

@@ -1,3 +1,4 @@
+from decimal import Decimal
 from pathlib import Path
 from typing import Literal, Self
 
@@ -29,6 +30,12 @@ class Settings(BaseSettings):
     database_url: PostgresDsn = Field(repr=False)
     openai_api_key: SecretStr
     allowed_origins: str = Field(min_length=1)
+    demo_enabled: bool = False
+    demo_daily_budget_usd: Decimal = Field(
+        default=Decimal("1.00"), gt=0, le=1, decimal_places=6
+    )
+    demo_attempts_per_visitor: int = Field(default=3, gt=0, le=3)
+    demo_daily_admissions: int = Field(default=100, gt=0, le=100)
 
     openai_embedding_model: str = Field(default="text-embedding-3-small", min_length=1)
     openai_embedding_dimensions: int = Field(default=1536, gt=0)
@@ -88,6 +95,34 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_retrieval_limits(self) -> Self:
+        if self.demo_enabled:
+            from app.demo.pricing import CHAT_RATES
+
+            if any(
+                model not in CHAT_RATES
+                for model in (
+                    self.openai_chat_model,
+                    self.openai_grounding_model,
+                    self.openai_title_model,
+                    self.retrieval_fts_keyword_model,
+                )
+            ):
+                raise ValueError(
+                    "Public demo requires reviewed models and Standard pricing"
+                )
+            if (
+                self.openai_embedding_model != "text-embedding-3-small"
+                or self.openai_embedding_dimensions != 1536
+            ):
+                raise ValueError(
+                    "Public demo requires the indexed embedding model/dimensions"
+                )
+            if max(self.assistant_output_tokens, self.grounding_output_tokens) > 16384:
+                raise ValueError(
+                    "Public demo output cap exceeds the reviewed request boundary"
+                )
+            if self.assistant_deadline_seconds > 120:
+                raise ValueError("Public demo retains the 120-second answer deadline")
         gpt54_mini_selected = any(
             model == "gpt-5.4-mini" or model.startswith("gpt-5.4-mini-")
             for model in (self.openai_chat_model, self.openai_grounding_model)

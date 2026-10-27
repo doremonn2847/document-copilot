@@ -44,14 +44,41 @@ Install these before setting up `backend/` or `frontend/`:
 | ---- | ------- | -------- | ------- |
 | [Python](https://www.python.org/downloads/) | 3.12+ | Backend runtime | OS package manager or python.org |
 | [uv](https://docs.astral.sh/uv/getting-started/installation/) | latest | Backend deps + `data/download.py` | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-| [Node.js](https://nodejs.org/) | 20+ (LTS) | Frontend toolchain | nodejs.org or `nvm install --lts` |
+| [Node.js](https://nodejs.org/) | 22.12+ (supported LTS) | Frontend toolchain | nodejs.org or `nvm install --lts` |
 | [pnpm](https://pnpm.io/installation) | latest | Frontend package manager | `corepack enable && corepack prepare pnpm@latest --activate` |
 
 You also need accounts/keys for external services once the app is wired up. Start with [docs/guides/supabase-setup.md](docs/guides/supabase-setup.md) (account + project), then create an [OpenAI API key](https://platform.openai.com/api-keys) when the LLM layer is wired up.
 
 ## Running locally
 
-To be added during the build. Setup guides:
+Copy each service's `.env.example` to `.env` only if it does not already exist,
+then configure credentials privately. Do not overwrite an existing environment.
+Run the services in separate terminals:
+
+```powershell
+# Terminal 1, from backend/
+uv sync --locked
+uv run --locked python -m uvicorn app.main:app --reload --port 8001
+
+# Terminal 2, from frontend/
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Open http://localhost:5173. New users confirm their email, then require approval
+with `uv run --locked python -m app.database.approve_user <auth-user-uuid>` from
+`backend/`. The app uses real retrieval and grounded answers, not stub replies.
+
+Current scope: the owner accepted a five-company, 25-filing 10-K pilot. Phases
+6–8 were accepted with documented answer-quality limitations. Hosted acceptance
+and the owner-timed stand-in pilot are separate gates.
+
+- [AI handoff](docs/AI_HANDOFF.md) — current architecture and accepted decisions
+- [Delivery status](docs/operations/delivery-status.md) — verified deployment steps and remaining owner/live checks
+- [Operations runbook](docs/operations/runbook.md)
+- [Stand-in pilot](docs/pilot/pilot-plan.md) — six matched task pairs and measurement rules
+
+Setup guides:
 
 - [Supabase](docs/guides/supabase-setup.md) — account, hosted project (dashboard or CLI)
 - [Backend](docs/guides/backend-setup.md)
@@ -66,5 +93,7 @@ Edit the params at the top of `data/download.py`, especially `USER_AGENT`, then 
 uv run data/download.py
 ```
 
-By default this downloads the latest 5 10-K filings for AAPL, MSFT, NVDA, AMZN, and GOOGL into year folders under `data/downloads/` and writes a `manifest.json`.
+The downloader targets corpus years 2021–2025 for AAPL, MSFT, NVDA, AMZN, and GOOGL
+under `data/downloads/` and writes a `manifest.json`. Deployment reuses the
+already-indexed corpus; do not download or re-embed it just to deploy.
 Downloaded files are gitignored; the `data/` folder itself stays in git for the script and notes.

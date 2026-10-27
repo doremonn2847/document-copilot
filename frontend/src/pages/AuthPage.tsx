@@ -5,12 +5,28 @@ import AuthLayout from '@/components/AuthLayout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useAuth } from '@/lib/auth'
 
 export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
   const signup = mode === 'signup'
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
+  const { checkApproval } = useAuth()
+
+  async function tryDemo() {
+    setBusy(true); setError(null)
+    try {
+      const { data, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError) throw sessionError
+      // Never replace a registered session with a guest identity.
+      if (data.session) { checkApproval(); return }
+      const { error: signInError } = await supabase.auth.signInAnonymously()
+      if (signInError) throw signInError
+    } catch {
+      setError('The demo is currently unavailable. Try again later or use an approved account.')
+    } finally { setBusy(false) }
+  }
 
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -57,6 +73,10 @@ export default function AuthPage({ mode }: { mode: 'login' | 'signup' }) {
   return (
     <AuthLayout title={signup ? 'Create your account' : 'Sign in'}>
       <p className="text-muted-foreground">{signup ? 'Confirm your email, then wait for an administrator to approve your access.' : 'Access your documents and private conversations.'}</p>
+      {!signup && <div className="space-y-2 rounded-md border p-4">
+        <Button type="button" variant="outline" className="w-full" disabled={busy} onClick={() => void tryDemo()}>Try demo</Button>
+        <p className="text-sm text-muted-foreground">No account needed. Up to 3 generated attempts per browser identity, subject to shared daily availability. Stopped or failed generations can use an attempt.</p>
+      </div>}
       <form onSubmit={(event) => void submit(event)} className="space-y-5" aria-busy={busy}>
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>

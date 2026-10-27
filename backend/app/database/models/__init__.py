@@ -2,6 +2,12 @@ from app.database.base import Base
 from app.database.models.chat_message import ChatMessage
 from app.database.models.chat_thread import ChatThread
 from app.database.models.constants import EMBEDDING_DIMENSIONS
+from app.database.models.demo import (
+    demo_attempts,
+    demo_budget_days,
+    demo_model_requests,
+    demo_visitors,
+)
 from app.database.models.document_chunk import DocumentChunk
 from app.database.models.message_citation import MessageCitation
 from app.database.models.message_feedback import MessageFeedback
@@ -20,4 +26,8 @@ __all__ = [
     "MessageRole",
     "SourceDocument",
     "User",
+    "demo_attempts",
+    "demo_budget_days",
+    "demo_model_requests",
+    "demo_visitors",
 ]

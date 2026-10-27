@@ -59,6 +59,7 @@ REPLY_CHARS = 600
 QUESTION_CHARS = 1000
 HISTORY_MESSAGES = 6
 HISTORY_CHARS = 1500
+TRIAGE_OUTPUT_TOKENS = 1500
 NUMBER = re.compile(r"\d")
 URL = re.compile(r"https?://|www\.", re.IGNORECASE)
 COMPANY = re.compile("|".join(COMPANIES.values()), re.IGNORECASE)
@@ -83,7 +84,9 @@ def build_triage_agent(settings, client: AsyncOpenAI) -> Agent[None, Triage]:
         retries={"output": 1, "tools": 0},
         # Low reasoning: with none, live rewrites dropped the topic of the
         # previous question ("What does Amazon say in its 2025 corpus filing?").
-        model_settings=bounded_settings(settings.openai_chat_model, 1500, "low"),
+        model_settings=bounded_settings(
+            settings.openai_chat_model, TRIAGE_OUTPUT_TOKENS, "low"
+        ),
         instructions=INSTRUCTIONS,
     )
 

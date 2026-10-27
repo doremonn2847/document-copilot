@@ -13,6 +13,17 @@ export class ApiError extends Error {
   }
 }
 
+async function responseError(response: Response): Promise<ApiError> {
+  try {
+    const body: unknown = await response.json()
+    if (typeof body === 'object' && body && 'detail' in body
+      && typeof body.detail === 'object' && body.detail && 'code' in body.detail && body.detail.code === 'demo_limit') {
+      return new ApiError('Demo allowance is unavailable. Check the demo banner for your remaining attempts and daily reset.', response.status)
+    }
+  } catch { /* Keep malformed responses behind the generic error boundary. */ }
+  return new ApiError(`The server returned HTTP ${response.status}.`, response.status)
+}
+
 async function sessionHeaders(): Promise<Headers> {
   const { data, error } = await supabase.auth.getSession()
   if (error) throw new ApiError('Your session could not be restored. Sign in again.', 401)
@@ -40,7 +51,7 @@ export async function request<T>(method: string, path: string, body?: unknown, s
       : 'Cannot reach the server. Check your connection and try again.')
   }
   if (!response.ok) {
-    throw new ApiError(`The server returned HTTP ${response.status}.`, response.status)
+    throw await responseError(response)
   }
   if (response.status === 204) return undefined as T
   try {
@@ -61,6 +72,6 @@ export async function streamFetch(input: RequestInfo | URL, init?: RequestInit):
     if (init?.signal?.aborted) throw cause
     throw new ApiError('Cannot reach the server. Check your connection and retry.')
   }
-  if (!response.ok) throw new ApiError(`The server returned HTTP ${response.status}.`, response.status)
+  if (!response.ok) throw await responseError(response)
   return response
 }

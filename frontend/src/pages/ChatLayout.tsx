@@ -3,6 +3,7 @@ import { Outlet, useMatch } from 'react-router-dom'
 import ThreadSidebar from '@/components/chat/ThreadSidebar'
 import ChatThreadPage from '@/pages/ChatThreadPage'
 import { useAuth } from '@/lib/auth'
+import DemoBanner from '@/components/chat/DemoBanner'
 
 export default function ChatLayout() {
   const { session } = useAuth()
@@ -10,6 +11,7 @@ export default function ChatLayout() {
 }
 
 function Workspace() {
+  const { isDemo } = useAuth()
   const threadId = useMatch('/chats/:threadId')?.params.threadId
   const [revision, setRevision] = useState(0)
   const [previousThreadId, setPreviousThreadId] = useState(threadId)
@@ -33,11 +35,14 @@ function Workspace() {
   return (
     <div className="flex h-dvh flex-col bg-background text-foreground md:flex-row">
       <ThreadSidebar revision={revision} />
-      <main className="min-h-0 min-w-0 flex-1">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col">
+        {isDemo && <DemoBanner revision={revision} />}
+        <div className="min-h-0 flex-1">
         {sessions.map((item) => <div key={item.id} hidden={item.id !== threadId} className="h-full">
           <ChatThreadPage threadId={item.id} active={item.id === threadId} onSaved={onSaved} onPendingChange={onPendingChange} />
         </div>)}
         {!threadId && <Outlet />}
+        </div>
       </main>
     </div>
   )

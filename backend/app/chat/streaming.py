@@ -15,6 +15,8 @@ from app.chat.orchestrator import AssistantFailure, GroundingRejected, generate_
 from app.chat.titles import summarize_title
 from app.config import settings
 from app.database import chats
+from app.demo.client import DemoAttempt, current_attempt
+from app.demo.errors import DemoUnavailable
 
 logger = structlog.get_logger()
 
@@ -48,10 +50,12 @@ async def stream_turn(
     existing_answer: AcceptedReply | None,
     *,
     user_id: UUID,
+    demo_attempt: DemoAttempt | None = None,
 ) -> AsyncIterator[str]:
     committed = False
     task = None
     title_task = None
+    token = current_attempt.set(demo_attempt)
     try:
         yield event({"type": "start", "messageId": str(assistant_message_id)})
         yield event({"type": "start-step"})
@@ -141,6 +145,10 @@ async def stream_turn(
                 if isinstance(error, psycopg.Error)
                 else "grounding"
                 if isinstance(error, GroundingRejected)
+                else "demo_unavailable"
+                if isinstance(error, DemoUnavailable) and error.reason == "unavailable"
+                else "demo_limit"
+                if isinstance(error, DemoUnavailable)
                 else "budget"
                 if isinstance(error, BudgetExceeded)
                 else "timeout"
@@ -150,6 +158,8 @@ async def stream_turn(
         )
         logger.warning("chat_turn_failed", thread_id=str(thread_id), category=category)
         messages = {
+            "demo_limit": "Demo allowance is unavailable. Check the demo banner for your remaining attempts and daily reset.",
+            "demo_unavailable": "The demo is temporarily unavailable. Your saved conversations remain accessible.",
             "persistence": "The reply could not be saved. Retry your question.",
             "grounding": "The answer could not be verified against its sources. Try a narrower question.",
             "budget": "The evidence budget was exhausted. Try a narrower question.",
@@ -169,3 +179,10 @@ async def stream_turn(
         if not committed:
             with CancelScope(shield=True):
                 await run_in_threadpool(connection.rollback)
+        if demo_attempt is not None:
+            with CancelScope(shield=True):
+                try:
+                    await demo_attempt.store.finish(demo_attempt.id)
+                except DemoUnavailable:
+                    logger.warning("demo_lease_release_failed")
+        current_attempt.reset(token)

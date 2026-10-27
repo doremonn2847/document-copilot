@@ -8,6 +8,13 @@ Build both sides in small connected steps. Do not finish the entire backend befo
 trying it from the browser. Each milestone below has an observable completion gate.
 Mark a task complete only after checking its result.
 
+**Current delivery checkpoint (2026-10-24):** phases 6–8 were accepted; phase 9
+is provisionally closed for the one-person pilot with documented limitations. The
+older dated phase-6 failures below are retained history, not the current gate.
+The owner chose delivery first, reuse of the existing Supabase project, the
+120-second deadline, and a single-person stand-in pilot. Current deployment and
+owner/live gates are tracked in [delivery status](operations/delivery-status.md).
+
 References: [client brief](client-brief.md), [architecture](architecture.md),
 [backend setup](guides/backend-setup.md), [frontend setup](guides/frontend-setup.md).
 
@@ -45,7 +52,7 @@ References: [client brief](client-brief.md), [architecture](architecture.md),
 - [x] Apply migrations to a fresh development database and verify they reproduce the expected schema.
 - [x] Verify Supabase bearer tokens in FastAPI and derive identity from the verified session.
 - [x] Test missing/expired/invalid tokens and unapproved users with mocked Auth responses; verify cross-user isolation and database permissions against live Supabase with two temporary database identities (all fixtures rolled back).
-- [ ] Verify real invited-user sign-in and `/auth/me` with two actual Supabase sessions; confirm an account without an approved profile receives 403. This remains necessary before declaring the milestone gate complete.
+- [x] Verify real approved-user access with two actual Supabase sessions and refusal for an unapproved profile. Superseded by the owner’s two-approved/one-unapproved browser check on 2026-10-23 (phase-8 results); invitation alone does not set a password. Hosted verification remains in phase 9.
 
 **Gate:** An approved user can authenticate; another user cannot read or modify their conversations.
 
@@ -61,9 +68,9 @@ References: [client brief](client-brief.md), [architecture](architecture.md),
 - [x] Add backend endpoints to create/list threads and read ordered message history; enforce verified-user ownership on every operation. Verified with unit tests and live SQL/API checks using temporary identities (fixtures rolled back).
 - [x] Add `POST /chat/stream` with a deterministic test response in the installed AI SDK 7 UI-message protocol; verify using its actual transport/parser. Save completed turns atomically, roll back interrupted turns, and replay completed retries without duplication.
 - [x] Connect a minimal chat screen, input, message list, and thread sidebar to FastAPI using the AI SDK React primitives. TypeScript, lint, and production build pass; actual browser flow remains part of the gate below.
-- [ ] Persist completed test turns and restore them after page reload. Define failure/cancellation behavior so partial answers are never stored as successful turns.
-- [x] Implemented backend atomic persistence and frontend history/Stop/Retry with stable question IDs. Browser send → reload → Stop → Retry verification remains pending.
-- [ ] Verify invalid payloads, unknown threads, forbidden threads, upstream failures, and interrupted streams are handled clearly.
+- [x] Persist completed turns and restore them after page reload; interrupted replies remain provisional. Verified in the owner’s phase-6/7 browser acceptance (2026-10-19/22), now using grounded answers rather than the original test stub.
+- [x] Implemented backend atomic persistence and frontend history/Stop/Retry with stable question IDs. Browser send → reload → Stop → Retry was accepted in the owner’s phase-6/7 review; repeat on the hosted app in phase 9.
+- [x] Verify local invalid-payload/ownership failures with backend tests and browser interruption/recovery with the owner’s phase-6/7 review. Hosted equivalents remain phase-9 gates.
 
 **Gate:** Log in → create a chat → see a streamed test answer → reload and recover history → log out. This milestone does not yet use the LLM.
 
@@ -258,24 +265,37 @@ financial comparisons checked, corpus scope decided (current five companies),
 two-account confidentiality check passed. Details in
 [phase-8 results](evaluations/phase-8-results.md).
 
-## 9. Deploy and prepare operations
+## 9. Deploy and prepare operations — provisionally closed (2026-10-24)
 
-Status 2026-10-22: deployment config (Dockerfiles, railway.json, Caddy SPA
-fallback), per-user limits, transaction-pooler support, the env push script
-and the [runbook](operations/runbook.md) are done. Railway project creation is
-blocked by Railway's platform outage (builds paused for Hobby/Free/Trial
-after a security incident); deploy when it is resolved (runbook section 2).
+Owner decision 2026-10-24: provisionally close for the one-person pilot. Final
+feature checks and spending controls pass per owner report. Backup/restore and
+hosted capacity checks are explicitly deferred; rollback remains untested. This
+does not establish full production or 40-user readiness.
 
-- [ ] Create Railway frontend and backend services; configure production build/start commands, health checks, and HTTPS URLs.
-- [ ] Configure production secrets, exact CORS origins, and Supabase email confirmation/redirect URLs.
-- [ ] Apply reviewed migrations using the correct connection mode and ingest the agreed corpus into the production database.
-- [ ] Verify SPA route fallback and streamed responses through the deployed hosting stack.
-- [ ] Add practical per-user request/concurrency limits, upstream timeouts, and provider spending alerts for the expected roughly 40 analysts plus partners. (2026-10-22: per-user limits (2 in progress, 60/hour) and the 120 s answer deadline are in code; Railway and OpenAI spending alerts are owner account settings, see runbook section 2.)
-- [ ] Measure concurrent usage on the chosen small/medium hosting footprint and agree acceptable answer latency before rollout. (2026-10-22, local: 12 simultaneous answers pass in 16–35 s on Supabase's transaction pooler, 6 of 12 fail on the session pooler; see runbook 3a. Repeat on Railway after deploy; latency target still to agree with the client.)
-- [x] Document logs, troubleshooting, corpus updates, backup/restore, and application rollback; verify conversation history survives a backend restart. ([runbook](operations/runbook.md); history verified across 2026-10-21/22 restarts.)
-- [ ] Run backend unit tests and relevant integration checks, frontend checks/build, and the full deployed login → question → citation → history flow.
+Preparation status 2026-10-23: deployment config, per-user limits, transaction-pooler support
+and the runbook already exist. Local production images pass health/auth/SPA/cache
+checks. The read-only shared-database inventory is at migration head with 25
+complete filings and 5,396 chunks; no migration or re-embedding was needed.
+The owner explicitly authorized deployment after the current platform report:
+builds resumed but the security incident still showed Identified. The Railway
+project, services and domains are live over HTTPS; health, unauthenticated
+rejection, SPA reload, CORS, caching and bundle/log sample checks passed on
+2026-10-24. **Publication is not full hosted acceptance.** See
+[delivery status](operations/delivery-status.md) for actual health and owner gates.
 
-**Gate:** Approved analysts can use the hosted app reliably, and one developer can maintain it using the runbook.
+- [x] Create Railway frontend and backend services; configure production build/start commands, health checks, and HTTPS URLs. (Final configured deployments SUCCESS on 2026-10-24; one replica each, backend `/health`, frontend `/`, timeout 60 s, five restart retries; public HTTPS 200.)
+- [x] Configure production secrets, exact CORS origins, and Supabase email confirmation/redirect URLs. (Runtime secrets and exact CORS verified 2026-10-24; hosted Site URL/callback and both localhost redirects saved in the dashboard that day. End-to-end email/callback behavior remains a hosted acceptance check.)
+- [x] Verify the reused Supabase database is already at both committed migrations and contains the agreed complete corpus (approved read-only check, 2026-10-23). No duplicate ingestion, re-embedding or database write was performed. Future pending migrations still require review and a backup.
+- [x] Verify SPA route fallback and streamed responses through the deployed hosting stack. (Hosted SPA fallback checked directly; owner reports progress, completed answer/citations and reload persistence passed 2026-10-24.)
+- [x] Add practical per-user limits, upstream timeouts and spending controls. (Per-user limits: 2 in progress, 60/hour; deadline: 120 s. Owner reports Railway/OpenAI spending-control checks pass on 2026-10-24; exact thresholds were not independently read back. This is not 40-user capacity evidence.)
+- **Deferred by owner (2026-10-24):** hosted six/twelve-turn capacity tests for the one-person pilot. Local transaction-pooler results remain historical; no hosted capacity or stronger latency promise is established.
+- [x] Document logs, troubleshooting, corpus updates, backup/restore, and application rollback; verify conversation history survives a backend restart. ([runbook](operations/runbook.md); local history verified across 2026-10-21/22 restarts. Owner reports hosted restart/history recovery passed 2026-10-24; rollback drill remains open in [delivery status](operations/delivery-status.md).)
+- [x] Run backend unit tests and relevant integration checks, frontend checks/build, and the full deployed login → question → citation → history flow. (477 offline backend tests pass, 15 automated integration tests excluded; frontend checks/build pass. Owner reports hosted question/citations/reload, two-account isolation, unapproved-account refusal and restart/history recovery passed 2026-10-24. Remaining hosted feature and capacity checks stay in [delivery status](operations/delivery-status.md).)
+
+**Gate status:** provisionally closed for the one-person pilot by owner acceptance,
+with the recorded backup/restore, hosted-capacity and rollback limitations. The
+original broader rollout gate is not claimed complete. See
+[delivery status](operations/delivery-status.md) for evidence and deferred work.
 
 ## 10. Pilot and definition of done
 
@@ -285,8 +305,19 @@ and [answer-issue log](pilot/answer-issues.csv), and
 [corpus scope options](guides/corpus-scope-options.md) for the client decision.
 
 Owner decision 2026-10-22: run phase 10 as a **stand-in pilot** with the owner
-as the single analyst (an agent prepares the scheme); see the pilot plan's
-stand-in section. Results count as a stand-in estimate, not client acceptance.
+as the single analyst. The [scheme](pilot/pilot-plan.md) now contains six matched
+task pairs, counterbalanced order, evidence/completion requirements, familiarity
+exclusions, separate trust checks, real CSV logging rules and a seven-day schedule
+activated only after hosted gates and owner start confirmation. Results count
+as a stand-in estimate, not client acceptance. No human timings/results exist yet.
+
+- [x] Prepare the owner stand-in scheme using existing logs and feedback.
+- [x] Owner provisionally accepts hosted delivery and reports spending controls pass (2026-10-24), with the phase-9 limitations recorded.
+- [ ] Owner confirms the start week and performs real timed tasks.
+- [ ] Analyze actual observed-week logs, including failures, negative savings and unmeasurable burden; report met/unmet/insufficient evidence against three hours without extrapolation.
+
+The original five-analyst client delivery criteria below remain separate; they
+are not claimed complete by a one-person tutorial pilot:
 
 - [ ] Recruit five senior analysts and capture their baseline time spent on comparable document-intake tasks.
 - [ ] Run the pilot for one week; record usage, time saved, incorrect/unsupported answers, citation problems, and feedback.

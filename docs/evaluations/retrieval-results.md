@@ -6,11 +6,10 @@ Offline suite: **89 passed**. Marked live retrieval checks: **6 passed**. Indepe
 
 This is a diagnostic worksheet, not labeled ground truth. Candidate coverage does not prove relevance or answer sufficiency. Semantic-only and FTS-only top IDs, fused scores, full passages, neighbors, warnings, usage and timings are in the ignored `data/chunks/retrieval/client-questions.json` report. No NDCG/recall improvement is claimed.
 
-Owner review (2026-10-18): the owner accepted this complete ten-question
-retrieval worksheet, in addition to the Azure lookup and Apple comparison in
-[the evidence review](retrieval-evidence-review.md). Phase-5 evidence review is
-complete. Individual relevance labels were not separately annotated, so this
-acceptance does not create labeled benchmark data or establish answer accuracy.
+Owner review (2026-10-18): the Azure lookup and Apple supplier/manufacturing
+comparison examples were accepted in [the evidence review](retrieval-evidence-review.md).
+This passes the phase-5 sample review gate. The ten full questions below still
+need their own relevance judgments; the Apple example covers only part of Q07.
 
 | Case | Company/corpus-year targets | Targets with candidates | Targets with FTS hits | Keyword status | First candidate ID (not a relevance label) |
 |---|---:|---:|---:|---|---|
@@ -25,7 +24,7 @@ acceptance does not create labeled benchmark data or establish answer accuracy.
 | Q09 | 5 | 5 | 0 | available | `2f11a8dd-73d2-5551-a514-990f5a437d3a` |
 | Q10 | 25 | 25 | 0 | available | `91b34bcd-769c-5c70-bc86-c607e7881577` |
 
-## Observations and known limitations
+## Observations and remaining judgments
 
 - Matching passages were returned for every requested target. This confirms filter/group plumbing, not that every question facet is covered.
 - Broad AND-based lexical queries still have zero hits for some targets. A successful empty lexical branch is distinct from failed keyword extraction; both are visible in the report.
@@ -44,7 +43,7 @@ Across Apple's 2021–2025 10-Ks, how did the revenue mix between iPhone, Servic
 
 Explicit targets: AAPL:2021, AAPL:2022, AAPL:2023, AAPL:2024, AAPL:2025.
 
-- Relevant chunk IDs: not separately annotated; candidate IDs are retained in the JSON report.
+- Relevant chunk IDs: pending evidence judgment (candidate IDs are in the JSON report).
 - Missing evidence / noise: inspect the separate branch rankings and the full passage text; do not judge solely from clipped excerpts.
 - Owner acceptance: accepted.
 
@@ -54,7 +53,7 @@ For Amazon, compare AWS operating income and margin against North America and In
 
 Explicit targets: AMZN:2021, AMZN:2022, AMZN:2023, AMZN:2024, AMZN:2025.
 
-- Relevant chunk IDs: not separately annotated; candidate IDs are retained in the JSON report.
+- Relevant chunk IDs: pending evidence judgment (candidate IDs are in the JSON report).
 - Missing evidence / noise: inspect the separate branch rankings and the full passage text; do not judge solely from clipped excerpts.
 - Owner acceptance: accepted.
 
@@ -64,7 +63,7 @@ How did NVIDIA describe demand drivers, customer concentration, and supply const
 
 Explicit targets: NVDA:2021, NVDA:2022, NVDA:2023, NVDA:2024, NVDA:2025.
 
-- Relevant chunk IDs: not separately annotated; candidate IDs are retained in the JSON report.
+- Relevant chunk IDs: pending evidence judgment (candidate IDs are in the JSON report).
 - Missing evidence / noise: inspect the separate branch rankings and the full passage text; do not judge solely from clipped excerpts.
 - Owner acceptance: accepted.
 
@@ -74,7 +73,7 @@ Across Microsoft's 2021–2025 filings, what changed in the way the company desc
 
 Explicit targets: MSFT:2021, MSFT:2022, MSFT:2023, MSFT:2024, MSFT:2025.
 
-- Relevant chunk IDs: not separately annotated; candidate IDs are retained in the JSON report.
+- Relevant chunk IDs: pending evidence judgment (candidate IDs are in the JSON report).
 - Missing evidence / noise: inspect the separate branch rankings and the full passage text; do not judge solely from clipped excerpts.
 - Owner acceptance: accepted.
 
@@ -84,7 +83,7 @@ For Alphabet, how did Google Search, YouTube ads, Google Network, subscriptions/
 
 Explicit targets: GOOGL:2021, GOOGL:2022, GOOGL:2023, GOOGL:2024, GOOGL:2025.
 
-- Relevant chunk IDs: not separately annotated; candidate IDs are retained in the JSON report.
+- Relevant chunk IDs: pending evidence judgment (candidate IDs are in the JSON report).
 - Missing evidence / noise: inspect the separate branch rankings and the full passage text; do not judge solely from clipped excerpts.
 - Owner acceptance: accepted.
 
@@ -94,7 +93,7 @@ Which of the five companies added, removed, or materially changed risk-factor la
 
 Explicit targets: AAPL:2021, AAPL:2022, AAPL:2023, AAPL:2024, AAPL:2025, AMZN:2021, AMZN:2022, AMZN:2023, AMZN:2024, AMZN:2025, NVDA:2021, NVDA:2022, NVDA:2023, NVDA:2024, NVDA:2025, MSFT:2021, MSFT:2022, MSFT:2023, MSFT:2024, MSFT:2025, GOOGL:2021, GOOGL:2022, GOOGL:2023, GOOGL:2024, GOOGL:2025.
 
-- Relevant chunk IDs: not separately annotated; candidate IDs are retained in the JSON report.
+- Relevant chunk IDs: pending evidence judgment (candidate IDs are in the JSON report).
 - Missing evidence / noise: inspect the separate branch rankings and the full passage text; do not judge solely from clipped excerpts.
 - Owner acceptance: accepted.
 
@@ -104,7 +103,7 @@ For Apple and NVIDIA, what do the filings say about supplier concentration or de
 
 Explicit targets: AAPL:2021, AAPL:2022, AAPL:2023, AAPL:2024, AAPL:2025, NVDA:2021, NVDA:2022, NVDA:2023, NVDA:2024, NVDA:2025.
 
-- Relevant chunk IDs: not separately annotated; candidate IDs are retained in the JSON report.
+- Relevant chunk IDs: pending evidence judgment (candidate IDs are in the JSON report).
 - Missing evidence / noise: inspect the separate branch rankings and the full passage text; do not judge solely from clipped excerpts.
 - Owner acceptance: accepted.
 
@@ -114,7 +113,7 @@ Compare capital expenditures and purchase commitments for Microsoft, Alphabet, A
 
 Explicit targets: MSFT:2021, MSFT:2022, MSFT:2023, MSFT:2024, MSFT:2025, GOOGL:2021, GOOGL:2022, GOOGL:2023, GOOGL:2024, GOOGL:2025, AMZN:2021, AMZN:2022, AMZN:2023, AMZN:2024, AMZN:2025, NVDA:2021, NVDA:2022, NVDA:2023, NVDA:2024, NVDA:2025.
 
-- Relevant chunk IDs: not separately annotated; candidate IDs are retained in the JSON report.
+- Relevant chunk IDs: pending evidence judgment (candidate IDs are in the JSON report).
 - Missing evidence / noise: inspect the separate branch rankings and the full passage text; do not judge solely from clipped excerpts.
 - Owner acceptance: accepted.
 
@@ -124,7 +123,7 @@ For each company, summarize the most important geographic revenue exposures disc
 
 Explicit targets: AAPL:2025, AMZN:2025, NVDA:2025, MSFT:2025, GOOGL:2025.
 
-- Relevant chunk IDs: not separately annotated; candidate IDs are retained in the JSON report.
+- Relevant chunk IDs: pending evidence judgment (candidate IDs are in the JSON report).
 - Missing evidence / noise: inspect the separate branch rankings and the full passage text; do not judge solely from clipped excerpts.
 - Owner acceptance: accepted.
 
@@ -134,6 +133,6 @@ If an analyst asks whether the filings prove that generative AI improved margins
 
 Explicit targets: AAPL:2021, AAPL:2022, AAPL:2023, AAPL:2024, AAPL:2025, AMZN:2021, AMZN:2022, AMZN:2023, AMZN:2024, AMZN:2025, NVDA:2021, NVDA:2022, NVDA:2023, NVDA:2024, NVDA:2025, MSFT:2021, MSFT:2022, MSFT:2023, MSFT:2024, MSFT:2025, GOOGL:2021, GOOGL:2022, GOOGL:2023, GOOGL:2024, GOOGL:2025.
 
-- Relevant chunk IDs: not separately annotated; candidate IDs are retained in the JSON report.
+- Relevant chunk IDs: pending evidence judgment (candidate IDs are in the JSON report).
 - Missing evidence / noise: inspect the separate branch rankings and the full passage text; do not judge solely from clipped excerpts.
 - Owner acceptance: accepted.

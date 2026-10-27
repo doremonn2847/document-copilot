@@ -16,6 +16,7 @@ from pydantic_ai.usage import UsageLimits
 
 from app.assistant.model_settings import bounded_settings
 from app.config import settings
+from app.demo.client import demo_client_options
 
 logger = structlog.get_logger()
 
@@ -35,6 +36,7 @@ def clean_title(text: str) -> str | None:
 async def summarize_title(question: str) -> str | None:
     try:
         async with AsyncOpenAI(
+            **demo_client_options(),
             api_key=settings.openai_api_key.get_secret_value(),
             max_retries=0,
             timeout=15,

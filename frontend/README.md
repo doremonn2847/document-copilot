@@ -31,7 +31,7 @@ browser origin matches the backend CORS configuration.
 - `/pending-approval`: signed-in users without an approved profile wait here.
 - `/`: redirects approved users to `/chats`.
 - `/chats`: unsaved new-chat draft and private conversation sidebar.
-- `/chats/:threadId`: saved history, streamed test replies, Stop and Retry.
+- `/chats/:threadId`: saved history, validated filing answers and sources, Stop and Retry.
 
 In Supabase, enable new-user signups and email confirmation, set the Site URL
 to `http://localhost:5173`, and allow `http://localhost:5173/auth/callback`
@@ -57,7 +57,8 @@ confirmation link, and the retry screen with FastAPI stopped.
 New chat creates no database row until the first send. Completed question/reply
 pairs are saved together; interrupted text remains provisional. Retry keeps the
 same question ID so a reply committed just before a connection loss is replayed
-without duplication. Leaving a conversation stops its active request. Empty
+without duplication. Switching conversations keeps active/retryable views mounted;
+explicit Stop or page unload can cancel the request. Empty
 threads created by failed first sends remain available for another attempt.
 
 Submitted questions and their retry IDs remain in account-scoped tab session
@@ -68,9 +69,16 @@ The first send stores a recovery record before creating the thread. An immediate
 reload on `/chats` shows Retry question; retries reuse the same thread ID and
 cannot create duplicate threads. Also test this with browser network throttling.
 
-With both services running, send a question, watch the test reply stream, reload,
+With both services running, send a question, watch progress and the validated reply, reload,
 and reopen the conversation from the sidebar. Stop a second reply and retry it;
 reload to check there is one completed pair. Check another approved account cannot
 open the first account's thread URL. The developer confirmed reload/retry recovery,
-including immediate reload after first send. Explicit Stop and cross-account
-browser checks remain pending.
+including immediate reload after first send. Local browser behavior was accepted
+in the phase-7 review (2026-10-22), and the two-approved-account/one-unapproved-account
+confidentiality check passed on 2026-10-23. Repeat those checks on Railway before
+closing hosted acceptance.
+
+The UI includes per-claim source opening, copy with sources, feedback, generated
+titles, rename/delete/title search, and conversational follow-ups. See the
+[usage guide](../docs/pilot/usage-guide.md). Do not add a frontend test runner;
+use type/lint/build checks plus manual browser verification.

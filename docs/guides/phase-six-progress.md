@@ -1,5 +1,11 @@
 # Phase six execution record
 
+Current-state note (2026-10-23): this is a historical execution log. The owner
+accepted phase 6 on 2026-10-22 with facts-only comparisons and known limitations;
+phase 8 is also closed. See [phase-8 results](../evaluations/phase-8-results.md)
+and [delivery status](../operations/delivery-status.md). Earlier OPEN labels below
+describe their original checkpoints and must not reopen the accepted gate.
+
 Plan: [grounded answers](phase-six-grounded-answers-plan.md).
 
 ## Current gate status (2026-10-20)

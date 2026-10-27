@@ -87,6 +87,8 @@ export function firstMessage(value: unknown): FirstMessage | null {
 
 export function chatError(error: unknown): string {
   const safeStreamErrors = [
+    'Demo allowance is unavailable. Check the demo banner for your remaining attempts and daily reset.',
+    'The demo is temporarily unavailable. Your saved conversations remain accessible.',
     'The reply could not be saved. Retry your question.',
     'The answer could not be verified against its sources. Try a narrower question.',
     'The evidence budget was exhausted. Try a narrower question.',

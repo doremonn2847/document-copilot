@@ -53,8 +53,10 @@ retrieval. Guided judging requires one verdict per server-owned claim/gap key;
 the backend assigns decision indices. Offline tests
 cover actual SDK planning/writer handoff, invalid plans/IDs, gap-only judging,
 request provenance, coverage, shared repair and fail-closed behavior. Live
-quality/latency confirmation is still required. The one approved diagnostic
-failed; subsequent observer and contract fixes have only offline verification.
+The older diagnostics failed, but later facts-only comparison checks and owner
+review passed; phases 6–8 were accepted with documented coverage/judge limitations.
+See `docs/evaluations/phase-8-results.md` for current quality evidence and
+`docs/operations/delivery-status.md` for remaining hosted verification.
 
 Outside guided comparisons, cross-company interpretations are checked during
 final submission as well as final structural validation. If their own citations omit a named company,
