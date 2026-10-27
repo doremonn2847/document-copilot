@@ -1,7 +1,9 @@
 # Public demo
 
 Local implementation of the approved [design](../../../docs/superpowers/specs/2026-10-27-public-demo-design.md).
-**Disabled by default; not deployed or verified against a real database.**
+**Deployed with demo disabled on 2026-10-27.** Migration and private-ledger catalog
+checks passed; real guest/concurrency/provider checks remain pending. See the
+[release evidence](../../../docs/operations/release-2026-10-27.md).
 
 Visitors use Supabase anonymous sessions and server-admitted `users.is_demo`
 profiles. Email signup still requires administrator approval. Backend auth checks

@@ -1,9 +1,11 @@
 # Public Try demo: proposed design
 
-Date: 2026-10-27 (Asia/Bangkok). Status: **owner approved; implemented and checked offline; live rollout pending**.
+Date: 2026-10-27 (Asia/Bangkok). Status: **owner approved; migrated and deployed disabled; public enablement checks pending**.
 The owner requested anonymous full-function demo access and selected a **$1/day
 shared OpenAI ceiling**. Three generated attempts per visitor is the proposed
-starting allowance, now approved. Hosted settings and database remain unchanged.
+starting allowance, now approved. The later owner-authorized release applied the
+additive migration and deployed both services with demo disabled; see
+[release evidence](../../operations/release-2026-10-27.md).
 
 ## Purpose and scope
 

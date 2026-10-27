@@ -146,6 +146,6 @@ Durability ordering and commit failure behavior are covered by unit tests.
 
 ## Public demo implementation
 
-Anonymous Try demo access is implemented locally and disabled by default. Read
+Anonymous Try demo code is deployed with access disabled by default. Read
 [the demo setup and rollout notes](app/demo/README.md) before enabling it or
 applying migration `d90e7c5a2101`. Registered-account approval remains required.
